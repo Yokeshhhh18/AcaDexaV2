@@ -1,0 +1,12 @@
+{
+  "name": "acadexa-scheduler",
+  "version": "1.0.0",
+  "description": "A smart scheduling platform for educational institutions.",
+  "main": "index.html",
+  "scripts": {
+    "dev": "tailwindcss -i ./src/input.css -o ./dist/output.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.1"
+  }
+}
