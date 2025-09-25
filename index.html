@@ -616,6 +616,8 @@
             (scheduleData.unscheduled || []).forEach(classData => {
                 listEl.appendChild(createUnscheduledElement(classData));
             });
+            // Draggable is re-initialized each time the list is rendered.
+            // This is a simple and effective approach for this app's scale.
             new FullCalendar.Draggable(listEl, {
                 itemSelector: '.unscheduled-item',
                 eventData: (eventEl) => ({
@@ -642,8 +644,14 @@
             calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: 'timeGridWeek',
                 headerToolbar: { left: 'prev,next today', center: 'title', right: 'timeGridWeek,timeGridDay' },
-                allDaySlot: false, editable: true, droppable: true, slotMinTime: '08:00:00',
-                slotMaxTime: '18:00:00', eventReceive: handleEventReceive, eventDrop: handleEventDrop, eventClick: handleEventClick
+                allDaySlot: false, 
+                editable: true, 
+                droppable: true, // This is essential for drag-and-drop from the external list
+                slotMinTime: '08:00:00',
+                slotMaxTime: '18:00:00', 
+                eventReceive: handleEventReceive, // The key callback for when a drop occurs
+                eventDrop: handleEventDrop, 
+                eventClick: handleEventClick
             });
             calendar.render();
         }
@@ -703,8 +711,8 @@
                 if (actionId === 'close-tutorial-btn') hideModal('tutorial-modal');
                 if (actionId === 'close-auth-btn') hideModal('auth-modal');
                 if (actionId === 'close-class-details-btn') hideModal('class-details-modal');
-                if (actionId === 'delete-class-btn') handleDeleteClass(); // FIX: Call robust function
-                if (actionId === 'mark-absent-btn') handleMarkAbsent(); // FIX: Call robust function
+                if (actionId === 'delete-class-btn') handleDeleteClass();
+                if (actionId === 'mark-absent-btn') handleMarkAbsent();
                 if (actionId === 'save-notes-btn') handleSaveNotes(closestButton);
                 if (actionId === 'notifications-btn') showModal('notifications-modal');
                 if (actionId === 'close-notifications-modal') hideModal('notifications-modal');
@@ -774,11 +782,9 @@
                 saveNotesBtn.classList.add('hidden');
             }
 
-            // Set classId for both admin buttons
             document.getElementById('delete-class-btn').dataset.classId = props.id;
             document.getElementById('mark-absent-btn').dataset.classId = props.id;
             
-            // Show/hide the entire admin button container based on role
             const adminActionButtons = document.getElementById('admin-action-buttons');
             if (currentUser && currentUser.role === 'admin') {
                 adminActionButtons.classList.remove('hidden');
@@ -799,11 +805,6 @@
             }
         }
         
-        // --- FIX STARTS HERE ---
-
-        /**
-        * @description FIX: Robust function to delete a class with proper permission checks and user feedback.
-        */
         async function handleDeleteClass() {
             const deleteBtn = document.getElementById('delete-class-btn');
             if (!deleteBtn) return;
@@ -824,12 +825,12 @@
 
             try {
                 const deletedClassSubject = scheduleData[classId].subject;
-                delete scheduleData[classId]; // Modify local state
+                delete scheduleData[classId];
 
-                await saveScheduleToFirestore(); // Push change to DB
+                await saveScheduleToFirestore();
                 await logActivity(`deleted the class '${deletedClassSubject}'.`);
                 
-                renderCalendar(); // Re-render UI
+                renderCalendar();
                 hideModal('class-details-modal');
                 showToast(`Class '${deletedClassSubject}' deleted successfully.`, "success");
             } catch (error) {
@@ -838,9 +839,6 @@
             }
         }
         
-        /**
-        * @description FIX: Robust function to mark a teacher absent, with clear feedback and error handling.
-        */
         async function handleMarkAbsent() {
             const absentBtn = document.getElementById('mark-absent-btn');
             if (!absentBtn) return;
@@ -867,13 +865,11 @@
             }
 
             try {
-                // --- Smart Substitute Finder Logic ---
                 const scheduledClasses = Object.values(scheduleData).filter(c => c && c.day);
                 const busyProfsAtTime = new Set(scheduledClasses.filter(c => c.day === classInfo.day && c.start === classInfo.start).map(c => c.prof));
                 const allTeachers = Object.keys(userCredentials).filter(name => userRoles[name] === 'teacher');
                 const availableProfs = allTeachers.filter(p => !busyProfsAtTime.has(p) && p !== classInfo.prof);
                 
-                // Mark as absent visually first for immediate feedback
                 classInfo.isAbsent = true;
                 await saveScheduleToFirestore();
                 renderCalendar();
@@ -885,15 +881,11 @@
                     return;
                 }
 
-                // If substitutes are available, start the workflow
                 const subRequestRef = await addDoc(collection(db, "substituteRequests"), {
                     originalClass: classInfo,
-                    status: 'pending',
-                    potentialSubs: availableProfs,
-                    currentIndex: 0,
-                    declinedBy: [],
-                    adminInitiator: currentUser.name,
-                    createdAt: serverTimestamp()
+                    status: 'pending', potentialSubs: availableProfs,
+                    currentIndex: 0, declinedBy: [],
+                    adminInitiator: currentUser.name, createdAt: serverTimestamp()
                 });
 
                 await sendNextSubstituteRequest(subRequestRef.id);
@@ -905,21 +897,68 @@
                 showToast("A database error occurred while marking absence.", "error");
             }
         }
-        
-        // --- FIX ENDS HERE ---
 
+        // --- FIX STARTS HERE for Drag and Drop ---
+        
+        /**
+        * @description FIX: This robust function handles the dropping of an external event onto the calendar.
+        * It includes clear permission checks and error handling to provide better user feedback.
+        * This is the most common point of failure for the drag-and-drop feature.
+        */
         async function handleEventReceive(info) {
-             if (!currentUser || (scheduleData.isLocked && currentUser.role !== 'admin')) { showToast("Please log in or unlock the schedule.", "error"); info.revert(); return; }
+            // 1. Check permissions. If these fail, revert the drop and notify the user.
+            if (!currentUser) {
+                showToast("You must be logged in to schedule a class.", "error");
+                info.revert(); // Visually removes the dropped event.
+                return; 
+            }
+            if (scheduleData.isLocked && currentUser.role !== 'admin') { 
+                showToast("Schedule is locked for approval. Cannot make changes.", "error"); 
+                info.revert(); 
+                return; 
+            }
+
             const props = info.event.extendedProps;
-            scheduleData[props.id] = { ...props, day: info.event.start.getDay(), start: 'T' + info.event.start.toTimeString().substring(0, 8) };
-            scheduleData.unscheduled = (scheduleData.unscheduled || []).filter(c => c.id !== props.id);
-            await saveScheduleToFirestore(); 
-            await logActivity(`scheduled '${props.subject}'.`);
-            renderUnscheduled(); renderCalendar(); updateFacultyFilter();
+            
+            // 2. Sanity check for valid properties from the dragged item.
+            if (!props || !props.id) {
+                showToast("Error reading class data. Drag failed.", "error");
+                info.revert();
+                return;
+            }
+            
+            try {
+                // 3. Update the application's state.
+                scheduleData[props.id] = { 
+                    ...props, 
+                    day: info.event.start.getDay(), 
+                    start: 'T' + info.event.start.toTimeString().substring(0, 8) 
+                };
+                scheduleData.unscheduled = (scheduleData.unscheduled || []).filter(c => c.id !== props.id);
+                
+                // 4. Save the new state to the database.
+                await saveScheduleToFirestore(); 
+                await logActivity(`scheduled '${props.subject}' by dragging.`);
+                
+                // 5. Re-render the UI to reflect the changes.
+                renderUnscheduled(); 
+                renderCalendar(); 
+                updateFacultyFilter();
+            } catch (error) {
+                console.error("Error receiving event:", error);
+                showToast("An error occurred while saving the schedule.", "error");
+                info.revert(); // If any part of the process fails, revert the change.
+            }
         }
 
+        // --- FIX ENDS HERE ---
+
         async function handleEventDrop(info) {
-            if (!currentUser || (scheduleData.isLocked && currentUser.role !== 'admin')) { showToast("Please log in or unlock the schedule.", "error"); info.revert(); return; }
+            if (!currentUser || (scheduleData.isLocked && currentUser.role !== 'admin')) { 
+                showToast("Please log in or unlock the schedule.", "error"); 
+                info.revert(); 
+                return; 
+            }
             const classId = info.event.id;
             scheduleData[classId] = { ...scheduleData[classId], day: info.event.start.getDay(), start: 'T' + info.event.start.toTimeString().substring(0, 8) };
             await saveScheduleToFirestore(); 
@@ -1139,7 +1178,7 @@
                     const dayNum = dayMap[lowerInput];
                     if (dayNum === undefined) {
                         appendChatMessage("That doesn't seem to be a valid day. Please enter a full day of the week (e.g., 'Monday').", 'ai');
-                        return; // Stay on the same stage
+                        return;
                     }
                     conversationState.collectedInfo.day = dayNum;
                     conversationState.stage = 'promptTime';
@@ -1155,7 +1194,7 @@
                     let hour = parseInt(timeMatch[1]);
                     let minute = parseInt(timeMatch[2] || '0');
                     if (timeMatch[3] === 'pm' && hour < 12) hour += 12;
-                    if (timeMatch[3] === 'am' && hour === 12) hour = 0; // Midnight case
+                    if (timeMatch[3] === 'am' && hour === 12) hour = 0;
 
                     const timeString = `T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
                     conversationState.collectedInfo.time = timeString;
@@ -1174,7 +1213,7 @@
                         renderCalendar();
                         appendChatMessage(`All set! I've scheduled <strong>${subject}</strong> for you.`, 'ai');
                     }
-                    resetConversationState(); // End conversation
+                    resetConversationState();
                     break;
             }
         }
@@ -1251,7 +1290,7 @@
                 });
                 await logActivity(`accepted substitution for '${subReqData.originalClass.subject}'.`);
                 showToast("Substitution accepted!", "success");
-            } else { // declined
+            } else {
                 await updateDoc(subReqRef, {
                     currentIndex: subReqData.currentIndex + 1,
                     declinedBy: [...subReqData.declinedBy, currentUser.name]
@@ -1319,7 +1358,7 @@
              await saveScheduleToFirestore();
              await addDoc(collection(db, "notifications"), {
                  fromUser: currentUser.name,
-                 toUser: "KASHY", // Always notify the main admin
+                 toUser: "KASHY",
                  type: 'approval_request',
                  status: 'pending',
                  createdAt: serverTimestamp()
