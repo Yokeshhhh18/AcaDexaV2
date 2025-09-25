@@ -376,9 +376,9 @@
         <button id="ask-ai-btn" class="fixed bottom-6 right-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full h-16 w-16 flex items-center justify-center shadow-lg text-2xl z-40"><i class="fa-solid fa-robot"></i></button>
         <div id="ai-chat-modal" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center opacity-0 invisible">
              <div class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-lg w-full h-[70vh] flex flex-col transform scale-95 transition-transform duration-300">
-                <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center bg-slate-50 dark:bg-gray-900 rounded-t-lg"><h3 class="text-xl font-bold text-slate-800 dark:text-white">AI Command Assistant</h3><button id="close-chat-btn" class="text-slate-500 hover:text-slate-800 dark:hover:text-white text-2xl">&times;</button></div>
-                <div id="chat-window" class="flex-grow p-4 space-y-4 overflow-y-auto"><div class="flex justify-start"><div class="chat-bubble bg-slate-200 dark:bg-gray-700 text-slate-800 dark:text-slate-200 p-3 rounded-lg">I am the Automated Scheduling Assistant. Give me a command. <br><br><strong>Format:</strong><br> `schedule [Subject] for [Professor] in [Room] on [Day] at [Time]`</div></div></div>
-                <div class="p-4 border-t dark:border-gray-700 bg-slate-50 dark:bg-gray-900 rounded-b-lg"><form id="chat-form" class="flex gap-2"><input type="text" id="chat-input" placeholder="e.g., schedule Physics for ZAP in 102..." class="flex-grow rounded-md shadow-sm sm:text-sm dark:bg-gray-700 border-slate-300 dark:border-gray-600"><button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold p-2 rounded-lg transition"><i class="fa-solid fa-paper-plane"></i></button></form></div>
+                <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center bg-slate-50 dark:bg-gray-900 rounded-t-lg"><h3 class="text-xl font-bold text-slate-800 dark:text-white">AI Assistant</h3><button id="close-chat-btn" class="text-slate-500 hover:text-slate-800 dark:hover:text-white text-2xl">&times;</button></div>
+                <div id="chat-window" class="flex-grow p-4 space-y-4 overflow-y-auto"><div class="flex justify-start"><div class="chat-bubble bg-slate-200 dark:bg-gray-700 text-slate-800 dark:text-slate-200 p-3 rounded-lg">Hello! I'm the AcaDexa assistant. You can ask me to schedule a class for you.</div></div></div>
+                <div class="p-4 border-t dark:border-gray-700 bg-slate-50 dark:bg-gray-900 rounded-b-lg"><form id="chat-form" class="flex gap-2"><input type="text" id="chat-input" placeholder="Type 'schedule a class' to begin..." class="flex-grow rounded-md shadow-sm sm:text-sm dark:bg-gray-700 border-slate-300 dark:border-gray-600"><button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold p-2 rounded-lg transition"><i class="fa-solid fa-paper-plane"></i></button></form></div>
             </div>
         </div>
         <div id="auth-modal" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center opacity-0 invisible">
@@ -437,7 +437,7 @@
         const db = getFirestore(app);
         
         // --- GLOBAL STATE ---
-        let currentUser = null; // { name: 'KASHY', uid: 'user_kashy_id', role: 'admin' }
+        let currentUser = null; 
         let scheduleData = {};
         let scheduleUnsubscribe = null;
         let notificationsUnsubscribe = null;
@@ -445,6 +445,22 @@
         let workloadChart = null;
         let capacityChart = null;
         let calendar = null;
+
+        // --- NEW: State for the conversational AI assistant
+        let conversationState = {};
+        function resetConversationState() {
+            conversationState = {
+                active: false,
+                stage: null,
+                collectedInfo: {
+                    subject: null,
+                    prof: null,
+                    room: null,
+                    day: null,
+                    time: null
+                }
+            };
+        }
 
         const roomCapacities = { "101": 50, "102": 45, "Lab 3": 25, "303": 50, "Lab 1": 25, "202": 30 };
         const userCredentials = {
@@ -950,68 +966,97 @@
         async function handleChatSubmit(e) {
             e.preventDefault();
             const input = document.getElementById('chat-input');
-            const command = input.value.trim();
-            if (!command) return;
+            const userInput = input.value.trim();
+            if (!userInput) return;
 
-            appendChatMessage(command, 'user');
+            appendChatMessage(userInput, 'user');
             input.value = '';
 
-            const commandRegex = /schedule (.+?) for (.+?) in (.+?) on (\w+) at (.+)/i;
-            const match = command.match(commandRegex);
+            const lowerInput = userInput.toLowerCase();
 
-            if (!match) {
-                appendChatMessage("I didn't understand. Please use the format: `schedule [Subject] for [Professor] in [Room] on [Day] at [Time]`", 'ai');
+            if (lowerInput === 'cancel' || lowerInput === 'reset' || lowerInput === 'stop') {
+                resetConversationState();
+                appendChatMessage("OK, I've cancelled the current operation. How can I help?", 'ai');
                 return;
             }
 
-            const [, subject, prof, room, day, time] = match.map(s => s.trim());
-            
-            // --- Convert parsed text to data ---
-            const dayMap = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
-            const dayNum = dayMap[day.toLowerCase()];
-
-            if (dayNum === undefined) {
-                appendChatMessage(`Error: Invalid day '${day}'. Please use a full day name (e.g., Monday).`, 'ai');
+            if (!conversationState.active) {
+                if (lowerInput.includes('schedule') || lowerInput.includes('add class') || lowerInput.includes('new class')) {
+                    conversationState.active = true;
+                    conversationState.stage = 'promptSubject';
+                    appendChatMessage("Great! What is the name of the subject?", 'ai');
+                } else if (lowerInput === 'hi' || lowerInput === 'hello') {
+                    appendChatMessage("Hello! You can ask me to schedule a class.", 'ai');
+                } else {
+                    appendChatMessage("Sorry, I can only help with scheduling. Try saying 'schedule a class'.", 'ai');
+                }
                 return;
             }
-            
-            let [hour, minute] = [0, 0];
-            const timeMatch = time.toLowerCase().match(/(\d{1,2})(?::(\d{2}))?(am|pm)?/);
-            if (!timeMatch) {
-                appendChatMessage(`Error: Invalid time format '${time}'. Use formats like '9am', '2pm', or '14:30'.`, 'ai');
-                return;
-            }
-            hour = parseInt(timeMatch[1]);
-            minute = parseInt(timeMatch[2] || '0');
-            if (timeMatch[3] === 'pm' && hour < 12) hour += 12;
-            if (timeMatch[3] === 'am' && hour === 12) hour = 0; // Midnight case
 
-            const timeString = `T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
+            // --- Handle active conversation ---
+            switch (conversationState.stage) {
+                case 'promptSubject':
+                    conversationState.collectedInfo.subject = userInput;
+                    conversationState.stage = 'promptProf';
+                    appendChatMessage(`Got it. Which professor will be teaching <strong>${userInput}</strong>?`, 'ai');
+                    break;
 
-            // --- Conflict checking ---
-            const scheduledClasses = Object.values(scheduleData).filter(c => c && c.day);
-            const conflict = scheduledClasses.find(c => c.day === dayNum && c.start === timeString && (c.prof === prof || c.room === room));
-            
-            if (conflict) {
-                appendChatMessage(`<strong>Conflict Detected!</strong><br>Cannot schedule because ${conflict.prof === prof ? `Professor ${prof}` : `Room ${room}`} is already booked for '${conflict.subject}'.`, 'ai');
-                return;
+                case 'promptProf':
+                    conversationState.collectedInfo.prof = userInput;
+                    conversationState.stage = 'promptRoom';
+                    appendChatMessage(`OK. Which room should <strong>${conversationState.collectedInfo.subject}</strong> be in?`, 'ai');
+                    break;
+
+                case 'promptRoom':
+                    conversationState.collectedInfo.room = userInput;
+                    conversationState.stage = 'promptDay';
+                    appendChatMessage(`Perfect. On which day of the week?`, 'ai');
+                    break;
+
+                case 'promptDay':
+                    const dayMap = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
+                    const dayNum = dayMap[lowerInput];
+                    if (dayNum === undefined) {
+                        appendChatMessage("That doesn't seem to be a valid day. Please enter a full day of the week (e.g., 'Monday').", 'ai');
+                        return; // Stay on the same stage
+                    }
+                    conversationState.collectedInfo.day = dayNum;
+                    conversationState.stage = 'promptTime';
+                    appendChatMessage(`Excellent. Lastly, at what time on ${userInput}? (e.g., 9am, 2:30pm)`, 'ai');
+                    break;
+
+                case 'promptTime':
+                    const timeMatch = userInput.toLowerCase().match(/(\d{1,2})(?::(\d{2}))?(am|pm)?/);
+                    if (!timeMatch) {
+                        appendChatMessage("Sorry, I don't recognize that time format. Please use a format like '9am', '2pm', or '14:30'.", 'ai');
+                        return;
+                    }
+                    let hour = parseInt(timeMatch[1]);
+                    let minute = parseInt(timeMatch[2] || '0');
+                    if (timeMatch[3] === 'pm' && hour < 12) hour += 12;
+                    if (timeMatch[3] === 'am' && hour === 12) hour = 0; // Midnight case
+
+                    const timeString = `T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
+                    conversationState.collectedInfo.time = timeString;
+
+                    // All info collected, now process
+                    const { subject, prof, room, day, time: startTime } = conversationState.collectedInfo;
+                    const scheduledClasses = Object.values(scheduleData).filter(c => c && c.day);
+                    const conflict = scheduledClasses.find(c => c.day === day && c.start === startTime && (c.prof === prof || c.room === room));
+
+                    if (conflict) {
+                        appendChatMessage(`<strong>Conflict Detected!</strong><br>Cannot schedule because ${conflict.prof === prof ? `Professor ${prof}` : `Room ${room}`} is already booked for '${conflict.subject}'. Please start over.`, 'ai');
+                    } else {
+                        const newClass = { id: 'c' + Date.now(), subject, prof, room, students: 50, status: 'draft', color: '#3b82f6', day, start: startTime };
+                        scheduleData[newClass.id] = newClass;
+                        await saveScheduleToFirestore();
+                        await logActivity(`${currentUser.name} scheduled '${subject}' using the AI assistant.`);
+                        renderCalendar();
+                        appendChatMessage(`All set! I've scheduled <strong>${subject}</strong> for you.`, 'ai');
+                    }
+                    resetConversationState(); // End conversation
+                    break;
             }
-            
-            // --- Add the class if no conflict ---
-            const newClass = {
-                id: 'c' + Date.now(), subject, prof, room,
-                students: 50, // Default value
-                status: 'draft',
-                color: '#3b82f6', // Default color
-                day: dayNum,
-                start: timeString
-            };
-            
-            scheduleData[newClass.id] = newClass;
-            await saveScheduleToFirestore();
-            await logActivity(`${currentUser.name} scheduled '${subject}' using the AI assistant.`);
-            renderCalendar();
-            appendChatMessage(`OK, I've scheduled <strong>${subject}</strong> for ${prof} in room ${room} on ${day} at ${time}.`, 'ai');
         }
 
 
@@ -1319,6 +1364,7 @@
             initializeCalendar();
             setupEventListeners();
             loadDefaultSchedule();
+            resetConversationState();
         });
     </script>
 </body>
