@@ -95,6 +95,7 @@
         }
         
         /* Heatmap styles */
+        .fc .fc-timegrid-slot { transition: background-color 0.3s ease; }
         .fc .fc-timegrid-slot.heatmap-1 { background-color: rgba(99, 102, 241, 0.1); }
         .fc .fc-timegrid-slot.heatmap-2 { background-color: rgba(99, 102, 241, 0.2); }
         .fc .fc-timegrid-slot.heatmap-3 { background-color: rgba(245, 158, 11, 0.2); }
@@ -349,7 +350,7 @@
                     <textarea id="class-modal-notes" class="w-full p-2 rounded-md bg-slate-100 dark:bg-gray-700 border border-slate-300 dark:border-gray-600" rows="4" placeholder="Add notes for this lecture..."></textarea>
                     <button id="save-notes-btn" class="hidden mt-2 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition">Save Notes</button>
                 </div>
-                 <div class="mt-6 pt-6 border-t border-slate-200 dark:border-gray-700 flex gap-2">
+                 <div id="admin-action-buttons" class="mt-6 pt-6 border-t border-slate-200 dark:border-gray-700 flex gap-2">
                     <button id="mark-absent-btn" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded-lg transition">Mark Teacher Absent</button>
                     <button id="delete-class-btn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition">Delete Class</button>
                 </div>
@@ -443,19 +444,13 @@
         let workloadChart = null;
         let calendar = null;
 
-        // --- NEW: State for the conversational AI assistant
+        // --- State for the conversational AI assistant
         let conversationState = {};
         function resetConversationState() {
             conversationState = {
                 active: false,
                 stage: null,
-                collectedInfo: {
-                    subject: null,
-                    prof: null,
-                    room: null,
-                    day: null,
-                    time: null
-                }
+                collectedInfo: { subject: null, prof: null, room: null, day: null, time: null }
             };
         }
 
@@ -463,32 +458,17 @@
         const userCredentials = {
             "KASHY": "sihwinners",
             "ZAP": "maja",
-            "Kanishq": "pass1",
-            "Anamika": "pass2",
-            "Yokesh": "pass3",
-            "Kiruthik": "pass4",
-            "Saravana": "pass5",
-            "Harine": "pass6",
+            "Kanishq": "pass1", "Anamika": "pass2", "Yokesh": "pass3",
+            "Kiruthik": "pass4", "Saravana": "pass5", "Harine": "pass6",
         };
         const userUIDs = {
-            "KASHY": "user_kashy_id",
-            "ZAP": "user_zap_id",
-            "Kanishq": "user_kanishq_id",
-            "Anamika": "user_anamika_id",
-            "Yokesh": "user_yokesh_id",
-            "Kiruthik": "user_kiruthik_id",
-            "Saravana": "user_saravana_id",
-            "Harine": "user_harine_id",
+            "KASHY": "user_kashy_id", "ZAP": "user_zap_id", "Kanishq": "user_kanishq_id",
+            "Anamika": "user_anamika_id", "Yokesh": "user_yokesh_id", "Kiruthik": "user_kiruthik_id",
+            "Saravana": "user_saravana_id", "Harine": "user_harine_id",
         };
          const userRoles = {
-            "KASHY": "admin",
-            "ZAP": "teacher",
-            "Kanishq": "teacher",
-            "Anamika": "teacher",
-            "Yokesh": "teacher",
-            "Kiruthik": "teacher",
-            "Saravana": "teacher",
-            "Harine": "teacher",
+            "KASHY": "admin", "ZAP": "teacher", "Kanishq": "teacher", "Anamika": "teacher",
+            "Yokesh": "teacher", "Kiruthik": "teacher", "Saravana": "teacher", "Harine": "teacher",
         };
         
         // --- DATA & STATE MANAGEMENT ---
@@ -556,7 +536,7 @@
         }
         
         async function logActivity(text) {
-            if (currentUser) { // Log activity for any logged-in user
+            if (currentUser) {
                 await addDoc(collection(db, "activity_feed"), {
                     user: currentUser.name,
                     text: text,
@@ -723,8 +703,8 @@
                 if (actionId === 'close-tutorial-btn') hideModal('tutorial-modal');
                 if (actionId === 'close-auth-btn') hideModal('auth-modal');
                 if (actionId === 'close-class-details-btn') hideModal('class-details-modal');
-                if (actionId === 'delete-class-btn') handleDeleteClass();
-                if (actionId === 'mark-absent-btn') handleMarkAbsent();
+                if (actionId === 'delete-class-btn') handleDeleteClass(); // FIX: Call robust function
+                if (actionId === 'mark-absent-btn') handleMarkAbsent(); // FIX: Call robust function
                 if (actionId === 'save-notes-btn') handleSaveNotes(closestButton);
                 if (actionId === 'notifications-btn') showModal('notifications-modal');
                 if (actionId === 'close-notifications-modal') hideModal('notifications-modal');
@@ -794,13 +774,16 @@
                 saveNotesBtn.classList.add('hidden');
             }
 
+            // Set classId for both admin buttons
             document.getElementById('delete-class-btn').dataset.classId = props.id;
             document.getElementById('mark-absent-btn').dataset.classId = props.id;
             
+            // Show/hide the entire admin button container based on role
+            const adminActionButtons = document.getElementById('admin-action-buttons');
             if (currentUser && currentUser.role === 'admin') {
-                document.getElementById('mark-absent-btn').parentElement.classList.remove('hidden');
+                adminActionButtons.classList.remove('hidden');
             } else {
-                document.getElementById('mark-absent-btn').parentElement.classList.add('hidden');
+                adminActionButtons.classList.add('hidden');
             }
             showModal('class-details-modal');
         }
@@ -815,20 +798,115 @@
                 showToast("Notes saved successfully!", "success");
             }
         }
+        
+        // --- FIX STARTS HERE ---
 
+        /**
+        * @description FIX: Robust function to delete a class with proper permission checks and user feedback.
+        */
         async function handleDeleteClass() {
-             if (!currentUser || currentUser.role !== 'admin' || scheduleData.isLocked) { showToast("You don't have permission or schedule is locked.", "error"); return; }
-            const classId = document.getElementById('delete-class-btn').dataset.classId;
-            if (scheduleData[classId]) {
-                const deletedClass = { ...scheduleData[classId] };
-                delete scheduleData[classId];
-                await saveScheduleToFirestore(); 
-                await logActivity(`deleted the class '${deletedClass.subject}'.`);
-                renderCalendar(); 
+            const deleteBtn = document.getElementById('delete-class-btn');
+            if (!deleteBtn) return;
+            const classId = deleteBtn.dataset.classId;
+
+            if (!currentUser || currentUser.role !== 'admin') {
+                showToast("Only admins can delete classes.", "error");
+                return;
+            }
+            if (scheduleData.isLocked) {
+                showToast("Cannot delete classes while schedule is locked for approval.", "error");
+                return;
+            }
+            if (!classId || !scheduleData[classId]) {
+                showToast("Error: Class not found. Please close the modal and try again.", "error");
+                return;
+            }
+
+            try {
+                const deletedClassSubject = scheduleData[classId].subject;
+                delete scheduleData[classId]; // Modify local state
+
+                await saveScheduleToFirestore(); // Push change to DB
+                await logActivity(`deleted the class '${deletedClassSubject}'.`);
+                
+                renderCalendar(); // Re-render UI
                 hideModal('class-details-modal');
-                showToast("Class deleted successfully.", "success");
+                showToast(`Class '${deletedClassSubject}' deleted successfully.`, "success");
+            } catch (error) {
+                console.error("Error deleting class:", error);
+                showToast("A database error occurred while deleting the class.", "error");
             }
         }
+        
+        /**
+        * @description FIX: Robust function to mark a teacher absent, with clear feedback and error handling.
+        */
+        async function handleMarkAbsent() {
+            const absentBtn = document.getElementById('mark-absent-btn');
+            if (!absentBtn) return;
+            const classId = absentBtn.dataset.classId;
+
+            if (!currentUser || currentUser.role !== 'admin') {
+                showToast("Only admins can mark teachers absent.", "error");
+                return;
+            }
+            if (scheduleData.isLocked) {
+                showToast("Cannot modify absences while schedule is locked.", "error");
+                return;
+            }
+            if (!classId || !scheduleData[classId]) {
+                showToast("Error: Class not found. Please close the modal and try again.", "error");
+                return;
+            }
+
+            const classInfo = scheduleData[classId];
+
+            if (classInfo.isAbsent) {
+                showToast("This class is already marked as absent.", "error");
+                return;
+            }
+
+            try {
+                // --- Smart Substitute Finder Logic ---
+                const scheduledClasses = Object.values(scheduleData).filter(c => c && c.day);
+                const busyProfsAtTime = new Set(scheduledClasses.filter(c => c.day === classInfo.day && c.start === classInfo.start).map(c => c.prof));
+                const allTeachers = Object.keys(userCredentials).filter(name => userRoles[name] === 'teacher');
+                const availableProfs = allTeachers.filter(p => !busyProfsAtTime.has(p) && p !== classInfo.prof);
+                
+                // Mark as absent visually first for immediate feedback
+                classInfo.isAbsent = true;
+                await saveScheduleToFirestore();
+                renderCalendar();
+                hideModal('class-details-modal');
+
+                if (availableProfs.length === 0) {
+                    showToast(`Absence marked for ${classInfo.prof}, but no substitutes are available at this time.`, "error");
+                    await logActivity(`marked ${classInfo.prof} absent for '${classInfo.subject}', but no substitutes were found.`);
+                    return;
+                }
+
+                // If substitutes are available, start the workflow
+                const subRequestRef = await addDoc(collection(db, "substituteRequests"), {
+                    originalClass: classInfo,
+                    status: 'pending',
+                    potentialSubs: availableProfs,
+                    currentIndex: 0,
+                    declinedBy: [],
+                    adminInitiator: currentUser.name,
+                    createdAt: serverTimestamp()
+                });
+
+                await sendNextSubstituteRequest(subRequestRef.id);
+                await logActivity(`marked ${classInfo.prof} absent and initiated the Smart Substitute Finder.`);
+                showToast(`Absence marked. Finding a substitute for ${classInfo.subject}...`, "success");
+
+            } catch (error) {
+                console.error("Error marking absent:", error);
+                showToast("A database error occurred while marking absence.", "error");
+            }
+        }
+        
+        // --- FIX ENDS HERE ---
 
         async function handleEventReceive(info) {
              if (!currentUser || (scheduleData.isLocked && currentUser.role !== 'admin')) { showToast("Please log in or unlock the schedule.", "error"); info.revert(); return; }
@@ -988,7 +1066,6 @@
         }
         
         // --- AI SCHEDULER & INNOVATIVE FEATURES ---
-        
         function appendChatMessage(message, sender) {
             const chatWindow = document.getElementById('chat-window');
             const messageEl = document.createElement('div');
@@ -1083,7 +1160,6 @@
                     const timeString = `T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
                     conversationState.collectedInfo.time = timeString;
 
-                    // All info collected, now process
                     const { subject, prof, room, day, time: startTime } = conversationState.collectedInfo;
                     const scheduledClasses = Object.values(scheduleData).filter(c => c && c.day);
                     const conflict = scheduledClasses.find(c => c.day === day && c.start === startTime && (c.prof === prof || c.room === room));
@@ -1102,7 +1178,6 @@
                     break;
             }
         }
-
 
         function handleOptimize() {
             if (!currentUser || currentUser.role !== 'admin') { showToast("Only admins can optimize schedules.", "error"); return; }
@@ -1125,44 +1200,6 @@
             }, 1500);
         }
 
-        async function handleMarkAbsent() {
-            if (!currentUser || currentUser.role !== 'admin' || scheduleData.isLocked) { showToast("Only admins can do this, or schedule is locked.", "error"); return; }
-            const classId = document.getElementById('mark-absent-btn').dataset.classId;
-            const classInfo = scheduleData[classId];
-            if (!classInfo) return;
-            
-            const scheduledClasses = Object.values(scheduleData).filter(c => c && c.day);
-            const busyProfsAtTime = new Set(scheduledClasses.filter(c => c.day === classInfo.day && c.start === classInfo.start).map(c => c.prof));
-            const allProfs = new Set(Object.keys(userCredentials).filter(name => userRoles[name] === 'teacher'));
-            
-            const availableProfs = [...allProfs].filter(p => !busyProfsAtTime.has(p) && p !== classInfo.prof);
-            
-            if (availableProfs.length === 0) {
-                showToast("No available teachers to substitute.", "error");
-                await logActivity(`attempted to find substitute for ${classInfo.prof}, but none were available.`);
-                return;
-            }
-
-            classInfo.isAbsent = true;
-            await saveScheduleToFirestore();
-            renderCalendar();
-            hideModal('class-details-modal');
-
-            const subRequestRef = await addDoc(collection(db, "substituteRequests"), {
-                originalClass: classInfo,
-                status: 'pending',
-                potentialSubs: availableProfs,
-                currentIndex: 0,
-                declinedBy: [],
-                adminInitiator: currentUser.name,
-                createdAt: serverTimestamp()
-            });
-
-            await sendNextSubstituteRequest(subRequestRef.id);
-            await logActivity(`marked ${classInfo.prof} absent and initiated the Smart Substitute Finder.`);
-            showToast(`Smart Substitute Finder initiated for ${classInfo.subject}.`, "success");
-        }
-
         async function sendNextSubstituteRequest(subReqId) {
             const subReqRef = doc(db, "substituteRequests", subReqId);
             const subReqSnap = await getDoc(subReqRef);
@@ -1174,11 +1211,8 @@
             if (currentIndex >= potentialSubs.length) {
                 await updateDoc(subReqRef, { status: 'failed' });
                 await addDoc(collection(db, "notifications"), {
-                    toUser: adminInitiator,
-                    type: 'substitution_failed',
-                    originalClass: originalClass,
-                    status: 'pending',
-                    createdAt: serverTimestamp()
+                    toUser: adminInitiator, type: 'substitution_failed',
+                    originalClass: originalClass, status: 'pending', createdAt: serverTimestamp()
                 });
                 await logActivity(`Smart Substitute Finder failed for '${originalClass.subject}'. All teachers declined.`);
                 return;
@@ -1186,12 +1220,9 @@
 
             const nextTeacher = potentialSubs[currentIndex];
             await addDoc(collection(db, "notifications"), {
-                toUser: nextTeacher,
-                type: 'substitution_request',
-                originalClass: originalClass,
-                substituteRequestId: subReqId,
-                status: 'pending',
-                createdAt: serverTimestamp()
+                toUser: nextTeacher, type: 'substitution_request',
+                originalClass: originalClass, substituteRequestId: subReqId,
+                status: 'pending', createdAt: serverTimestamp()
             });
         }
 
@@ -1214,12 +1245,9 @@
                 }
                 await updateDoc(subReqRef, { status: 'resolved', resolvedBy: currentUser.name });
                 await addDoc(collection(db, "notifications"), {
-                    toUser: subReqData.adminInitiator,
-                    type: 'substitution_resolved',
-                    originalClass: subReqData.originalClass,
-                    resolvedBy: currentUser.name,
-                    status: 'pending',
-                    createdAt: serverTimestamp()
+                    toUser: subReqData.adminInitiator, type: 'substitution_resolved',
+                    originalClass: subReqData.originalClass, resolvedBy: currentUser.name,
+                    status: 'pending', createdAt: serverTimestamp()
                 });
                 await logActivity(`accepted substitution for '${subReqData.originalClass.subject}'.`);
                 showToast("Substitution accepted!", "success");
@@ -1247,9 +1275,8 @@
             calendar.getEvents().forEach(event => {
                 const day = event.start.getDay();
                 const hour = event.start.getHours();
-                for (let i = day * 24 + hour; i < day * 24 + hour + 1; i++) { // Assuming 1 hour slots for heatmap
-                    classCounts[i] = (classCounts[i] || 0) + 1;
-                }
+                const key = `${day}-${hour}`;
+                classCounts[key] = (classCounts[key] || 0) + 1;
             });
             
             slots.forEach(slot => {
@@ -1260,7 +1287,7 @@
                 if (!dayEl) return;
                 const day = Array.from(dayEl.parentElement.children).indexOf(dayEl);
                 
-                const key = day * 24 + hour;
+                const key = `${day}-${hour}`;
                 const count = classCounts[key];
                 if (count > 0) {
                     slot.classList.add(`heatmap-${Math.min(count, 4)}`);
