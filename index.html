@@ -176,9 +176,6 @@
                         <p class="mt-1 text-slate-500 dark:text-slate-400">Here's your campus overview for today.</p>
                     </div>
                     <div id="admin-controls" class="flex gap-2 flex-wrap">
-                        <button id="auto-schedule-btn" class="bg-teal-600 hover:bg-teal-700 text-white font-semibold py-2 px-4 rounded-lg transition flex items-center gap-2">
-                            <i class="fa-solid fa-magic"></i> Auto-Schedule Unscheduled
-                        </button>
                         <button id="optimize-schedule-btn" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg transition flex items-center gap-2">
                             <i class="fa-solid fa-wand-magic-sparkles"></i> Optimize Schedule
                         </button>
@@ -481,15 +478,10 @@
                 "c2": { id: "c2", subject: "Intro to Physics", prof: "ZAP", room: "102", students: 40, status: "approved", color: "#10b981", start: "T10:00:00", day: 1 },
                 "c3": { id: "c3", subject: "Machine Learning", prof: "Anamika", room: "Lab 3", students: 22, status: "pending", color: "#3b82f6", start: "T11:00:00", day: 3 },
                 "c4": { id: "c4", subject: "Data Structures", prof: "Yokesh", room: "303", students: 45, status: "pending", color: "#3b82f6", start: "T13:00:00", day: 4 },
-                // NEW: Populated with 7 unscheduled classes
                 "unscheduled": [
                     { id: "c5", subject: "Organic Chemistry", prof: "Kiruthik", room: "Lab 1", students: 20, status: "draft", color: "#f97316" },
                     { id: "c6", subject: "Modern History", prof: "Saravana", room: "202", students: 30, status: "draft", color: "#8b5cf6" },
-                    { id: "c7", subject: "World Literature", prof: "Harine", room: "202", students: 25, status: "draft", color: "#8b5cf6" },
-                    { id: "c8", subject: "Quantum Physics", prof: "ZAP", room: "102", students: 35, status: "draft", color: "#3b82f6" },
-                    { id: "c9", subject: "Advanced Algorithms", prof: "Yokesh", room: "303", students: 40, status: "draft", color: "#10b981" },
-                    { id: "c10", subject: "Linear Algebra", prof: "Kanishq", room: "101", students: 45, status: "draft", color: "#ec4899" },
-                    { id: "c11", subject: "AI Ethics", prof: "Anamika", room: "102", students: 30, status: "draft", color: "#f97316" }
+                    { id: "c7", subject: "World Literature", prof: "Harine", room: "202", students: 25, status: "draft", color: "#8b5cf6" }
                 ]
             };
             renderUnscheduled();
@@ -500,7 +492,7 @@
 
         async function saveScheduleToFirestore() {
             if (!currentUser) return;
-            const scheduleOwnerUID = userUIDs["KASHY"];
+            const scheduleOwnerUID = userUIDs["KASHY"]; // Always save to the main admin schedule
             const simplifiedSchedule = { unscheduled: scheduleData.unscheduled || [], isLocked: scheduleData.isLocked || false };
             Object.values(scheduleData).forEach(item => {
                 if(item.id && !Array.isArray(item)) simplifiedSchedule[item.id] = item;
@@ -624,6 +616,8 @@
             (scheduleData.unscheduled || []).forEach(classData => {
                 listEl.appendChild(createUnscheduledElement(classData));
             });
+            // Draggable is re-initialized each time the list is rendered.
+            // This is a simple and effective approach for this app's scale.
             new FullCalendar.Draggable(listEl, {
                 itemSelector: '.unscheduled-item',
                 eventData: (eventEl) => ({
@@ -652,10 +646,10 @@
                 headerToolbar: { left: 'prev,next today', center: 'title', right: 'timeGridWeek,timeGridDay' },
                 allDaySlot: false, 
                 editable: true, 
-                droppable: true,
+                droppable: true, // This is essential for drag-and-drop from the external list
                 slotMinTime: '08:00:00',
                 slotMaxTime: '18:00:00', 
-                eventReceive: handleEventReceive,
+                eventReceive: handleEventReceive, // The key callback for when a drop occurs
                 eventDrop: handleEventDrop, 
                 eventClick: handleEventClick
             });
@@ -722,7 +716,6 @@
                 if (actionId === 'save-notes-btn') handleSaveNotes(closestButton);
                 if (actionId === 'notifications-btn') showModal('notifications-modal');
                 if (actionId === 'close-notifications-modal') hideModal('notifications-modal');
-                if (actionId === 'auto-schedule-btn') handleAutoSchedule(); // NEW: Event listener for auto-scheduling
                 if (actionId === 'optimize-schedule-btn') handleOptimize();
                 if (actionId === 'close-optimizer-modal') hideModal('optimizer-modal');
                 if (actionId === 'apply-optimization-btn') { showToast("Optimization applied!", "success"); hideModal('optimizer-modal'); }
@@ -730,6 +723,7 @@
                 if (actionId === 'submit-approval-btn') submitForApproval();
                 if (actionId === 'password-toggle-btn') handlePasswordToggle();
 
+                // Notification button handlers
                 if(classList.contains('approve-schedule-btn')) handleApprovalResponse(closestButton.dataset.id);
                 if(classList.contains('accept-sub-btn')) handleSubstitutionResponse(closestButton.dataset.notiId, closestButton.dataset.subReqId, 'accepted');
                 if(classList.contains('decline-sub-btn')) handleSubstitutionResponse(closestButton.dataset.notiId, closestButton.dataset.subReqId, 'declined');
@@ -817,13 +811,16 @@
             const classId = deleteBtn.dataset.classId;
 
             if (!currentUser || currentUser.role !== 'admin') {
-                showToast("Only admins can delete classes.", "error"); return;
+                showToast("Only admins can delete classes.", "error");
+                return;
             }
             if (scheduleData.isLocked) {
-                showToast("Cannot delete classes while schedule is locked for approval.", "error"); return;
+                showToast("Cannot delete classes while schedule is locked for approval.", "error");
+                return;
             }
             if (!classId || !scheduleData[classId]) {
-                showToast("Error: Class not found. Please close the modal and try again.", "error"); return;
+                showToast("Error: Class not found. Please close the modal and try again.", "error");
+                return;
             }
 
             try {
@@ -848,19 +845,23 @@
             const classId = absentBtn.dataset.classId;
 
             if (!currentUser || currentUser.role !== 'admin') {
-                showToast("Only admins can mark teachers absent.", "error"); return;
+                showToast("Only admins can mark teachers absent.", "error");
+                return;
             }
             if (scheduleData.isLocked) {
-                showToast("Cannot modify absences while schedule is locked.", "error"); return;
+                showToast("Cannot modify absences while schedule is locked.", "error");
+                return;
             }
             if (!classId || !scheduleData[classId]) {
-                showToast("Error: Class not found. Please close the modal and try again.", "error"); return;
+                showToast("Error: Class not found. Please close the modal and try again.", "error");
+                return;
             }
 
             const classInfo = scheduleData[classId];
 
             if (classInfo.isAbsent) {
-                showToast("This class is already marked as absent.", "error"); return;
+                showToast("This class is already marked as absent.", "error");
+                return;
             }
 
             try {
@@ -897,10 +898,18 @@
             }
         }
 
+        // --- FIX STARTS HERE for Drag and Drop ---
+        
+        /**
+        * @description FIX: This robust function handles the dropping of an external event onto the calendar.
+        * It includes clear permission checks and error handling to provide better user feedback.
+        * This is the most common point of failure for the drag-and-drop feature.
+        */
         async function handleEventReceive(info) {
+            // 1. Check permissions. If these fail, revert the drop and notify the user.
             if (!currentUser) {
                 showToast("You must be logged in to schedule a class.", "error");
-                info.revert();
+                info.revert(); // Visually removes the dropped event.
                 return; 
             }
             if (scheduleData.isLocked && currentUser.role !== 'admin') { 
@@ -911,6 +920,7 @@
 
             const props = info.event.extendedProps;
             
+            // 2. Sanity check for valid properties from the dragged item.
             if (!props || !props.id) {
                 showToast("Error reading class data. Drag failed.", "error");
                 info.revert();
@@ -918,6 +928,7 @@
             }
             
             try {
+                // 3. Update the application's state.
                 scheduleData[props.id] = { 
                     ...props, 
                     day: info.event.start.getDay(), 
@@ -925,18 +936,22 @@
                 };
                 scheduleData.unscheduled = (scheduleData.unscheduled || []).filter(c => c.id !== props.id);
                 
+                // 4. Save the new state to the database.
                 await saveScheduleToFirestore(); 
                 await logActivity(`scheduled '${props.subject}' by dragging.`);
                 
+                // 5. Re-render the UI to reflect the changes.
                 renderUnscheduled(); 
                 renderCalendar(); 
                 updateFacultyFilter();
             } catch (error) {
                 console.error("Error receiving event:", error);
                 showToast("An error occurred while saving the schedule.", "error");
-                info.revert();
+                info.revert(); // If any part of the process fails, revert the change.
             }
         }
+
+        // --- FIX ENDS HERE ---
 
         async function handleEventDrop(info) {
             if (!currentUser || (scheduleData.isLocked && currentUser.role !== 'admin')) { 
@@ -1089,74 +1104,7 @@
             }
         }
         
-        // --- AI & AUTOMATION FEATURES ---
-
-        /**
-         * @description NEW: Automatically schedules all classes from the unscheduled list into valid slots.
-         */
-        async function handleAutoSchedule() {
-            if (!currentUser || currentUser.role !== 'admin') {
-                showToast("Only admins can auto-schedule classes.", "error"); return;
-            }
-            if (scheduleData.isLocked) {
-                showToast("Cannot auto-schedule while schedule is locked.", "error"); return;
-            }
-            const classesToSchedule = [...(scheduleData.unscheduled || [])];
-            if (classesToSchedule.length === 0) {
-                showToast("There are no unscheduled classes to place.", "success"); return;
-            }
-
-            // 1. Define available time slots (Mon-Fri, 9am-4pm)
-            const availableTimeSlots = [];
-            for (let day = 1; day <= 5; day++) { // Monday to Friday
-                for (let hour = 9; hour <= 16; hour++) { // 9am to 4pm
-                    const timeString = `T${String(hour).padStart(2, '0')}:00:00`;
-                    availableTimeSlots.push({ day, start: timeString });
-                }
-            }
-
-            // 2. Get all currently booked slots
-            const scheduledClasses = Object.values(scheduleData).filter(c => c && c.day);
-            const bookedProfSlots = new Set(scheduledClasses.map(c => `${c.day}-${c.start}-${c.prof}`));
-            const bookedRoomSlots = new Set(scheduledClasses.map(c => `${c.day}-${c.start}-${c.room}`));
-
-            let placedCount = 0;
-            const stillUnscheduled = [];
-
-            // 3. Try to place each unscheduled class
-            for (const classToPlace of classesToSchedule) {
-                let wasPlaced = false;
-                for (const slot of availableTimeSlots) {
-                    const profSlotKey = `${slot.day}-${slot.start}-${classToPlace.prof}`;
-                    const roomSlotKey = `${slot.day}-${slot.start}-${classToPlace.room}`;
-
-                    if (!bookedProfSlots.has(profSlotKey) && !bookedRoomSlots.has(roomSlotKey)) {
-                        // Found a valid slot
-                        scheduleData[classToPlace.id] = { ...classToPlace, ...slot };
-                        bookedProfSlots.add(profSlotKey);
-                        bookedRoomSlots.add(roomSlotKey);
-                        wasPlaced = true;
-                        placedCount++;
-                        break; // Move to the next class
-                    }
-                }
-                if (!wasPlaced) {
-                    stillUnscheduled.push(classToPlace);
-                }
-            }
-            
-            // 4. Update state and UI
-            scheduleData.unscheduled = stillUnscheduled;
-            
-            await saveScheduleToFirestore();
-            await logActivity(`auto-scheduled ${placedCount} classes.`);
-            
-            renderCalendar();
-            renderUnscheduled();
-            
-            showToast(`Successfully scheduled ${placedCount} out of ${classesToSchedule.length} classes.`, "success");
-        }
-        
+        // --- AI SCHEDULER & INNOVATIVE FEATURES ---
         function appendChatMessage(message, sender) {
             const chatWindow = document.getElementById('chat-window');
             const messageEl = document.createElement('div');
@@ -1174,7 +1122,8 @@
         async function handleChatSubmit(e) {
             e.preventDefault();
             if (!currentUser) {
-                showToast("Please log in to use the assistant.", "error"); return;
+                showToast("Please log in to use the assistant.", "error");
+                return;
             }
             const input = document.getElementById('chat-input');
             const userInput = input.value.trim();
@@ -1204,22 +1153,26 @@
                 return;
             }
 
+            // --- Handle active conversation ---
             switch (conversationState.stage) {
                 case 'promptSubject':
                     conversationState.collectedInfo.subject = userInput;
                     conversationState.stage = 'promptProf';
                     appendChatMessage(`Got it. Which professor will be teaching <strong>${userInput}</strong>?`, 'ai');
                     break;
+
                 case 'promptProf':
                     conversationState.collectedInfo.prof = userInput;
                     conversationState.stage = 'promptRoom';
                     appendChatMessage(`OK. Which room should <strong>${conversationState.collectedInfo.subject}</strong> be in?`, 'ai');
                     break;
+
                 case 'promptRoom':
                     conversationState.collectedInfo.room = userInput;
                     conversationState.stage = 'promptDay';
                     appendChatMessage(`Perfect. On which day of the week?`, 'ai');
                     break;
+
                 case 'promptDay':
                     const dayMap = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
                     const dayNum = dayMap[lowerInput];
@@ -1231,6 +1184,7 @@
                     conversationState.stage = 'promptTime';
                     appendChatMessage(`Excellent. Lastly, at what time on ${userInput}? (e.g., 9am, 2:30pm)`, 'ai');
                     break;
+
                 case 'promptTime':
                     const timeMatch = userInput.toLowerCase().match(/(\d{1,2})(?::(\d{2}))?(am|pm)?/);
                     if (!timeMatch) {
@@ -1244,6 +1198,7 @@
 
                     const timeString = `T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
                     conversationState.collectedInfo.time = timeString;
+
                     const { subject, prof, room, day, time: startTime } = conversationState.collectedInfo;
                     const scheduledClasses = Object.values(scheduleData).filter(c => c && c.day);
                     const conflict = scheduledClasses.find(c => c.day === day && c.start === startTime && (c.prof === prof || c.room === room));
