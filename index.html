@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
 <head>
@@ -224,11 +223,9 @@
                         <canvas id="workloadChart"></canvas>
                     </div>
                     <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md border border-slate-200 dark:border-gray-700">
-                        <h3 class="text-xl font-bold mb-4 text-slate-800 dark:text-white">Room Capacity</h3>
-                        <div class="h-48 flex items-center justify-center">
-                            <canvas id="capacityChart"></canvas>
-                        </div>
-                        <div id="capacity-details" class="text-sm mt-4 space-y-2 text-slate-600 dark:text-slate-300"></div>
+                        <h3 class="text-xl font-bold mb-4 text-slate-800 dark:text-white">Live Activity Feed</h3>
+                        <div id="activity-feed" class="space-y-3 h-96 overflow-y-auto pr-2">
+                           </div>
                     </div>
                 </div>
             </div>
@@ -379,9 +376,9 @@
         <button id="ask-ai-btn" class="fixed bottom-6 right-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full h-16 w-16 flex items-center justify-center shadow-lg text-2xl z-40"><i class="fa-solid fa-robot"></i></button>
         <div id="ai-chat-modal" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center opacity-0 invisible">
              <div class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-lg w-full h-[70vh] flex flex-col transform scale-95 transition-transform duration-300">
-                <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center bg-slate-50 dark:bg-gray-900 rounded-t-lg"><h3 class="text-xl font-bold text-slate-800 dark:text-white">KASHY</h3><button id="close-chat-btn" class="text-slate-500 hover:text-slate-800 dark:hover:text-white text-2xl">&times;</button></div>
-                <div id="chat-window" class="flex-grow p-4 space-y-4 overflow-y-auto"><div class="flex justify-start"><div class="chat-bubble bg-slate-200 dark:bg-gray-700 text-slate-800 dark:text-slate-200 p-3 rounded-lg">Hello! I'm KASHY, your scheduling assistant. How can I help?</div></div></div>
-                <div class="p-4 border-t dark:border-gray-700 bg-slate-50 dark:bg-gray-900 rounded-b-lg"><form id="chat-form" class="flex gap-2"><input type="text" id="chat-input" placeholder="Ask a question..." class="flex-grow rounded-md shadow-sm sm:text-sm dark:bg-gray-700 border-slate-300 dark:border-gray-600"><button id="voice-input-btn" type="button" class="text-slate-500 hover:text-indigo-600 font-bold p-2 rounded-lg transition text-xl"><i class="fa-solid fa-microphone"></i></button><button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold p-2 rounded-lg transition"><i class="fa-solid fa-paper-plane"></i></button></form></div>
+                <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center bg-slate-50 dark:bg-gray-900 rounded-t-lg"><h3 class="text-xl font-bold text-slate-800 dark:text-white">AI Command Assistant</h3><button id="close-chat-btn" class="text-slate-500 hover:text-slate-800 dark:hover:text-white text-2xl">&times;</button></div>
+                <div id="chat-window" class="flex-grow p-4 space-y-4 overflow-y-auto"><div class="flex justify-start"><div class="chat-bubble bg-slate-200 dark:bg-gray-700 text-slate-800 dark:text-slate-200 p-3 rounded-lg">I am the Automated Scheduling Assistant. Give me a command. <br><br><strong>Format:</strong><br> `schedule [Subject] for [Professor] in [Room] on [Day] at [Time]`</div></div></div>
+                <div class="p-4 border-t dark:border-gray-700 bg-slate-50 dark:bg-gray-900 rounded-b-lg"><form id="chat-form" class="flex gap-2"><input type="text" id="chat-input" placeholder="e.g., schedule Physics for ZAP in 102..." class="flex-grow rounded-md shadow-sm sm:text-sm dark:bg-gray-700 border-slate-300 dark:border-gray-600"><button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold p-2 rounded-lg transition"><i class="fa-solid fa-paper-plane"></i></button></form></div>
             </div>
         </div>
         <div id="auth-modal" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center opacity-0 invisible">
@@ -420,13 +417,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-analytics.js";
         import { getAuth } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot, collection, query, where, updateDoc, addDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
-
-        // ===================================================================================
-        // IMPORTANT: PASTE YOUR NEW GOOGLE GEMINI API KEY HERE
-        // Get your key from Google AI Studio: https://aistudio.google.com/
-        // ===================================================================================
-        const GEMINI_API_KEY = "AIzaSyCDAZZil3m8aeONE-3GzQu-4rB7eW-N1vQ"; // <--- PASTE YOUR NEW, SECRET KEY INSIDE THE QUOTES
+        import { getFirestore, doc, setDoc, onSnapshot, collection, query, where, updateDoc, addDoc, getDoc, serverTimestamp, orderBy, limit } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
 
         // Your web app's Firebase configuration
         const firebaseConfig = {
@@ -450,6 +441,7 @@
         let scheduleData = {};
         let scheduleUnsubscribe = null;
         let notificationsUnsubscribe = null;
+        let activityFeedUnsubscribe = null;
         let workloadChart = null;
         let capacityChart = null;
         let calendar = null;
@@ -530,6 +522,41 @@
                 });
                 renderNotifications(notifications);
             });
+        }
+        
+        async function logActivity(text) {
+            if (currentUser && currentUser.role === 'admin') {
+                await addDoc(collection(db, "activity_feed"), {
+                    text: text,
+                    timestamp: serverTimestamp()
+                });
+            }
+        }
+
+        function listenToActivityFeed() {
+            if (currentUser && currentUser.role === 'admin' && !activityFeedUnsubscribe) {
+                const q = query(collection(db, "activity_feed"), orderBy("timestamp", "desc"), limit(10));
+                activityFeedUnsubscribe = onSnapshot(q, (querySnapshot) => {
+                    const feedEl = document.getElementById('activity-feed');
+                    if (!feedEl) return;
+                    feedEl.innerHTML = '';
+                    if (querySnapshot.empty) {
+                        feedEl.innerHTML = `<p class="text-slate-400 text-sm text-center">No recent activity.</p>`;
+                        return;
+                    }
+                    querySnapshot.forEach(doc => {
+                        const data = doc.data();
+                        const time = data.timestamp ? new Date(data.timestamp.seconds * 1000).toLocaleTimeString() : '';
+                        const itemEl = document.createElement('div');
+                        itemEl.className = 'text-sm border-l-2 border-slate-300 dark:border-gray-600 pl-3';
+                        itemEl.innerHTML = `<p class="text-slate-700 dark:text-slate-300">${data.text}</p><p class="text-xs text-slate-400">${time}</p>`;
+                        feedEl.appendChild(itemEl);
+                    });
+                });
+            } else if (activityFeedUnsubscribe) {
+                activityFeedUnsubscribe();
+                activityFeedUnsubscribe = null;
+            }
         }
         
         function convertScheduleToEvents() {
@@ -698,6 +725,7 @@
             if (currentUser.role !== 'admin') return;
             scheduleData.isLocked = false;
             await saveScheduleToFirestore();
+            await logActivity(`Schedule was approved and unlocked.`);
             const notiRef = doc(db, "notifications", notiId);
             await updateDoc(notiRef, { status: 'approved' });
             showToast('Schedule Unlocked.', 'success');
@@ -730,29 +758,37 @@
             showModal('class-details-modal');
         }
 
-        function handleDeleteClass() {
+        async function handleDeleteClass() {
              if (!currentUser || currentUser.role !== 'admin' || scheduleData.isLocked) { showToast("You don't have permission or schedule is locked.", "error"); return; }
             const classId = document.getElementById('delete-class-btn').dataset.classId;
             if (scheduleData[classId]) {
+                const deletedClass = { ...scheduleData[classId] };
                 delete scheduleData[classId];
-                saveScheduleToFirestore(); renderCalendar(); hideModal('class-details-modal');
+                await saveScheduleToFirestore(); 
+                await logActivity(`${currentUser.name} deleted the class '${deletedClass.subject}'.`);
+                renderCalendar(); 
+                hideModal('class-details-modal');
                 showToast("Class deleted successfully.", "success");
             }
         }
 
-        function handleEventReceive(info) {
+        async function handleEventReceive(info) {
              if (!currentUser || (scheduleData.isLocked && currentUser.role !== 'admin')) { showToast("Please log in or unlock the schedule.", "error"); info.revert(); return; }
             const props = info.event.extendedProps;
             scheduleData[props.id] = { ...props, day: info.event.start.getDay(), start: 'T' + info.event.start.toTimeString().substring(0, 8) };
             scheduleData.unscheduled = (scheduleData.unscheduled || []).filter(c => c.id !== props.id);
-            saveScheduleToFirestore(); renderUnscheduled(); renderCalendar(); updateFacultyFilter();
+            await saveScheduleToFirestore(); 
+            await logActivity(`${currentUser.name} scheduled '${props.subject}'.`);
+            renderUnscheduled(); renderCalendar(); updateFacultyFilter();
         }
 
-        function handleEventDrop(info) {
+        async function handleEventDrop(info) {
             if (!currentUser || (scheduleData.isLocked && currentUser.role !== 'admin')) { showToast("Please log in or unlock the schedule.", "error"); info.revert(); return; }
             const classId = info.event.id;
             scheduleData[classId] = { ...scheduleData[classId], day: info.event.start.getDay(), start: 'T' + info.event.start.toTimeString().substring(0, 8) };
-            saveScheduleToFirestore(); renderCalendar();
+            await saveScheduleToFirestore(); 
+            await logActivity(`${currentUser.name} moved the class '${scheduleData[classId].subject}'.`);
+            renderCalendar();
         }
         
         let conflictCount = 0;
@@ -785,7 +821,7 @@
             updateDashboard();
         }
         
-        function handleAddClass(e) {
+        async function handleAddClass(e) {
             e.preventDefault();
             if (!currentUser || (scheduleData.isLocked && currentUser.role !== 'admin')) { showToast("Please log in or unlock the schedule.", "error"); return; }
             const form = e.target;
@@ -796,7 +832,8 @@
             };
             scheduleData.unscheduled.push(newClass);
             renderUnscheduled();
-            saveScheduleToFirestore();
+            await saveScheduleToFirestore();
+            await logActivity(`${currentUser.name} added '${newClass.subject}' to the unscheduled list.`);
             updateFacultyFilter();
             form.reset();
         }
@@ -828,6 +865,7 @@
                     navDashboardLink.classList.remove('hidden');
                     adminControls.classList.remove('hidden');
                     adminControls.classList.add('flex');
+                    listenToActivityFeed();
                 } else {
                     dashboard.classList.add('hidden');
                     navDashboardLink.classList.add('hidden');
@@ -845,6 +883,7 @@
                 dashboard.classList.add('hidden'); 
                 navDashboardLink.classList.add('hidden');
                 notificationsBtn.classList.add('hidden');
+                if (activityFeedUnsubscribe) activityFeedUnsubscribe();
             }
         }
         
@@ -890,31 +929,7 @@
             }
         }
         
-        // --- INNOVATIVE FEATURES & CHATBOT ---
-        async function callGeminiAPI(prompt) {
-            // *** CODE FIX: Using the widely compatible `gemini-pro` model and `v1beta` endpoint. ***
-            const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
-            
-            const payload = { contents: [{ parts: [{ text: prompt }] }] };
-
-            try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error.message || "An API error occurred.");
-                }
-                const result = await response.json();
-                return result.candidates[0].content.parts[0].text;
-            } catch (error) {
-                console.error("Gemini API call failed:", error);
-                return `Sorry, I encountered an error: ${error.message}`;
-            }
-        }
-
+        // --- AI SCHEDULER & INNOVATIVE FEATURES ---
         function appendChatMessage(message, sender) {
             const chatWindow = document.getElementById('chat-window');
             const messageDiv = document.createElement('div');
@@ -934,35 +949,69 @@
 
         async function handleChatSubmit(e) {
             e.preventDefault();
-            if (!GEMINI_API_KEY) {
-                appendChatMessage("The chatbot is not configured. The administrator needs to add a Gemini API key to the `index.html` file.", 'ai');
-                return;
-            }
             const input = document.getElementById('chat-input');
-            const userMessage = input.value.trim();
-            if (!userMessage) return;
+            const command = input.value.trim();
+            if (!command) return;
 
-            appendChatMessage(userMessage, 'user');
+            appendChatMessage(command, 'user');
             input.value = '';
 
-            const typingIndicator = document.createElement('div');
-            typingIndicator.id = 'typing-indicator';
-            typingIndicator.className = 'flex justify-start';
-            typingIndicator.innerHTML = `<div class="chat-bubble bg-slate-200 dark:bg-gray-700 p-3 rounded-lg">KASHY is thinking...</div>`;
-            document.getElementById('chat-window').appendChild(typingIndicator);
-            document.getElementById('chat-window').scrollTop = document.getElementById('chat-window').scrollHeight;
+            const commandRegex = /schedule (.+?) for (.+?) in (.+?) on (\w+) at (.+)/i;
+            const match = command.match(commandRegex);
 
-            try {
-                const systemPrompt = `You are KASHY, an expert AI assistant for the AcaDexa scheduling platform. Be helpful and concise. Use the current schedule data to answer questions. Current schedule data: ${JSON.stringify(scheduleData)}`;
-                const fullPrompt = `${systemPrompt}\n\nUser question: "${userMessage}"`;
-                const aiResponse = await callGeminiAPI(fullPrompt);
-                appendChatMessage(aiResponse, 'ai');
-            } catch (error) {
-                console.error("Chatbot error:", error);
-                appendChatMessage("Sorry, I'm having trouble connecting right now.", 'ai');
-            } finally {
-                typingIndicator.remove();
+            if (!match) {
+                appendChatMessage("I didn't understand. Please use the format: `schedule [Subject] for [Professor] in [Room] on [Day] at [Time]`", 'ai');
+                return;
             }
+
+            const [, subject, prof, room, day, time] = match.map(s => s.trim());
+            
+            // --- Convert parsed text to data ---
+            const dayMap = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
+            const dayNum = dayMap[day.toLowerCase()];
+
+            if (dayNum === undefined) {
+                appendChatMessage(`Error: Invalid day '${day}'. Please use a full day name (e.g., Monday).`, 'ai');
+                return;
+            }
+            
+            let [hour, minute] = [0, 0];
+            const timeMatch = time.toLowerCase().match(/(\d{1,2})(?::(\d{2}))?(am|pm)?/);
+            if (!timeMatch) {
+                appendChatMessage(`Error: Invalid time format '${time}'. Use formats like '9am', '2pm', or '14:30'.`, 'ai');
+                return;
+            }
+            hour = parseInt(timeMatch[1]);
+            minute = parseInt(timeMatch[2] || '0');
+            if (timeMatch[3] === 'pm' && hour < 12) hour += 12;
+            if (timeMatch[3] === 'am' && hour === 12) hour = 0; // Midnight case
+
+            const timeString = `T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
+
+            // --- Conflict checking ---
+            const scheduledClasses = Object.values(scheduleData).filter(c => c && c.day);
+            const conflict = scheduledClasses.find(c => c.day === dayNum && c.start === timeString && (c.prof === prof || c.room === room));
+            
+            if (conflict) {
+                appendChatMessage(`<strong>Conflict Detected!</strong><br>Cannot schedule because ${conflict.prof === prof ? `Professor ${prof}` : `Room ${room}`} is already booked for '${conflict.subject}'.`, 'ai');
+                return;
+            }
+            
+            // --- Add the class if no conflict ---
+            const newClass = {
+                id: 'c' + Date.now(), subject, prof, room,
+                students: 50, // Default value
+                status: 'draft',
+                color: '#3b82f6', // Default color
+                day: dayNum,
+                start: timeString
+            };
+            
+            scheduleData[newClass.id] = newClass;
+            await saveScheduleToFirestore();
+            await logActivity(`${currentUser.name} scheduled '${subject}' using the AI assistant.`);
+            renderCalendar();
+            appendChatMessage(`OK, I've scheduled <strong>${subject}</strong> for ${prof} in room ${room} on ${day} at ${time}.`, 'ai');
         }
 
 
@@ -995,12 +1044,13 @@
             
             const scheduledClasses = Object.values(scheduleData).filter(c => c && c.day);
             const busyProfsAtTime = new Set(scheduledClasses.filter(c => c.day === classInfo.day && c.start === classInfo.start).map(c => c.prof));
-            const allProfs = new Set(Object.values(userRoles).filter(role => role === 'teacher').map((_, name) => name));
-            Object.keys(userCredentials).forEach(name => { if(userRoles[name] === 'teacher') allProfs.add(name)});
+            const allProfs = new Set(Object.keys(userCredentials).filter(name => userRoles[name] === 'teacher'));
+            
             const availableProfs = [...allProfs].filter(p => !busyProfsAtTime.has(p) && p !== classInfo.prof);
             
             if (availableProfs.length === 0) {
                 showToast("No available teachers to substitute.", "error");
+                await logActivity(`Attempted to find substitute for ${classInfo.prof}, but none were available.`);
                 return;
             }
 
@@ -1020,6 +1070,7 @@
             });
 
             await sendNextSubstituteRequest(subRequestRef.id);
+            await logActivity(`${currentUser.name} marked ${classInfo.prof} absent and initiated the Smart Substitute Finder.`);
             showToast(`Smart Substitute Finder initiated for ${classInfo.subject}.`, "success");
         }
 
@@ -1040,6 +1091,7 @@
                     status: 'pending',
                     createdAt: serverTimestamp()
                 });
+                await logActivity(`Smart Substitute Finder failed for '${originalClass.subject}'. All teachers declined.`);
                 return;
             }
 
@@ -1080,6 +1132,7 @@
                     status: 'pending',
                     createdAt: serverTimestamp()
                 });
+                await logActivity(`${currentUser.name} accepted substitution for '${subReqData.originalClass.subject}'.`);
                 showToast("Substitution accepted!", "success");
             } else { // declined
                 await updateDoc(subReqRef, {
@@ -1087,6 +1140,7 @@
                     declinedBy: [...subReqData.declinedBy, currentUser.name]
                 });
                 await sendNextSubstituteRequest(subReqId);
+                await logActivity(`${currentUser.name} declined substitution for '${subReqData.originalClass.subject}'.`);
                 showToast("Substitution declined. The system will ask the next available teacher.", "success");
             }
         }
@@ -1152,6 +1206,7 @@
                  status: 'pending',
                  createdAt: serverTimestamp()
              });
+             await logActivity(`${currentUser.name} submitted the schedule for approval. Schedule is now locked.`);
              showToast("Schedule submitted and locked.", "success");
         }
 
@@ -1258,7 +1313,6 @@
             }
         }
         
-
         // --- FINAL SETUP ---
         document.addEventListener('DOMContentLoaded', () => {
             initializeModals();
@@ -1269,4 +1323,3 @@
     </script>
 </body>
 </html>
-
