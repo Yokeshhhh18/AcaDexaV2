@@ -1,4 +1,3 @@
-
 <html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
@@ -422,10 +421,10 @@
         import { getFirestore, doc, setDoc, onSnapshot, collection, query, where, updateDoc, addDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
 
         // ===================================================================================
-        // IMPORTANT: PASTE YOUR GOOGLE GEMINI API KEY HERE
+        // IMPORTANT: PASTE YOUR NEW GOOGLE GEMINI API KEY HERE
         // Get your key from Google AI Studio: https://aistudio.google.com/
         // ===================================================================================
-        const GEMINI_API_KEY = "AIzaSyDwIgzCE8jSJY7F5BnxbXXU-ZXcQhYOUgw"; // <--- PASTE YOUR KEY INSIDE THE QUOTES
+        const GEMINI_API_KEY = "AIzaSyDwIgzCE8jSJY7F5BnxbXXU-ZXcQhYOUgw"; // <--- PASTE YOUR NEW, SECRET KEY INSIDE THE QUOTES
 
         // Your web app's Firebase configuration
         const firebaseConfig = {
@@ -486,8 +485,9 @@
             updateFacultyFilter();
         }
 
-        async function saveScheduleToFirestore(scheduleOwnerUID) {
-            if (!scheduleOwnerUID) return;
+        async function saveScheduleToFirestore() {
+            if (!currentUser) return;
+            const scheduleOwnerUID = userUIDs["KASHY"]; // Always save to the main schedule
             const simplifiedSchedule = { unscheduled: scheduleData.unscheduled || [], isLocked: scheduleData.isLocked || false };
             Object.values(scheduleData).forEach(item => {
                 if(item.id && !Array.isArray(item)) simplifiedSchedule[item.id] = item;
@@ -508,7 +508,7 @@
                 } else {
                     loadDefaultSchedule();
                     if(currentUser.role === 'admin') {
-                        saveScheduleToFirestore(scheduleOwnerUID);
+                        saveScheduleToFirestore();
                     }
                 }
                 renderUnscheduled();
@@ -618,14 +618,20 @@
                 notifications.forEach(noti => {
                     const el = document.createElement('div');
                     el.className = 'p-3 bg-slate-100 dark:bg-gray-700 rounded-lg';
-                    if (noti.type === 'approval_request') {
-                        el.innerHTML = `<p>A new schedule has been submitted for approval.</p><p class="text-sm text-slate-500 mt-1">${new Date(noti.createdAt.seconds * 1000).toLocaleString()}</p><button data-id="${noti.id}" class="approve-schedule-btn mt-2 w-full bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-3 rounded-lg text-sm">Review & Unlock Schedule</button>`;
-                    } else { // absence_alert
-                        el.innerHTML = `
-                            <p class="mb-2"><strong>${noti.absentClass.prof}</strong> is absent for <strong>${noti.absentClass.subject}</strong>.</p>
-                             <p class="text-sm text-slate-500">Please find a substitute teacher.</p>
-                             <button data-id="${noti.id}" class="approve-schedule-btn mt-2 w-full bg-slate-600 hover:bg-slate-700 text-white font-bold py-1 px-3 rounded-lg text-sm">Acknowledge</button>
-                        `;
+                    
+                    switch(noti.type) {
+                        case 'approval_request':
+                            el.innerHTML = `<p>A new schedule has been submitted for approval.</p><p class="text-sm text-slate-500 mt-1">${new Date(noti.createdAt.seconds * 1000).toLocaleString()}</p><button data-id="${noti.id}" class="approve-schedule-btn mt-2 w-full bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-3 rounded-lg text-sm">Review & Unlock Schedule</button>`;
+                            break;
+                        case 'substitution_request':
+                            el.innerHTML = `<p class="mb-2">You have a substitution request for <strong>${noti.originalClass.subject}</strong> at ${noti.originalClass.start.substring(1,6)}.</p><div class="flex gap-2"><button data-noti-id="${noti.id}" data-sub-req-id="${noti.substituteRequestId}" class="accept-sub-btn w-full bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-3 rounded-lg text-sm">Accept</button><button data-noti-id="${noti.id}" data-sub-req-id="${noti.substituteRequestId}" class="decline-sub-btn w-full bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded-lg text-sm">Decline</button></div>`;
+                            break;
+                        case 'substitution_resolved':
+                            el.innerHTML = `<p><strong>${noti.resolvedBy}</strong> has accepted the substitution for <strong>${noti.originalClass.subject}</strong>.</p><button data-id="${noti.id}" class="acknowledge-btn mt-2 w-full bg-slate-600 hover:bg-slate-700 text-white font-bold py-1 px-3 rounded-lg text-sm">Acknowledge</button>`;
+                            break;
+                        case 'substitution_failed':
+                            el.innerHTML = `<p class="text-red-500"><strong>Urgent:</strong> No substitute could be found for <strong>${noti.originalClass.subject}</strong> after requesting all available staff.</p><button data-id="${noti.id}" class="acknowledge-btn mt-2 w-full bg-slate-600 hover:bg-slate-700 text-white font-bold py-1 px-3 rounded-lg text-sm">Acknowledge</button>`;
+                            break;
                     }
                     list.appendChild(el);
                 });
@@ -633,16 +639,63 @@
                 badge.classList.add('hidden');
                 list.innerHTML = '<p class="text-slate-500 text-center">No new notifications.</p>';
             }
-
-            list.querySelectorAll('.approve-schedule-btn').forEach(btn => btn.addEventListener('click', (e) => handleApprovalResponse(e.target.dataset.id)));
         }
-
+        
         // --- EVENT HANDLERS & LOGIC ---
+        function setupEventListeners() {
+            document.getElementById('add-class-form').addEventListener('submit', handleAddClass);
+            document.getElementById('dark-mode-toggle').addEventListener('click', toggleDarkMode);
+            document.getElementById('tutorial-btn').addEventListener('click', () => showModal('tutorial-modal'));
+            
+            document.addEventListener('click', async (event) => {
+                const target = event.target;
+                const closestButton = target.closest('button');
+                if (!closestButton) return;
+                
+                const actionId = closestButton.id;
+                const classList = closestButton.classList;
+                
+                if (actionId === 'login-btn') showModal('auth-modal');
+                if (actionId === 'logout-btn') handleLogout();
+                if (actionId === 'ask-ai-btn') showModal('ai-chat-modal');
+                if (actionId === 'close-chat-btn') hideModal('ai-chat-modal');
+                if (actionId === 'close-tutorial-btn') hideModal('tutorial-modal');
+                if (actionId === 'close-auth-btn') hideModal('auth-modal');
+                if (actionId === 'close-class-details-btn') hideModal('class-details-modal');
+                if (actionId === 'delete-class-btn') handleDeleteClass();
+                if (actionId === 'mark-absent-btn') handleMarkAbsent();
+                if (actionId === 'notifications-btn') showModal('notifications-modal');
+                if (actionId === 'close-notifications-modal') hideModal('notifications-modal');
+                if (actionId === 'optimize-schedule-btn') handleOptimize();
+                if (actionId === 'close-optimizer-modal') hideModal('optimizer-modal');
+                if (actionId === 'apply-optimization-btn') { showToast("Optimization applied!", "success"); hideModal('optimizer-modal'); }
+                if (actionId === 'print-schedule-btn') window.print();
+                if (actionId === 'submit-approval-btn') submitForApproval();
+                if (actionId === 'password-toggle-btn') handlePasswordToggle();
+
+                // Notification button handlers
+                if(classList.contains('approve-schedule-btn')) handleApprovalResponse(closestButton.dataset.id);
+                if(classList.contains('accept-sub-btn')) handleSubstitutionResponse(closestButton.dataset.notiId, closestButton.dataset.subReqId, 'accepted');
+                if(classList.contains('decline-sub-btn')) handleSubstitutionResponse(closestButton.dataset.notiId, closestButton.dataset.subReqId, 'declined');
+                if(classList.contains('acknowledge-btn')) {
+                    await updateDoc(doc(db, "notifications", closestButton.dataset.id), { status: 'acknowledged' });
+                }
+            });
+
+            document.addEventListener('submit', (event) => {
+                event.preventDefault();
+                if (event.target.id === 'auth-form') handleAuthSubmit(event);
+                if (event.target.id === 'chat-form') handleChatSubmit(event);
+            });
+            
+            document.getElementById('heatmap-toggle').addEventListener('change', toggleHeatmap);
+            document.getElementById('view-as-filter').addEventListener('change', (e) => filterByFaculty(e.target.value));
+        }
 
         async function handleApprovalResponse(notiId) {
             if (currentUser.role !== 'admin') return;
             scheduleData.isLocked = false;
-            await saveScheduleToFirestore(userUIDs['KASHY']);
+            await saveScheduleToFirestore();
             const notiRef = doc(db, "notifications", notiId);
             await updateDoc(notiRef, { status: 'approved' });
             showToast('Schedule Unlocked.', 'success');
@@ -680,7 +733,7 @@
             const classId = document.getElementById('delete-class-btn').dataset.classId;
             if (scheduleData[classId]) {
                 delete scheduleData[classId];
-                saveScheduleToFirestore(userUIDs['KASHY']); renderCalendar(); hideModal('class-details-modal');
+                saveScheduleToFirestore(); renderCalendar(); hideModal('class-details-modal');
                 showToast("Class deleted successfully.", "success");
             }
         }
@@ -690,14 +743,14 @@
             const props = info.event.extendedProps;
             scheduleData[props.id] = { ...props, day: info.event.start.getDay(), start: 'T' + info.event.start.toTimeString().substring(0, 8) };
             scheduleData.unscheduled = (scheduleData.unscheduled || []).filter(c => c.id !== props.id);
-            saveScheduleToFirestore(userUIDs['KASHY']); renderUnscheduled(); renderCalendar(); updateFacultyFilter();
+            saveScheduleToFirestore(); renderUnscheduled(); renderCalendar(); updateFacultyFilter();
         }
 
         function handleEventDrop(info) {
             if (!currentUser || (scheduleData.isLocked && currentUser.role !== 'admin')) { showToast("Please log in or unlock the schedule.", "error"); info.revert(); return; }
             const classId = info.event.id;
             scheduleData[classId] = { ...scheduleData[classId], day: info.event.start.getDay(), start: 'T' + info.event.start.toTimeString().substring(0, 8) };
-            saveScheduleToFirestore(userUIDs['KASHY']); renderCalendar();
+            saveScheduleToFirestore(); renderCalendar();
         }
         
         let conflictCount = 0;
@@ -729,52 +782,6 @@
             if (conflictCount > 0) conflictsFound.forEach(id => calendar.getEventById(id)?.setProp('classNames', ['conflict']));
             updateDashboard();
         }
-
-        function setupEventListeners() {
-            document.getElementById('add-class-form').addEventListener('submit', handleAddClass);
-            document.getElementById('dark-mode-toggle').addEventListener('click', toggleDarkMode);
-            document.getElementById('tutorial-btn').addEventListener('click', () => showModal('tutorial-modal'));
-            
-            document.addEventListener('click', (event) => {
-                const target = event.target;
-                const closestButton = target.closest('button');
-                if (!closestButton) return;
-                const actionId = closestButton.id;
-
-                const actions = {
-                    'login-btn': () => showModal('auth-modal'),
-                    'logout-btn': handleLogout,
-                    'ask-ai-btn': () => showModal('ai-chat-modal'),
-                    'close-chat-btn': () => hideModal('ai-chat-modal'),
-                    'close-tutorial-btn': () => hideModal('tutorial-modal'),
-                    'close-auth-btn': () => hideModal('auth-modal'),
-                    'close-class-details-btn': () => hideModal('class-details-modal'),
-                    'delete-class-btn': handleDeleteClass,
-                    'mark-absent-btn': handleMarkAbsent,
-                    'notifications-btn': () => showModal('notifications-modal'),
-                    'close-notifications-modal': () => hideModal('notifications-modal'),
-                    'optimize-schedule-btn': handleOptimize,
-                    'close-optimizer-modal': () => hideModal('optimizer-modal'),
-                    'apply-optimization-btn': () => {
-                        showToast("Optimization applied!", "success");
-                        hideModal('optimizer-modal');
-                    },
-                    'print-schedule-btn': () => window.print(),
-                    'submit-approval-btn': submitForApproval,
-                    'password-toggle-btn': handlePasswordToggle
-                };
-                if (actions[actionId]) actions[actionId]();
-            });
-
-            document.addEventListener('submit', (event) => {
-                event.preventDefault();
-                if (event.target.id === 'auth-form') handleAuthSubmit(event);
-                if (event.target.id === 'chat-form') handleChatSubmit(event);
-            });
-            
-            document.getElementById('heatmap-toggle').addEventListener('change', toggleHeatmap);
-            document.getElementById('view-as-filter').addEventListener('change', (e) => filterByFaculty(e.target.value));
-        }
         
         function handleAddClass(e) {
             e.preventDefault();
@@ -787,7 +794,7 @@
             };
             scheduleData.unscheduled.push(newClass);
             renderUnscheduled();
-            saveScheduleToFirestore(userUIDs['KASHY']);
+            saveScheduleToFirestore();
             updateFacultyFilter();
             form.reset();
         }
@@ -883,7 +890,9 @@
         
         // --- INNOVATIVE FEATURES & CHATBOT ---
         async function callGeminiAPI(prompt) {
-            const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
+            // *** CODE FIX: Using the newer v1 API endpoint and a modern model name ***
+            const API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
+            
             const payload = { contents: [{ parts: [{ text: prompt }] }] };
 
             try {
@@ -977,24 +986,117 @@
         }
 
         async function handleMarkAbsent() {
-            if (!currentUser || currentUser.role !== 'admin' || scheduleData.isLocked) { showToast("Only admins can mark teachers absent, or schedule is locked.", "error"); return; }
+            if (!currentUser || currentUser.role !== 'admin' || scheduleData.isLocked) { showToast("Only admins can do this, or schedule is locked.", "error"); return; }
             const classId = document.getElementById('mark-absent-btn').dataset.classId;
             const classInfo = scheduleData[classId];
-            classInfo.isAbsent = true;
+            if (!classInfo) return;
+            
+            // 1. Find available teachers
+            const scheduledClasses = Object.values(scheduleData).filter(c => c && c.day);
+            const busyProfsAtTime = new Set(scheduledClasses.filter(c => c.day === classInfo.day && c.start === classInfo.start).map(c => c.prof));
+            const allProfs = new Set(Object.values(userRoles).filter(role => role === 'teacher').map((_, name) => name));
+            Object.keys(userCredentials).forEach(name => { if(userRoles[name] === 'teacher') allProfs.add(name)});
+            
+            const availableProfs = [...allProfs].filter(p => !busyProfsAtTime.has(p) && p !== classInfo.prof);
+            
+            if (availableProfs.length === 0) {
+                showToast("No available teachers to substitute.", "error");
+                return;
+            }
 
+            // 2. Mark class as absent in the main schedule
+            classInfo.isAbsent = true;
+            await saveScheduleToFirestore();
+            renderCalendar();
+            hideModal('class-details-modal');
+
+            // 3. Create a substitution request document
+            const subRequestRef = await addDoc(collection(db, "substituteRequests"), {
+                originalClass: classInfo,
+                status: 'pending',
+                potentialSubs: availableProfs,
+                currentIndex: 0,
+                declinedBy: [],
+                adminInitiator: currentUser.name,
+                createdAt: serverTimestamp()
+            });
+
+            // 4. Start the cascading notification process
+            await sendNextSubstituteRequest(subRequestRef.id);
+            showToast(`Smart Substitute Finder initiated for ${classInfo.subject}.`, "success");
+        }
+
+        async function sendNextSubstituteRequest(subReqId) {
+            const subReqRef = doc(db, "substituteRequests", subReqId);
+            const subReqSnap = await getDoc(subReqRef);
+            if (!subReqSnap.exists()) return;
+            const subReqData = subReqSnap.data();
+
+            const { potentialSubs, currentIndex, originalClass, adminInitiator } = subReqData;
+
+            if (currentIndex >= potentialSubs.length) {
+                // All potential subs have been asked
+                await updateDoc(subReqRef, { status: 'failed' });
+                await addDoc(collection(db, "notifications"), {
+                    toUser: adminInitiator,
+                    type: 'substitution_failed',
+                    originalClass: originalClass,
+                    status: 'pending',
+                    createdAt: serverTimestamp()
+                });
+                return;
+            }
+
+            const nextTeacher = potentialSubs[currentIndex];
             await addDoc(collection(db, "notifications"), {
-                fromUser: currentUser.name,
-                toUser: "KASHY", // All absence alerts go to the principal
-                type: 'absence_alert',
-                absentClass: classInfo,
+                toUser: nextTeacher,
+                type: 'substitution_request',
+                originalClass: originalClass,
+                substituteRequestId: subReqId,
                 status: 'pending',
                 createdAt: serverTimestamp()
             });
-            showToast(`Absence logged. Notification sent to ${"KASHY"}.`, 'success');
+        }
+
+        async function handleSubstitutionResponse(notiId, subReqId, response) {
+            const notiRef = doc(db, "notifications", notiId);
+            const subReqRef = doc(db, "substituteRequests", subReqId);
             
-            await saveScheduleToFirestore(userUIDs['KASHY']);
-            renderCalendar();
-            hideModal('class-details-modal');
+            await updateDoc(notiRef, { status: response }); // Mark notification as handled
+
+            const subReqSnap = await getDoc(subReqRef);
+            if (!subReqSnap.exists()) return;
+            const subReqData = subReqSnap.data();
+
+            if (response === 'accepted') {
+                // Update schedule
+                const classToUpdate = scheduleData[subReqData.originalClass.id];
+                if (classToUpdate) {
+                    classToUpdate.prof = currentUser.name;
+                    delete classToUpdate.isAbsent;
+                    await saveScheduleToFirestore();
+                }
+                // Update sub request
+                await updateDoc(subReqRef, { status: 'resolved', resolvedBy: currentUser.name });
+                // Notify admin of success
+                await addDoc(collection(db, "notifications"), {
+                    toUser: subReqData.adminInitiator,
+                    type: 'substitution_resolved',
+                    originalClass: subReqData.originalClass,
+                    resolvedBy: currentUser.name,
+                    status: 'pending',
+                    createdAt: serverTimestamp()
+                });
+                showToast("Substitution accepted!", "success");
+            } else { // declined
+                // Update sub request and try next teacher
+                await updateDoc(subReqRef, {
+                    currentIndex: subReqData.currentIndex + 1,
+                    declinedBy: [...subReqData.declinedBy, currentUser.name]
+                });
+                await sendNextSubstituteRequest(subReqId);
+                showToast("Substitution declined. The system will ask the next available teacher.", "success");
+            }
         }
         
         function toggleHeatmap(event) {
@@ -1013,7 +1115,6 @@
             });
             
             calendarEl.querySelectorAll('.fc-col-header-cell, .fc-timegrid-col').forEach((col, dayIndex) => {
-                // Adjust dayIndex for FullCalendar's DOM structure (header + body cols)
                  const actualDayIndex = col.cellIndex;
                  if(actualDayIndex === undefined) return;
                 
@@ -1051,7 +1152,7 @@
         async function submitForApproval() {
              if (!currentUser || currentUser.role !== 'admin') { showToast("Only admins can submit schedules.", "error"); return; }
              scheduleData.isLocked = true;
-             await saveScheduleToFirestore(userUIDs['KASHY']);
+             await saveScheduleToFirestore();
              await addDoc(collection(db, "notifications"), {
                  fromUser: currentUser.name,
                  toUser: "KASHY",
