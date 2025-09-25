@@ -1,1462 +1,1462 @@
 <!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AcaDexa - Smart Scheduling Platform</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
-    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AcaDexa - Smart Scheduling Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <script>
-        // Tailwind dark mode config
-        tailwind.config = {
-            darkMode: 'class',
-        }
-    </script>
+    <script>
+        // Tailwind dark mode config
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
 
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            @apply bg-slate-50 text-slate-800 dark:bg-gray-900 dark:text-slate-200;
-        }
-        .font-poppins {
-            font-family: 'Poppins', sans-serif;
-        }
-        .hero-bg {
-             background-color: #111827;
-             background-image: radial-gradient(circle at top right, rgba(79, 70, 229, 0.4), transparent 40%);
-        }
-        .feature-card {
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            @apply bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700;
-        }
-        .feature-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-        }
-        .unscheduled-item {
-            cursor: grab;
-            transition: all 0.2s ease-in-out;
-        }
-        .unscheduled-item:hover {
-            transform: scale(1.03);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        }
-        
-        /* FullCalendar Customization */
-        :root {
-            --fc-border-color: #e2e8f0;
-            --fc-daygrid-event-dot-width: 8px;
-            --fc-list-event-hover-bg-color: #f1f5f9;
-        }
-        html.dark {
-            --fc-border-color: #374151;
-            --fc-day-bg-color: #1f2937;
-            --fc-list-event-hover-bg-color: #374151;
-            --fc-today-bg-color: rgba(31, 41, 55, 0.8);
-        }
-        .fc .fc-toolbar-title { @apply text-xl font-bold text-slate-800 dark:text-slate-100; }
-        .fc .fc-button { @apply bg-indigo-600 border-indigo-600 hover:bg-indigo-700 hover:border-indigo-700; }
-        .fc .fc-button-primary:not(:disabled).fc-button-active { @apply bg-indigo-700 border-indigo-700; }
-        .fc-event { border-width: 2px !important; cursor: pointer; }
-        .fc-event.conflict {
-            border: 2px solid #ef4444 !important;
-            animation: pulse-red 1s infinite;
-        }
-        .fc-event.absent {
-            @apply opacity-50 bg-slate-400 border-slate-500 line-through;
-        }
-        .fc-event.filtered-out {
-            @apply opacity-20 pointer-events-none;
-        }
-        
-        .modal { transition: opacity 0.3s ease, visibility 0.3s ease; }
-        .toast { transition: opacity 0.3s ease, transform 0.3s ease; }
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            @apply bg-slate-50 text-slate-800 dark:bg-gray-900 dark:text-slate-200;
+        }
+        .font-poppins {
+            font-family: 'Poppins', sans-serif;
+        }
+        .hero-bg {
+             background-color: #111827;
+             background-image: radial-gradient(circle at top right, rgba(79, 70, 229, 0.4), transparent 40%);
+        }
+        .feature-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            @apply bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700;
+        }
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .unscheduled-item {
+            cursor: grab;
+            transition: all 0.2s ease-in-out;
+        }
+        .unscheduled-item:hover {
+            transform: scale(1.03);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        
+        /* FullCalendar Customization */
+        :root {
+            --fc-border-color: #e2e8f0;
+            --fc-daygrid-event-dot-width: 8px;
+            --fc-list-event-hover-bg-color: #f1f5f9;
+        }
+        html.dark {
+            --fc-border-color: #374151;
+            --fc-day-bg-color: #1f2937;
+            --fc-list-event-hover-bg-color: #374151;
+            --fc-today-bg-color: rgba(31, 41, 55, 0.8);
+        }
+        .fc .fc-toolbar-title { @apply text-xl font-bold text-slate-800 dark:text-slate-100; }
+        .fc .fc-button { @apply bg-indigo-600 border-indigo-600 hover:bg-indigo-700 hover:border-indigo-700; }
+        .fc .fc-button-primary:not(:disabled).fc-button-active { @apply bg-indigo-700 border-indigo-700; }
+        .fc-event { border-width: 2px !important; cursor: pointer; }
+        .fc-event.conflict {
+            border: 2px solid #ef4444 !important;
+            animation: pulse-red 1s infinite;
+        }
+        .fc-event.absent {
+            @apply opacity-50 bg-slate-400 border-slate-500 line-through;
+        }
+        .fc-event.filtered-out {
+            @apply opacity-20 pointer-events-none;
+        }
+        
+        .modal { transition: opacity 0.3s ease, visibility 0.3s ease; }
+        .toast { transition: opacity 0.3s ease, transform 0.3s ease; }
 
-        .status-dot { @apply w-2 h-2 rounded-full inline-block; }
-        .status-draft { @apply bg-slate-400; }
-        .status-pending { @apply bg-amber-400; }
-        .status-approved { @apply bg-green-500; }
+        .status-dot { @apply w-2 h-2 rounded-full inline-block; }
+        .status-draft { @apply bg-slate-400; }
+        .status-pending { @apply bg-amber-400; }
+        .status-approved { @apply bg-green-500; }
 
-        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
 
-        /* Custom toggle switch */
-        .toggle-checkbox:checked { @apply bg-indigo-600 right-0 border-indigo-600; }
-        .toggle-checkbox:checked + .toggle-label { @apply bg-indigo-600; }
+        /* Custom toggle switch */
+        .toggle-checkbox:checked { @apply bg-indigo-600 right-0 border-indigo-600; }
+        .toggle-checkbox:checked + .toggle-label { @apply bg-indigo-600; }
 
-        /* Notification Bell */
-        .notification-badge {
-            @apply absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center;
-        }
-        
-        /* Heatmap styles */
-        .fc .fc-timegrid-slot { transition: background-color 0.3s ease; }
-        .fc .fc-timegrid-slot.heatmap-1 { background-color: rgba(99, 102, 241, 0.1); }
-        .fc .fc-timegrid-slot.heatmap-2 { background-color: rgba(99, 102, 241, 0.2); }
-        .fc .fc-timegrid-slot.heatmap-3 { background-color: rgba(245, 158, 11, 0.2); }
-        .fc .fc-timegrid-slot.heatmap-4 { background-color: rgba(239, 68, 68, 0.2); }
-        .dark .fc .fc-timegrid-slot.heatmap-1 { background-color: rgba(99, 102, 241, 0.15); }
-        .dark .fc .fc-timegrid-slot.heatmap-2 { background-color: rgba(99, 102, 241, 0.25); }
-        .dark .fc .fc-timegrid-slot.heatmap-3 { background-color: rgba(245, 158, 11, 0.25); }
-        .dark .fc .fc-timegrid-slot.heatmap-4 { background-color: rgba(239, 68, 68, 0.25); }
+        /* Notification Bell */
+        .notification-badge {
+            @apply absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center;
+        }
+        
+        /* Heatmap styles */
+        .fc .fc-timegrid-slot { transition: background-color 0.3s ease; }
+        .fc .fc-timegrid-slot.heatmap-1 { background-color: rgba(99, 102, 241, 0.1); }
+        .fc .fc-timegrid-slot.heatmap-2 { background-color: rgba(99, 102, 241, 0.2); }
+        .fc .fc-timegrid-slot.heatmap-3 { background-color: rgba(245, 158, 11, 0.2); }
+        .fc .fc-timegrid-slot.heatmap-4 { background-color: rgba(239, 68, 68, 0.2); }
+        .dark .fc .fc-timegrid-slot.heatmap-1 { background-color: rgba(99, 102, 241, 0.15); }
+        .dark .fc .fc-timegrid-slot.heatmap-2 { background-color: rgba(99, 102, 241, 0.25); }
+        .dark .fc .fc-timegrid-slot.heatmap-3 { background-color: rgba(245, 158, 11, 0.25); }
+        .dark .fc .fc-timegrid-slot.heatmap-4 { background-color: rgba(239, 68, 68, 0.25); }
 
 
-        @media print {
-            body * { visibility: hidden; }
-            #calendar-container, #calendar-container * { visibility: visible; }
-            #calendar-container { position: absolute; left: 0; top: 0; width: 100%; }
-        }
-    </style>
+        @media print {
+            body * { visibility: hidden; }
+            #calendar-container, #calendar-container * { visibility: visible; }
+            #calendar-container { position: absolute; left: 0; top: 0; width: 100%; }
+        }
+    </style>
 </head>
 <body class="antialiased">
 
-    <header class="bg-gray-900/80 backdrop-blur-sm sticky top-0 z-50 border-b border-gray-700/50">
-        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
-            <div id="header-left" class="text-2xl font-bold text-white tracking-wider font-poppins">
-                <div id="logo-container">Aca<span class="text-indigo-400">Dexa</span></div>
-                <div id="user-info-container" class="hidden items-center gap-2">
-                    <i class="fa-solid fa-user-circle text-indigo-400 text-2xl"></i>
-                    <span id="username-display" class="font-bold text-white"></span>
-                </div>
-            </div>
-            
-            <div class="hidden md:flex space-x-8 items-center">
-                <a href="#dashboard" class="text-gray-300 hover:text-indigo-400 transition hidden" id="nav-dashboard-link">Dashboard</a>
-                <a href="#features" class="text-gray-300 hover:text-indigo-400 transition">Core Features</a>
-                <a href="#schedule-workspace" class="text-gray-300 hover:text-indigo-400 transition">Scheduling Workspace</a>
-            </div>
-
-            <div class="flex items-center gap-4">
-                 <button id="notifications-btn" class="text-gray-300 hover:text-indigo-400 transition text-xl relative hidden" title="Notifications">
-                     <i class="fa-solid fa-bell"></i>
-                     <span id="notification-badge" class="notification-badge hidden"></span>
-                 </button>
-                 <button id="tutorial-btn" class="text-gray-300 hover:text-indigo-400 transition text-xl" title="How to Use">
-                     <i class="fa-solid fa-circle-question"></i>
-                 </button>
-                <button id="dark-mode-toggle" class="text-gray-300 hover:text-indigo-400 transition text-xl" title="Toggle Dark Mode">
-                    <i class="fa-solid fa-moon"></i>
-                </button>
-                <div id="auth-container" class="flex items-center gap-4">
-                    <button id="login-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition shadow-md hover:shadow-lg">Staff Login</button>
-                    <div id="user-actions-container" class="hidden items-center gap-4">
-                          <button id="logout-btn" class="bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition">Logout</button>
-                    </div>
-                </div>
-            </div>
-        </nav>
-    </header>
-
-    <main>
-        <section class="hero-bg text-white py-24 sm:py-32">
-            <div class="container mx-auto px-6 text-center">
-                <h2 class="text-5xl md:text-8xl font-extrabold font-poppins tracking-tight">Aca<span class="text-indigo-400">Dexa</span></h2>
-                <h1 class="mt-4 text-3xl md:text-5xl font-bold tracking-tight">
-                    Intelligent Scheduling for Smart Campuses
-                </h1>
-                <p class="mt-6 text-lg md:text-xl max-w-3xl mx-auto text-gray-300">
-                    The modern platform for scheduling classes, managing resources, and resolving conflicts with AI-powered assistance.
-                </p>
-                <div class="mt-8 flex justify-center gap-4">
-                    <a href="#schedule-workspace" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-lg text-lg transition">Get Started</a>
-                </div>
-            </div>
-        </section>
-
-        <section id="dashboard" class="py-20 bg-slate-100 dark:bg-gray-900 hidden">
-            <div class="container mx-auto px-6">
-                <div class="flex flex-wrap justify-between items-center mb-8 gap-4">
-                    <div>
-                        <h2 class="text-3xl md:text-4xl font-bold text-slate-800 dark:text-slate-100" id="welcome-message">Welcome</h2>
-                        <p class="mt-1 text-slate-500 dark:text-slate-400">Here's your campus overview for today.</p>
-                    </div>
-                    <div id="admin-controls" class="flex gap-2 flex-wrap">
-                        <button id="optimize-schedule-btn" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg transition flex items-center gap-2">
-                            <i class="fa-solid fa-wand-magic-sparkles"></i> Optimize Schedule
-                        </button>
-                        <button id="submit-approval-btn" class="bg-sky-600 hover:bg-sky-700 text-white font-semibold py-2 px-4 rounded-lg transition flex items-center gap-2">
-                            <i class="fa-solid fa-paper-plane"></i> Submit for Approval
-                        </button>
-                          <button id="print-schedule-btn" class="bg-slate-600 hover:bg-slate-700 text-white font-semibold py-2 px-4 rounded-lg transition flex items-center gap-2">
-                            <i class="fa-solid fa-print"></i> Print Schedule
-                        </button>
-                    </div>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-                     <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md border border-slate-200 dark:border-gray-700 flex items-center gap-4">
-                        <div class="bg-indigo-100 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-300 rounded-full h-12 w-12 flex items-center justify-center text-xl"><i class="fa-solid fa-calendar-check"></i></div>
-                        <div>
-                            <div class="text-3xl font-bold text-slate-800 dark:text-white" id="kpi-total-classes">0</div>
-                            <div class="text-slate-500 dark:text-slate-400">Classes Scheduled</div>
-                        </div>
-                    </div>
-                     <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md border border-slate-200 dark:border-gray-700 flex items-center gap-4">
-                        <div class="bg-indigo-100 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-300 rounded-full h-12 w-12 flex items-center justify-center text-xl"><i class="fa-solid fa-users"></i></div>
-                        <div>
-                            <div class="text-3xl font-bold text-slate-800 dark:text-white" id="kpi-total-students">0</div>
-                            <div class="text-slate-500 dark:text-slate-400">Total Students</div>
-                        </div>
-                    </div>
-                    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md border border-slate-200 dark:border-gray-700 flex items-center gap-4">
-                        <div class="bg-indigo-100 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-300 rounded-full h-12 w-12 flex items-center justify-center text-xl"><i class="fa-solid fa-triangle-exclamation"></i></div>
-                        <div>
-                            <div class="text-3xl font-bold text-slate-800 dark:text-white" id="kpi-conflicts">0</div>
-                            <div class="text-slate-500 dark:text-slate-400">Active Conflicts</div>
-                        </div>
-                    </div>
-                    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md border border-slate-200 dark:border-gray-700 flex items-center gap-4">
-                        <div class="bg-indigo-100 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-300 rounded-full h-12 w-12 flex items-center justify-center text-xl"><i class="fa-solid fa-inbox"></i></div>
-                        <div>
-                            <div class="text-3xl font-bold text-slate-800 dark:text-white" id="kpi-unscheduled">0</div>
-                            <div class="text-slate-500 dark:text-slate-400">Unscheduled</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="grid lg:grid-cols-3 gap-8">
-                    <div class="lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md border border-slate-200 dark:border-gray-700">
-                        <h3 class="text-xl font-bold mb-4 text-slate-800 dark:text-white">Faculty Workload Distribution</h3>
-                        <canvas id="workloadChart"></canvas>
-                    </div>
-                    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md border border-slate-200 dark:border-gray-700">
-                        <h3 class="text-xl font-bold mb-4 text-slate-800 dark:text-white">Live Activity Feed</h3>
-                        <div id="activity-feed" class="space-y-3 h-96 overflow-y-auto pr-2">
-                            </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section id="features" class="py-20 bg-white dark:bg-gray-900">
-            <div class="container mx-auto px-6">
-                 <div class="text-center mb-12">
-                    <h2 class="text-3xl md:text-4xl font-bold text-slate-800 dark:text-slate-100">A Platform Built for Schedulers</h2>
-                    <p class="mt-2 text-slate-500 dark:text-slate-400 max-w-2xl mx-auto">AcaDexa is built to handle the complexities of academic scheduling.</p>
-                </div>
-                <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-                    <div class="feature-card p-8 rounded-xl">
-                        <div class="bg-indigo-100 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-300 rounded-full h-12 w-12 flex items-center justify-center mb-4"><i class="fa-solid fa-check-to-slot"></i></div>
-                        <h3 class="text-xl font-bold mb-2 text-slate-800 dark:text-white">Approval Workflows</h3>
-                        <p class="text-slate-500 dark:text-slate-400">Streamline timetable finalization with multi-level approval. Authorities can review, suggest changes, or approve schedules with a click.</p>
-                    </div>
-                    <div class="feature-card p-8 rounded-xl">
-                        <div class="bg-indigo-100 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-300 rounded-full h-12 w-12 flex items-center justify-center mb-4"><i class="fa-solid fa-lightbulb"></i></div>
-                        <h3 class="text-xl font-bold mb-2 text-slate-800 dark:text-white">Conflict Rearrangement</h3>
-                        <p class="text-slate-500 dark:text-slate-400">When conflicts arise, our AI assistant provides the best alternative rearrangements, balancing faculty and room constraints.</p>
-                    </div>
-                    <div class="feature-card p-8 rounded-xl">
-                        <div class="bg-indigo-100 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-300 rounded-full h-12 w-12 flex items-center justify-center mb-4"><i class="fa-solid fa-building"></i></div>
-                        <h3 class="text-xl font-bold mb-2 text-slate-800 dark:text-white">Multi-Department & Shift</h3>
-                        <p class="text-slate-500 dark:text-slate-400">Effortlessly manage schedules across multiple departments, programs, and shifts within a single, unified platform.</p>
-                    </div>
-                     <div class="feature-card p-8 rounded-xl">
-                        <div class="bg-indigo-100 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-300 rounded-full h-12 w-12 flex items-center justify-center mb-4"><i class="fa-solid fa-chalkboard-user"></i></div>
-                        <h3 class="text-xl font-bold mb-2 text-slate-800 dark:text-white">Smart Classroom Ready</h3>
-                        <p class="text-slate-500 dark:text-slate-400">Integrate with smart displays for real-time schedule updates and automatically book required A/V equipment for each class.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-        
-        <section id="schedule-workspace" class="py-20 bg-slate-100 dark:bg-gray-800/50">
-            <div class="container mx-auto px-6">
-                <div class="text-center mb-12">
-                    <h2 class="text-3xl md:text-4xl font-bold text-slate-800 dark:text-slate-100">Interactive Scheduling Workspace</h2>
-                    <p class="mt-2 text-slate-500 dark:text-slate-400 max-w-2xl mx-auto">Add classes, then drag them from the "Unscheduled" list onto the calendar. Log in to save your changes.</p>
-                </div>
-                
-                 <div class="bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-700 p-4 rounded-xl shadow-md mb-6 max-w-6xl mx-auto">
-                    <form id="add-class-form" class="grid sm:grid-cols-6 gap-4 items-end">
-                        <input type="text" id="subject" class="mt-1 block w-full rounded-md shadow-sm sm:text-sm dark:bg-gray-800 border-slate-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-indigo-500" placeholder="Subject Name" required>
-                        <input type="text" id="prof" class="mt-1 block w-full rounded-md shadow-sm sm:text-sm dark:bg-gray-800 border-slate-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-indigo-500" placeholder="Professor" required>
-                        <input type="text" id="room" class="mt-1 block w-full rounded-md shadow-sm sm:text-sm dark:bg-gray-800 border-slate-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-indigo-500" placeholder="Room No." required>
-                        <input type="number" id="students" class="mt-1 block w-full rounded-md shadow-sm sm:text-sm dark:bg-gray-800 border-slate-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-indigo-500" placeholder="No. of Students" required>
-                        <select id="color" class="mt-1 block w-full rounded-md shadow-sm sm:text-sm dark:bg-gray-800 border-slate-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-indigo-500">
-                            <option value="#8b5cf6">Violet</option>
-                            <option value="#3b82f6">Blue</option>
-                            <option value="#10b981">Emerald</option>
-                            <option value="#f97316">Orange</option>
-                            <option value="#ec4899">Pink</option>
-                        </select>
-                        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition w-full h-fit">Add to List</button>
-                    </form>
-                </div>
-
-                <div class="grid lg:grid-cols-12 gap-6" id="calendar-container">
-                    <div class="lg:col-span-2">
-                         <h3 class="font-bold text-center text-slate-700 dark:text-slate-300 mb-2">Unscheduled Classes</h3>
-                         <div id="unscheduled-list" class="bg-white dark:bg-gray-800/50 border border-slate-200 dark:border-gray-700 p-4 rounded-xl shadow-lg min-h-[100px] space-y-2"></div>
-                    </div>
-                    <div class="lg:col-span-10 bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-700 p-4 rounded-2xl shadow-lg relative">
-                        <div class="flex justify-end items-center gap-4 mb-2">
-                             <div class="flex items-center" id="view-as-container">
-                                 <label for="view-as-filter" class="text-sm font-medium text-slate-700 dark:text-slate-300 mr-2">View As:</label>
-                                 <select id="view-as-filter" class="rounded-md shadow-sm sm:text-sm dark:bg-gray-800 border-slate-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-indigo-500"></select>
-                             </div>
-                            <div class="flex items-center">
-                                <label for="heatmap-toggle" class="text-sm font-medium text-slate-700 dark:text-slate-300 mr-2">Show Heatmap</label>
-                                <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
-                                    <input type="checkbox" name="heatmap-toggle" id="heatmap-toggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
-                                    <label for="heatmap-toggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-slate-300 cursor-pointer"></label>
-                                </div>
-                            </div>
-                        </div>
-                        <div id="calendar"></div>
-                        <div id="calendar-lock-overlay" class="absolute inset-0 bg-slate-900/50 flex-col items-center justify-center rounded-2xl hidden z-20 cursor-not-allowed">
-                            <i class="fa-solid fa-lock text-white text-4xl mb-4"></i>
-                            <p class="text-white text-xl font-bold">Schedule Submitted for Approval</p>
-                            <p class="text-slate-300">Editing is disabled until the schedule is approved or rejected.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-        
-    </main>
-
-    <footer class="bg-gray-900 text-gray-400">
-        <div class="container mx-auto px-6 py-12">
-            <div class="mt-8 border-t border-gray-700 pt-8 text-center text-sm">
-                <p>&copy; 2025 AcaDexa. All rights reserved. Created by Kanishq, Anamika, Yokesh, Kiruthik, Saravana, and Harine.</p>
-            </div>
-        </div>
-    </footer>
-
-    <div id="modals-container">
-    </div>
-
-    <script type="text/template" id="modals-template">
-        <div id="class-details-modal" class="modal fixed inset-0 bg-black bg-opacity-50 z-[60] hidden items-center justify-center opacity-0 invisible">
-            <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-2xl max-w-md w-full transform scale-95 transition-transform duration-300 relative">
-                <button id="close-class-details-btn" class="absolute top-4 right-4 text-slate-500 dark:hover:text-white hover:text-slate-800 text-2xl">&times;</button>
-                <h3 id="class-modal-title" class="text-2xl font-bold mb-2 text-slate-800 dark:text-white"></h3>
-                <p id="class-modal-time" class="text-slate-500 dark:text-slate-400 mb-6"></p>
-                <div class="space-y-4">
-                    <div class="flex items-center gap-4"><i class="fa-solid fa-user-tie w-4 text-center"></i><span id="class-modal-prof"></span></div>
-                    <div class="flex items-center gap-4"><i class="fa-solid fa-building w-4 text-center"></i><span id="class-modal-room"></span></div>
-                    <div>
-                        <div class="flex items-center gap-4"><i class="fa-solid fa-users w-4 text-center"></i><span id="class-modal-students"></span></div>
-                        <div class="w-full bg-slate-200 dark:bg-gray-700 rounded-full h-2.5 mt-2"><div id="class-modal-capacity-bar" class="bg-indigo-600 h-2.5 rounded-full" style="width: 0%"></div></div>
-                    </div>
-                    <div class="flex items-center gap-4"><i class="fa-solid fa-circle w-4 text-center"></i>Status: <span id="class-modal-status" class="font-semibold"></span></div>
-                </div>
-                <div class="mt-6 pt-6 border-t border-slate-200 dark:border-gray-700">
-                    <h4 class="font-bold text-slate-800 dark:text-white mb-2">Lecture Notes</h4>
-                    <textarea id="class-modal-notes" class="w-full p-2 rounded-md bg-slate-100 dark:bg-gray-700 border border-slate-300 dark:border-gray-600" rows="4" placeholder="Add notes for this lecture..."></textarea>
-                    <button id="save-notes-btn" class="hidden mt-2 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition">Save Notes</button>
-                </div>
-                 <div id="admin-action-buttons" class="mt-6 pt-6 border-t border-slate-200 dark:border-gray-700 flex gap-2">
-                    <button id="mark-absent-btn" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded-lg transition">Mark Teacher Absent</button>
-                    <button id="delete-class-btn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition">Delete Class</button>
-                </div>
-            </div>
-        </div>
-        <div id="tutorial-modal" class="modal fixed inset-0 bg-black bg-opacity-50 z-[60] hidden items-center justify-center opacity-0 invisible">
-            <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-2xl max-w-2xl w-full transform scale-95 transition-transform duration-300 relative">
-                 <button id="close-tutorial-btn" class="absolute top-4 right-4 text-slate-500 dark:hover:text-white hover:text-slate-800 text-2xl">&times;</button>
-                 <h3 class="text-2xl font-bold mb-6 text-center text-slate-800 dark:text-white">How to Use AcaDexa</h3>
-                 <div class="space-y-4 text-slate-600 dark:text-slate-300">
-                    <p><strong>1. Add a Class:</strong> Use the form above the calendar to enter class details. Click "Add to List".</p>
-                    <p><strong>2. Schedule a Class:</strong> Drag your new class from the "Unscheduled" list onto a time slot in the calendar.</p>
-                    <p><strong>3. View & Manage:</strong> Click any class on the calendar to see details, manage smart features, or mark a teacher absent.</p>
-                    <p><strong>4. Analyze & Optimize:</strong> Use the Dashboard to view analytics or run the AI Optimizer to find a more efficient schedule.</p>
-                    <p><strong>5. Log In to Save:</strong> Your changes are only saved when you are logged in. Use the "Staff Login" button to authenticate.</p>
-                </div>
-            </div>
-        </div>
-        <div id="toast" class="toast fixed bottom-6 left-1/2 -translate-x-1/2 bg-red-600 text-white py-2 px-5 rounded-lg shadow-lg opacity-0 transform translate-y-10 z-[70]">
-            <p id="toast-message">Toast message</p>
-        </div>
-        <button id="ask-ai-btn" class="fixed bottom-6 right-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full h-16 w-16 flex items-center justify-center shadow-lg text-2xl z-40"><i class="fa-solid fa-robot"></i></button>
-        <div id="ai-chat-modal" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center opacity-0 invisible">
-             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-lg w-full h-[70vh] flex flex-col transform scale-95 transition-transform duration-300">
-                <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center bg-slate-50 dark:bg-gray-900 rounded-t-lg"><h3 class="text-xl font-bold text-slate-800 dark:text-white">AI Assistant</h3><button id="close-chat-btn" class="text-slate-500 hover:text-slate-800 dark:hover:text-white text-2xl">&times;</button></div>
-                <div id="chat-window" class="flex-grow p-4 space-y-4 overflow-y-auto"><div class="flex justify-start"><div class="chat-bubble bg-slate-200 dark:bg-gray-700 text-slate-800 dark:text-slate-200 p-3 rounded-lg">Hello! I'm the AcaDexa assistant. You can ask me to schedule a class for you.</div></div></div>
-                <div class="p-4 border-t dark:border-gray-700 bg-slate-50 dark:bg-gray-900 rounded-b-lg"><form id="chat-form" class="flex gap-2"><input type="text" id="chat-input" placeholder="Type 'schedule a class' to begin..." class="flex-grow rounded-md shadow-sm sm:text-sm dark:bg-gray-700 border-slate-300 dark:border-gray-600"><button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold p-2 rounded-lg transition"><i class="fa-solid fa-paper-plane"></i></button></form></div>
-            </div>
-        </div>
-        <div id="auth-modal" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center opacity-0 invisible">
-            <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-2xl max-w-sm w-full transform scale-95 transition-transform duration-300 relative">
-                 <button id="close-auth-btn" class="absolute top-4 right-4 text-slate-500 dark:hover:text-white hover:text-slate-800 text-2xl">&times;</button>
-                 <h3 id="auth-title" class="text-2xl font-bold mb-6 text-center text-slate-800 dark:text-white">Staff Login</h3>
-                 <form id="auth-form"><div class="space-y-4"><input type="text" id="auth-username" placeholder="Username" class="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" required><div class="relative"><input type="password" id="auth-password" placeholder="Password" class="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" required><button type="button" id="password-toggle-btn" class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400"><i class="fa-solid fa-eye"></i></button></div></div><p id="auth-error" class="text-red-500 text-sm mt-2 h-4"></p><button type="submit" id="auth-submit-btn" class="mt-6 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition">Login</button></form>
-            </div>
-        </div>
-        <div id="notifications-modal" class="modal fixed inset-0 bg-black bg-opacity-50 z-[60] hidden items-center justify-center opacity-0 invisible">
-            <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-2xl max-w-lg w-full transform scale-95 transition-transform duration-300">
-                <button id="close-notifications-modal" class="absolute top-4 right-4 text-slate-500 dark:hover:text-white hover:text-slate-800 text-2xl">&times;</button>
-                <h3 class="text-2xl font-bold mb-4 text-slate-800 dark:text-white">Your Notifications</h3>
-                <div id="notifications-list" class="space-y-3 max-h-96 overflow-y-auto"></div>
-            </div>
-        </div>
-        <div id="optimizer-modal" class="modal fixed inset-0 bg-black bg-opacity-50 z-[60] hidden items-center justify-center opacity-0 invisible">
-             <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-2xl max-w-4xl w-full transform scale-95 transition-transform duration-300">
-                <button id="close-optimizer-modal" class="absolute top-4 right-4 text-slate-500 dark:hover:text-white hover:text-slate-800 text-2xl">&times;</button>
-                <h3 class="text-2xl font-bold mb-2 text-slate-800 dark:text-white">AI Schedule Optimizer</h3>
-                <p class="text-slate-500 dark:text-slate-400 mb-6">The AI has analyzed your schedule and found a more optimal arrangement to reduce conflicts and improve resource utilization.</p>
-                <div class="grid grid-cols-2 gap-6">
-                    <div><h4 class="font-bold text-center mb-2">Before</h4><div id="optimizer-before" class="border rounded-lg p-2 bg-slate-50 dark:bg-gray-700 h-64 overflow-y-auto"></div></div>
-                    <div><h4 class="font-bold text-center mb-2">After (Optimized)</h4><div id="optimizer-after" class="border rounded-lg p-2 bg-slate-50 dark:bg-gray-700 h-64 overflow-y-auto"></div></div>
-                </div>
-                 <div class="mt-6 text-center">
-                    <button id="apply-optimization-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition">Apply Optimized Schedule</button>
-                </div>
-            </div>
-        </div>
-    </script>
-
-
-    <script type="module">
-        // Firebase Imports
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
-        import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot, collection, query, where, updateDoc, addDoc, getDoc, serverTimestamp, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-        // Your web app's Firebase configuration
-        const firebaseConfig = {
-            apiKey: "YOUR_API_KEY", // Replace with your actual Firebase API key
-            authDomain: "acadexaa.firebaseapp.com",
-            projectId: "acadexaa",
-            storageBucket: "acadexaa.appspot.com",
-            messagingSenderId: "933959447585",
-            appId: "1:933959447585:web:ac2fd1e1c79412342c5f60",
-            measurementId: "G-64F5SMENND"
-        };
-
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const analytics = getAnalytics(app);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        
-        // --- GLOBAL STATE ---
-        let currentUser = null; 
-        let scheduleData = {};
-        let scheduleUnsubscribe = null;
-        let notificationsUnsubscribe = null;
-        let activityFeedUnsubscribe = null;
-        let workloadChart = null;
-        let calendar = null;
-
-        // --- State for the conversational AI assistant
-        let conversationState = {};
-        function resetConversationState() {
-            conversationState = {
-                active: false,
-                stage: null,
-                collectedInfo: { subject: null, prof: null, room: null, day: null, time: null }
-            };
-        }
-
-        const roomCapacities = { "101": 50, "102": 45, "Lab 3": 25, "303": 50, "Lab 1": 25, "202": 30 };
-        const userCredentials = {
-            "KASHY": "sihwinners",
-            "ZAP": "maja",
-            "Kanishq": "pass1", "Anamika": "pass2", "Yokesh": "pass3",
-            "Kiruthik": "pass4", "Saravana": "pass5", "Harine": "pass6",
-        };
-        const userUIDs = {
-            "KASHY": "user_kashy_id", "ZAP": "user_zap_id", "Kanishq": "user_kanishq_id",
-            "Anamika": "user_anamika_id", "Yokesh": "user_yokesh_id", "Kiruthik": "user_kiruthik_id",
-            "Saravana": "user_saravana_id", "Harine": "user_harine_id",
-        };
-         const userRoles = {
-            "KASHY": "admin", "ZAP": "teacher", "Kanishq": "teacher", "Anamika": "teacher",
-            "Yokesh": "teacher", "Kiruthik": "teacher", "Saravana": "teacher", "Harine": "teacher",
-        };
-        
-        // --- DATA & STATE MANAGEMENT ---
-        function loadDefaultSchedule() {
-             scheduleData = {
-                "c1": { id: "c1", subject: "Calculus I", prof: "Kanishq", room: "101", students: 48, status: "approved", color: "#ec4899", start: "T09:00:00", day: 1, notes: "First lecture on limits and derivatives." },
-                "c2": { id: "c2", subject: "Intro to Physics", prof: "ZAP", room: "102", students: 40, status: "approved", color: "#10b981", start: "T10:00:00", day: 1 },
-                "c3": { id: "c3", subject: "Machine Learning", prof: "Anamika", room: "Lab 3", students: 22, status: "pending", color: "#3b82f6", start: "T11:00:00", day: 3 },
-                "c4": { id: "c4", subject: "Data Structures", prof: "Yokesh", room: "303", students: 45, status: "pending", color: "#3b82f6", start: "T13:00:00", day: 4 },
-                "unscheduled": [
-                    { id: "c5", subject: "Organic Chemistry", prof: "Kiruthik", room: "Lab 1", students: 20, status: "draft", color: "#f97316" },
-                    { id: "c6", subject: "Modern History", prof: "Saravana", room: "202", students: 30, status: "draft", color: "#8b5cf6" },
-                    { id: "c7", subject: "World Literature", prof: "Harine", room: "202", students: 25, status: "draft", color: "#8b5cf6" }
-                ]
-            };
-            renderUnscheduled();
-            renderCalendar();
-            updateDashboard();
-            updateFacultyFilter();
-        }
-
-        async function saveScheduleToFirestore() {
-            if (!currentUser) return;
-            const scheduleOwnerUID = userUIDs["KASHY"]; // Always save to the main admin schedule
-            const simplifiedSchedule = { unscheduled: scheduleData.unscheduled || [], isLocked: scheduleData.isLocked || false };
-            Object.values(scheduleData).forEach(item => {
-                if(item.id && !Array.isArray(item)) simplifiedSchedule[item.id] = item;
-            });
-            const scheduleRef = doc(db, "schedules", scheduleOwnerUID);
-            try {
-                await setDoc(scheduleRef, { scheduleData: JSON.stringify(simplifiedSchedule) });
-            } catch (error) { console.error("Error saving schedule: ", error); }
-        }
-
-        function listenToSchedule() {
-            if (!currentUser || scheduleUnsubscribe) return;
-            const scheduleOwnerUID = userUIDs["KASHY"];
-            const scheduleRef = doc(db, "schedules", scheduleOwnerUID);
-            scheduleUnsubscribe = onSnapshot(scheduleRef, (docSnap) => {
-                if (docSnap.exists() && docSnap.data().scheduleData) {
-                    scheduleData = JSON.parse(docSnap.data().scheduleData);
-                } else {
-                    loadDefaultSchedule();
-                    if(currentUser.role === 'admin') {
-                        saveScheduleToFirestore();
-                    }
-                }
-                renderUnscheduled();
-                renderCalendar();
-                updateFacultyFilter();
-                updateCalendarLockState();
-            }, (error) => console.error("Snapshot listener error:", error));
-        }
-
-        function listenToNotifications() {
-            if (!currentUser || notificationsUnsubscribe) return;
-            const q = query(collection(db, "notifications"), where("toUser", "==", currentUser.name), where("status", "==", "pending"));
-            notificationsUnsubscribe = onSnapshot(q, (querySnapshot) => {
-                const notifications = [];
-                querySnapshot.forEach((doc) => {
-                    notifications.push({ id: doc.id, ...doc.data() });
-                });
-                renderNotifications(notifications);
-            });
-        }
-        
-        async function logActivity(text) {
-            if (currentUser) {
-                await addDoc(collection(db, "activity_feed"), {
-                    user: currentUser.name,
-                    text: text,
-                    timestamp: serverTimestamp()
-                });
-            }
-        }
-
-        function listenToActivityFeed() {
-            if (currentUser && currentUser.role === 'admin' && !activityFeedUnsubscribe) {
-                const q = query(collection(db, "activity_feed"), orderBy("timestamp", "desc"), limit(10));
-                activityFeedUnsubscribe = onSnapshot(q, (querySnapshot) => {
-                    const feedEl = document.getElementById('activity-feed');
-                    if (!feedEl) return;
-                    feedEl.innerHTML = '';
-                    if (querySnapshot.empty) {
-                        feedEl.innerHTML = `<p class="text-slate-400 text-sm text-center">No recent activity.</p>`;
-                        return;
-                    }
-                    querySnapshot.forEach(doc => {
-                        const data = doc.data();
-                        const time = data.timestamp ? new Date(data.timestamp.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-                        const itemEl = document.createElement('div');
-                        itemEl.className = 'text-sm border-l-2 border-slate-300 dark:border-gray-600 pl-3';
-                        itemEl.innerHTML = `<p class="text-slate-700 dark:text-slate-300"><strong>${data.user}</strong> ${data.text}</p><p class="text-xs text-slate-400">${time}</p>`;
-                        feedEl.appendChild(itemEl);
-                    });
-                });
-            } else if (activityFeedUnsubscribe) {
-                activityFeedUnsubscribe();
-                activityFeedUnsubscribe = null;
-            }
-        }
-        
-        function convertScheduleToEvents() {
-            const events = [];
-            const today = new Date();
-            const dayOfWeek = today.getDay();
-            
-            Object.values(scheduleData).forEach(item => {
-                if(Array.isArray(item) || !item.day) return;
-                
-                const eventDate = new Date();
-                eventDate.setDate(today.getDate() - dayOfWeek + item.day);
-                const [hours, minutes] = item.start.substring(1).split(':');
-                eventDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-
-                events.push({
-                    id: item.id,
-                    title: item.subject,
-                    start: eventDate,
-                    end: new Date(eventDate.getTime() + 50 * 60000),
-                    color: item.color,
-                    extendedProps: { ...item }
-                });
-            });
-            return events;
-        }
-
-        // --- UI RENDERING & INITIALIZATION ---
-        function initializeModals() {
-            const modalsTemplate = document.getElementById('modals-template').innerHTML;
-            document.getElementById('modals-container').innerHTML = modalsTemplate;
-        }
-
-        function renderCalendar() {
-            if (!calendar) return;
-            calendar.removeAllEvents();
-            calendar.addEventSource(convertScheduleToEvents());
-            detectAllConflicts();
-        }
-
-        function renderUnscheduled() {
-            const listEl = document.getElementById('unscheduled-list');
-            if(!listEl) return;
-            listEl.innerHTML = '';
-            (scheduleData.unscheduled || []).forEach(classData => {
-                listEl.appendChild(createUnscheduledElement(classData));
-            });
-            // Draggable is re-initialized each time the list is rendered.
-            // This is a simple and effective approach for this app's scale.
-            new FullCalendar.Draggable(listEl, {
-                itemSelector: '.unscheduled-item',
-                eventData: (eventEl) => ({
-                    id: eventEl.dataset.id, title: eventEl.dataset.subject, color: eventEl.dataset.color,
-                    duration: '00:50', extendedProps: { ...JSON.parse(eventEl.dataset.classinfo) }
-                })
-            });
-        }
-        
-        function createUnscheduledElement(classData) {
-            const el = document.createElement('div');
-            el.className = 'unscheduled-item p-2 rounded-md text-sm';
-            el.style.backgroundColor = classData.color + '33';
-            el.style.borderLeft = `4px solid ${classData.color}`;
-            el.dataset.id = classData.id; el.dataset.subject = classData.subject; el.dataset.color = classData.color;
-            el.dataset.classinfo = JSON.stringify(classData);
-            el.innerHTML = `<strong class="font-bold text-slate-800 dark:text-slate-100">${classData.subject}</strong><div class="text-xs text-slate-600 dark:text-slate-300">${classData.prof}</div>`;
-            return el;
-        }
-
-        function initializeCalendar() {
-            const calendarEl = document.getElementById('calendar');
-            if(!calendarEl) return;
-            calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'timeGridWeek',
-                headerToolbar: { left: 'prev,next today', center: 'title', right: 'timeGridWeek,timeGridDay' },
-                allDaySlot: false, 
-                editable: true, 
-                droppable: true, // This is essential for drag-and-drop from the external list
-                slotMinTime: '08:00:00',
-                slotMaxTime: '18:00:00', 
-                eventReceive: handleEventReceive, // The key callback for when a drop occurs
-                eventDrop: handleEventDrop, 
-                eventClick: handleEventClick
-            });
-            calendar.render();
-        }
-
-        function renderNotifications(notifications) {
-            const badge = document.getElementById('notification-badge');
-            const list = document.getElementById('notifications-list');
-            list.innerHTML = '';
-
-            if (notifications.length > 0) {
-                badge.textContent = notifications.length;
-                badge.classList.remove('hidden');
-                notifications.forEach(noti => {
-                    const el = document.createElement('div');
-                    el.className = 'p-3 bg-slate-100 dark:bg-gray-700 rounded-lg';
-                    
-                    switch(noti.type) {
-                        case 'approval_request':
-                            el.innerHTML = `<p>A new schedule has been submitted for approval.</p><p class="text-sm text-slate-500 mt-1">${new Date(noti.createdAt.seconds * 1000).toLocaleString()}</p><button data-id="${noti.id}" class="approve-schedule-btn mt-2 w-full bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-3 rounded-lg text-sm">Review & Unlock Schedule</button>`;
-                            break;
-                        case 'substitution_request':
-                            el.innerHTML = `<p class="mb-2">You have a substitution request for <strong>${noti.originalClass.subject}</strong> at ${noti.originalClass.start.substring(1,6)}.</p><div class="flex gap-2"><button data-noti-id="${noti.id}" data-sub-req-id="${noti.substituteRequestId}" class="accept-sub-btn w-full bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-3 rounded-lg text-sm">Accept</button><button data-noti-id="${noti.id}" data-sub-req-id="${noti.substituteRequestId}" class="decline-sub-btn w-full bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded-lg text-sm">Decline</button></div>`;
-                            break;
-                        case 'substitution_resolved':
-                            el.innerHTML = `<p><strong>${noti.resolvedBy}</strong> has accepted the substitution for <strong>${noti.originalClass.subject}</strong>.</p><button data-id="${noti.id}" class="acknowledge-btn mt-2 w-full bg-slate-600 hover:bg-slate-700 text-white font-bold py-1 px-3 rounded-lg text-sm">Acknowledge</button>`;
-                            break;
-                        case 'substitution_failed':
-                            el.innerHTML = `<p class="text-red-500"><strong>Urgent:</strong> No substitute could be found for <strong>${noti.originalClass.subject}</strong> after requesting all available staff.</p><button data-id="${noti.id}" class="acknowledge-btn mt-2 w-full bg-slate-600 hover:bg-slate-700 text-white font-bold py-1 px-3 rounded-lg text-sm">Acknowledge</button>`;
-                            break;
-                    }
-                    list.appendChild(el);
-                });
-            } else {
-                badge.classList.add('hidden');
-                list.innerHTML = '<p class="text-slate-500 text-center">No new notifications.</p>';
-            }
-        }
-        
-        // --- EVENT HANDLERS & LOGIC ---
-        function setupEventListeners() {
-            document.getElementById('add-class-form').addEventListener('submit', handleAddClass);
-            document.getElementById('dark-mode-toggle').addEventListener('click', toggleDarkMode);
-            document.getElementById('tutorial-btn').addEventListener('click', () => showModal('tutorial-modal'));
-            
-            document.addEventListener('click', async (event) => {
-                const target = event.target;
-                const closestButton = target.closest('button');
-                if (!closestButton) return;
-                
-                const actionId = closestButton.id;
-                const classList = closestButton.classList;
-                
-                if (actionId === 'login-btn') showModal('auth-modal');
-                if (actionId === 'logout-btn') handleLogout();
-                if (actionId === 'ask-ai-btn') showModal('ai-chat-modal');
-                if (actionId === 'close-chat-btn') hideModal('ai-chat-modal');
-                if (actionId === 'close-tutorial-btn') hideModal('tutorial-modal');
-                if (actionId === 'close-auth-btn') hideModal('auth-modal');
-                if (actionId === 'close-class-details-btn') hideModal('class-details-modal');
-                if (actionId === 'delete-class-btn') handleDeleteClass();
-                if (actionId === 'mark-absent-btn') handleMarkAbsent();
-                if (actionId === 'save-notes-btn') handleSaveNotes(closestButton);
-                if (actionId === 'notifications-btn') showModal('notifications-modal');
-                if (actionId === 'close-notifications-modal') hideModal('notifications-modal');
-                if (actionId === 'optimize-schedule-btn') handleOptimize();
-                if (actionId === 'close-optimizer-modal') hideModal('optimizer-modal');
-                if (actionId === 'apply-optimization-btn') { showToast("Optimization applied!", "success"); hideModal('optimizer-modal'); }
-                if (actionId === 'print-schedule-btn') window.print();
-                if (actionId === 'submit-approval-btn') submitForApproval();
-                if (actionId === 'password-toggle-btn') handlePasswordToggle();
-
-                // Notification button handlers
-                if(classList.contains('approve-schedule-btn')) handleApprovalResponse(closestButton.dataset.id);
-                if(classList.contains('accept-sub-btn')) handleSubstitutionResponse(closestButton.dataset.notiId, closestButton.dataset.subReqId, 'accepted');
-                if(classList.contains('decline-sub-btn')) handleSubstitutionResponse(closestButton.dataset.notiId, closestButton.dataset.subReqId, 'declined');
-                if(classList.contains('acknowledge-btn')) {
-                    await updateDoc(doc(db, "notifications", closestButton.dataset.id), { status: 'acknowledged' });
-                }
-            });
-
-            document.addEventListener('submit', (event) => {
-                event.preventDefault();
-                if (event.target.id === 'auth-form') handleAuthSubmit(event);
-                if (event.target.id === 'chat-form') handleChatSubmit(event);
-            });
-            
-            document.getElementById('heatmap-toggle').addEventListener('change', toggleHeatmap);
-            document.getElementById('view-as-filter').addEventListener('change', (e) => filterByFaculty(e.target.value));
-        }
-
-        async function handleApprovalResponse(notiId) {
-            if (currentUser.role !== 'admin') return;
-            scheduleData.isLocked = false;
-            await saveScheduleToFirestore();
-            await logActivity(`approved and unlocked the schedule.`);
-            const notiRef = doc(db, "notifications", notiId);
-            await updateDoc(notiRef, { status: 'approved' });
-            showToast('Schedule Unlocked.', 'success');
-            hideModal('notifications-modal');
-        }
-
-        function handleEventClick(info) {
-            const props = info.event.extendedProps;
-            document.getElementById('class-modal-title').textContent = props.subject;
-            const timeFormat = new Intl.DateTimeFormat('en', { hour: 'numeric', minute: 'numeric' });
-            document.getElementById('class-modal-time').textContent = `${info.event.start.toLocaleDateString('en-US', { weekday: 'long' })}, ${timeFormat.format(info.event.start)}`;
-            document.getElementById('class-modal-prof').textContent = props.prof;
-            document.getElementById('class-modal-room').textContent = `Room ${props.room}`;
-            const capacity = roomCapacities[props.room] || props.students;
-            document.getElementById('class-modal-students').textContent = `${props.students} / ${capacity} Students`;
-            const percentage = Math.min((props.students / capacity) * 100, 100);
-            const capacityBar = document.getElementById('class-modal-capacity-bar');
-            capacityBar.style.width = `${percentage}%`;
-            capacityBar.className = 'h-2.5 rounded-full ';
-            if(percentage > 90) capacityBar.classList.add('bg-red-500'); else if(percentage > 70) capacityBar.classList.add('bg-amber-500'); else capacityBar.classList.add('bg-indigo-600');
-            document.getElementById('class-modal-status').textContent = props.status.charAt(0).toUpperCase() + props.status.slice(1);
-            
-            const notesTextarea = document.getElementById('class-modal-notes');
-            const saveNotesBtn = document.getElementById('save-notes-btn');
-            notesTextarea.value = props.notes || '';
-            saveNotesBtn.dataset.classId = props.id;
-            
-            if (currentUser && (currentUser.role === 'admin' || currentUser.name === props.prof)) {
-                notesTextarea.disabled = false;
-                saveNotesBtn.classList.remove('hidden');
-            } else {
-                notesTextarea.disabled = true;
-                saveNotesBtn.classList.add('hidden');
-            }
-
-            document.getElementById('delete-class-btn').dataset.classId = props.id;
-            document.getElementById('mark-absent-btn').dataset.classId = props.id;
-            
-            const adminActionButtons = document.getElementById('admin-action-buttons');
-            if (currentUser && currentUser.role === 'admin') {
-                adminActionButtons.classList.remove('hidden');
-            } else {
-                adminActionButtons.classList.add('hidden');
-            }
-            showModal('class-details-modal');
-        }
-
-        async function handleSaveNotes(button) {
-            const classId = button.dataset.classId;
-            const newNotes = document.getElementById('class-modal-notes').value;
-            if (scheduleData[classId]) {
-                scheduleData[classId].notes = newNotes;
-                await saveScheduleToFirestore();
-                await logActivity(`updated notes for '${scheduleData[classId].subject}'.`);
-                showToast("Notes saved successfully!", "success");
-            }
-        }
-        
-        async function handleDeleteClass() {
-            const deleteBtn = document.getElementById('delete-class-btn');
-            if (!deleteBtn) return;
-            const classId = deleteBtn.dataset.classId;
-
-            if (!currentUser || currentUser.role !== 'admin') {
-                showToast("Only admins can delete classes.", "error");
-                return;
-            }
-            if (scheduleData.isLocked) {
-                showToast("Cannot delete classes while schedule is locked for approval.", "error");
-                return;
-            }
-            if (!classId || !scheduleData[classId]) {
-                showToast("Error: Class not found. Please close the modal and try again.", "error");
-                return;
-            }
-
-            try {
-                const deletedClassSubject = scheduleData[classId].subject;
-                delete scheduleData[classId];
-
-                await saveScheduleToFirestore();
-                await logActivity(`deleted the class '${deletedClassSubject}'.`);
-                
-                renderCalendar();
-                hideModal('class-details-modal');
-                showToast(`Class '${deletedClassSubject}' deleted successfully.`, "success");
-            } catch (error) {
-                console.error("Error deleting class:", error);
-                showToast("A database error occurred while deleting the class.", "error");
-            }
-        }
-        
-        async function handleMarkAbsent() {
-            const absentBtn = document.getElementById('mark-absent-btn');
-            if (!absentBtn) return;
-            const classId = absentBtn.dataset.classId;
-
-            if (!currentUser || currentUser.role !== 'admin') {
-                showToast("Only admins can mark teachers absent.", "error");
-                return;
-            }
-            if (scheduleData.isLocked) {
-                showToast("Cannot modify absences while schedule is locked.", "error");
-                return;
-            }
-            if (!classId || !scheduleData[classId]) {
-                showToast("Error: Class not found. Please close the modal and try again.", "error");
-                return;
-            }
-
-            const classInfo = scheduleData[classId];
-
-            if (classInfo.isAbsent) {
-                showToast("This class is already marked as absent.", "error");
-                return;
-            }
-
-            try {
-                const scheduledClasses = Object.values(scheduleData).filter(c => c && c.day);
-                const busyProfsAtTime = new Set(scheduledClasses.filter(c => c.day === classInfo.day && c.start === classInfo.start).map(c => c.prof));
-                const allTeachers = Object.keys(userCredentials).filter(name => userRoles[name] === 'teacher');
-                const availableProfs = allTeachers.filter(p => !busyProfsAtTime.has(p) && p !== classInfo.prof);
-                
-                classInfo.isAbsent = true;
-                await saveScheduleToFirestore();
-                renderCalendar();
-                hideModal('class-details-modal');
-
-                if (availableProfs.length === 0) {
-                    showToast(`Absence marked for ${classInfo.prof}, but no substitutes are available at this time.`, "error");
-                    await logActivity(`marked ${classInfo.prof} absent for '${classInfo.subject}', but no substitutes were found.`);
-                    return;
-                }
-
-                const subRequestRef = await addDoc(collection(db, "substituteRequests"), {
-                    originalClass: classInfo,
-                    status: 'pending', potentialSubs: availableProfs,
-                    currentIndex: 0, declinedBy: [],
-                    adminInitiator: currentUser.name, createdAt: serverTimestamp()
-                });
-
-                await sendNextSubstituteRequest(subRequestRef.id);
-                await logActivity(`marked ${classInfo.prof} absent and initiated the Smart Substitute Finder.`);
-                showToast(`Absence marked. Finding a substitute for ${classInfo.subject}...`, "success");
-
-            } catch (error) {
-                console.error("Error marking absent:", error);
-                showToast("A database error occurred while marking absence.", "error");
-            }
-        }
-
-        // --- FIX STARTS HERE for Drag and Drop ---
-        
-        /**
-        * @description FIX: This robust function handles the dropping of an external event onto the calendar.
-        * It includes clear permission checks and error handling to provide better user feedback.
-        * This is the most common point of failure for the drag-and-drop feature.
-        */
-        async function handleEventReceive(info) {
-            // 1. Check permissions. If these fail, revert the drop and notify the user.
-            if (!currentUser) {
-                showToast("You must be logged in to schedule a class.", "error");
-                info.revert(); // Visually removes the dropped event.
-                return; 
-            }
-            if (scheduleData.isLocked && currentUser.role !== 'admin') { 
-                showToast("Schedule is locked for approval. Cannot make changes.", "error"); 
-                info.revert(); 
-                return; 
-            }
-
-            const props = info.event.extendedProps;
-            
-            // 2. Sanity check for valid properties from the dragged item.
-            if (!props || !props.id) {
-                showToast("Error reading class data. Drag failed.", "error");
-                info.revert();
-                return;
-            }
-            
-            try {
-                // 3. Update the application's state.
-                scheduleData[props.id] = { 
-                    ...props, 
-                    day: info.event.start.getDay(), 
-                    start: 'T' + info.event.start.toTimeString().substring(0, 8) 
-                };
-                scheduleData.unscheduled = (scheduleData.unscheduled || []).filter(c => c.id !== props.id);
-                
-                // 4. Save the new state to the database.
-                await saveScheduleToFirestore(); 
-                await logActivity(`scheduled '${props.subject}' by dragging.`);
-                
-                // 5. Re-render the UI to reflect the changes.
-                renderUnscheduled(); 
-                renderCalendar(); 
-                updateFacultyFilter();
-            } catch (error) {
-                console.error("Error receiving event:", error);
-                showToast("An error occurred while saving the schedule.", "error");
-                info.revert(); // If any part of the process fails, revert the change.
-            }
-        }
-
-        // --- FIX ENDS HERE ---
-
-        async function handleEventDrop(info) {
-            if (!currentUser || (scheduleData.isLocked && currentUser.role !== 'admin')) { 
-                showToast("Please log in or unlock the schedule.", "error"); 
-                info.revert(); 
-                return; 
-            }
-            const classId = info.event.id;
-            scheduleData[classId] = { ...scheduleData[classId], day: info.event.start.getDay(), start: 'T' + info.event.start.toTimeString().substring(0, 8) };
-            await saveScheduleToFirestore(); 
-            await logActivity(`moved the class '${scheduleData[classId].subject}'.`);
-            renderCalendar();
-        }
-        
-        let conflictCount = 0;
-        function detectAllConflicts() {
-            if(!calendar) return;
-            calendar.getEvents().forEach(e => e.setProp('classNames', e.extendedProps.isAbsent ? ['absent'] : []));
-            const scheduledClasses = Object.values(scheduleData).filter(c => c && c.day);
-            const conflictsFound = new Set();
-            const timeSlots = {};
-
-            scheduledClasses.forEach(classInfo => {
-                if (classInfo.isAbsent) return;
-                const key = `${classInfo.day}-${classInfo.start}`;
-                timeSlots[key] = timeSlots[key] || { profs: [], rooms: [] };
-                timeSlots[key].profs.push({prof: classInfo.prof, id: classInfo.id});
-                timeSlots[key].rooms.push({room: classInfo.room, id: classInfo.id});
-                const capacity = roomCapacities[classInfo.room];
-                if (capacity && classInfo.students > capacity) conflictsFound.add(classInfo.id);
-            });
-
-            Object.values(timeSlots).forEach(slot => {
-                const profCounts = slot.profs.reduce((acc, p) => ({...acc, [p.prof]: (acc[p.prof] || 0) + 1}), {});
-                const roomCounts = slot.rooms.reduce((acc, r) => ({...acc, [r.room]: (acc[r.room] || 0) + 1}), {});
-                slot.profs.forEach(p => { if (profCounts[p.prof] > 1) conflictsFound.add(p.id); });
-                slot.rooms.forEach(r => { if (roomCounts[r.room] > 1) conflictsFound.add(r.id); });
-            });
-
-            conflictCount = conflictsFound.size;
-            if (conflictCount > 0) conflictsFound.forEach(id => calendar.getEventById(id)?.setProp('classNames', ['conflict']));
-            updateDashboard();
-        }
-        
-        async function handleAddClass(e) {
-            e.preventDefault();
-            if (!currentUser || (scheduleData.isLocked && currentUser.role !== 'admin')) { showToast("Please log in or unlock the schedule.", "error"); return; }
-            const form = e.target;
-            if (!scheduleData.unscheduled) scheduleData.unscheduled = [];
-            const newClass = { 
-                id: 'c' + Date.now(), subject: form.subject.value, prof: form.prof.value, room: form.room.value,
-                students: parseInt(form.students.value, 10), status: 'draft', color: form.color.value, 
-            };
-            scheduleData.unscheduled.push(newClass);
-            renderUnscheduled();
-            await saveScheduleToFirestore();
-            await logActivity(`added '${newClass.subject}' to the unscheduled list.`);
-            updateFacultyFilter();
-            form.reset();
-        }
-
-        // --- AUTH & STATE CHANGES ---
-        function updateUIForAuthState() {
-            const loginBtn = document.getElementById('login-btn');
-            const userActionsContainer = document.getElementById('user-actions-container');
-            const dashboard = document.getElementById('dashboard');
-            const navDashboardLink = document.getElementById('nav-dashboard-link');
-            const welcomeMsg = document.getElementById('welcome-message');
-            const notificationsBtn = document.getElementById('notifications-btn');
-            const userInfoContainer = document.getElementById('user-info-container');
-            const usernameDisplay = document.getElementById('username-display');
-            const logoContainer = document.getElementById('logo-container');
-            const adminControls = document.getElementById('admin-controls');
-
-            if (currentUser) {
-                loginBtn.classList.add('hidden');
-                userActionsContainer.classList.remove('hidden');
-                userActionsContainer.classList.add('flex');
-                logoContainer.classList.add('hidden');
-                userInfoContainer.classList.remove('hidden');
-                userInfoContainer.classList.add('flex');
-                usernameDisplay.textContent = currentUser.name;
-                welcomeMsg.textContent = `Welcome, ${currentUser.name}`; 
-                if (currentUser.role === 'admin') {
-                    dashboard.classList.remove('hidden'); 
-                    navDashboardLink.classList.remove('hidden');
-                    adminControls.classList.remove('hidden');
-                    adminControls.classList.add('flex');
-                    listenToActivityFeed();
-                } else {
-                    dashboard.classList.add('hidden');
-                    navDashboardLink.classList.add('hidden');
-                    adminControls.classList.add('hidden');
-                    adminControls.classList.remove('flex');
-                }
-                notificationsBtn.classList.remove('hidden');
-            } else {
-                loginBtn.classList.remove('hidden');
-                userActionsContainer.classList.add('hidden');
-                userActionsContainer.classList.remove('flex');
-                logoContainer.classList.remove('hidden');
-                userInfoContainer.classList.add('hidden');
-                userInfoContainer.classList.remove('flex');
-                dashboard.classList.add('hidden'); 
-                navDashboardLink.classList.add('hidden');
-                notificationsBtn.classList.add('hidden');
-                if (activityFeedUnsubscribe) activityFeedUnsubscribe();
-            }
-        }
-        
-        function handleAuthSubmit(e) {
-             e.preventDefault();
-             const username = document.getElementById('auth-username').value;
-             const password = document.getElementById('auth-password').value;
-             const errorEl = document.getElementById('auth-error');
-             errorEl.textContent = '';
-
-             if (userCredentials[username] && userCredentials[username] === password) {
-                currentUser = { name: username, uid: userUIDs[username], role: userRoles[username] };
-                updateUIForAuthState();
-                listenToSchedule();
-                listenToNotifications();
-                hideModal('auth-modal');
-             } else {
-                errorEl.textContent = "Invalid username or password.";
-             }
-        }
-
-        function handleLogout() {
-            if(scheduleUnsubscribe) scheduleUnsubscribe();
-            if(notificationsUnsubscribe) notificationsUnsubscribe();
-            scheduleUnsubscribe = null; 
-            notificationsUnsubscribe = null;
-            currentUser = null;
-            updateUIForAuthState(); 
-            loadDefaultSchedule();
-        }
-
-        function handlePasswordToggle() {
-            const passwordInput = document.getElementById('auth-password');
-            const icon = document.querySelector('#password-toggle-btn i');
-            if (passwordInput.type === 'password') {
-                passwordInput.type = 'text';
-                icon.classList.remove('fa-eye');
-                icon.classList.add('fa-eye-slash');
-            } else {
-                passwordInput.type = 'password';
-                icon.classList.remove('fa-eye-slash');
-                icon.classList.add('fa-eye');
-            }
-        }
-        
-        // --- AI SCHEDULER & INNOVATIVE FEATURES ---
-        function appendChatMessage(message, sender) {
-            const chatWindow = document.getElementById('chat-window');
-            const messageEl = document.createElement('div');
-            const bubble = document.createElement('div');
-            
-            messageEl.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
-            bubble.className = `p-3 rounded-lg ${sender === 'user' ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-gray-700 text-slate-800 dark:text-slate-200'}`;
-            bubble.innerHTML = message;
-            
-            messageEl.appendChild(bubble);
-            chatWindow.appendChild(messageEl);
-            chatWindow.scrollTop = chatWindow.scrollHeight;
-        }
-
-        async function handleChatSubmit(e) {
-            e.preventDefault();
-            if (!currentUser) {
-                showToast("Please log in to use the assistant.", "error");
-                return;
-            }
-            const input = document.getElementById('chat-input');
-            const userInput = input.value.trim();
-            if (!userInput) return;
-
-            appendChatMessage(userInput, 'user');
-            input.value = '';
-
-            const lowerInput = userInput.toLowerCase();
-
-            if (lowerInput === 'cancel' || lowerInput === 'reset' || lowerInput === 'stop') {
-                resetConversationState();
-                appendChatMessage("OK, I've cancelled the current operation. How can I help?", 'ai');
-                return;
-            }
-
-            if (!conversationState.active) {
-                if (lowerInput.includes('schedule') || lowerInput.includes('add') || lowerInput.includes('new')) {
-                    conversationState.active = true;
-                    conversationState.stage = 'promptSubject';
-                    appendChatMessage("Great! What is the name of the subject?", 'ai');
-                } else if (lowerInput === 'hi' || lowerInput === 'hello') {
-                    appendChatMessage("Hello! You can ask me to schedule a class.", 'ai');
-                } else {
-                    appendChatMessage("Sorry, I can only help with scheduling. Try saying 'schedule a class'.", 'ai');
-                }
-                return;
-            }
-
-            // --- Handle active conversation ---
-            switch (conversationState.stage) {
-                case 'promptSubject':
-                    conversationState.collectedInfo.subject = userInput;
-                    conversationState.stage = 'promptProf';
-                    appendChatMessage(`Got it. Which professor will be teaching <strong>${userInput}</strong>?`, 'ai');
-                    break;
-
-                case 'promptProf':
-                    conversationState.collectedInfo.prof = userInput;
-                    conversationState.stage = 'promptRoom';
-                    appendChatMessage(`OK. Which room should <strong>${conversationState.collectedInfo.subject}</strong> be in?`, 'ai');
-                    break;
-
-                case 'promptRoom':
-                    conversationState.collectedInfo.room = userInput;
-                    conversationState.stage = 'promptDay';
-                    appendChatMessage(`Perfect. On which day of the week?`, 'ai');
-                    break;
-
-                case 'promptDay':
-                    const dayMap = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
-                    const dayNum = dayMap[lowerInput];
-                    if (dayNum === undefined) {
-                        appendChatMessage("That doesn't seem to be a valid day. Please enter a full day of the week (e.g., 'Monday').", 'ai');
-                        return;
-                    }
-                    conversationState.collectedInfo.day = dayNum;
-                    conversationState.stage = 'promptTime';
-                    appendChatMessage(`Excellent. Lastly, at what time on ${userInput}? (e.g., 9am, 2:30pm)`, 'ai');
-                    break;
-
-                case 'promptTime':
-                    const timeMatch = userInput.toLowerCase().match(/(\d{1,2})(?::(\d{2}))?(am|pm)?/);
-                    if (!timeMatch) {
-                        appendChatMessage("Sorry, I don't recognize that time format. Please use a format like '9am', '2pm', or '14:30'.", 'ai');
-                        return;
-                    }
-                    let hour = parseInt(timeMatch[1]);
-                    let minute = parseInt(timeMatch[2] || '0');
-                    if (timeMatch[3] === 'pm' && hour < 12) hour += 12;
-                    if (timeMatch[3] === 'am' && hour === 12) hour = 0;
-
-                    const timeString = `T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
-                    conversationState.collectedInfo.time = timeString;
-
-                    const { subject, prof, room, day, time: startTime } = conversationState.collectedInfo;
-                    const scheduledClasses = Object.values(scheduleData).filter(c => c && c.day);
-                    const conflict = scheduledClasses.find(c => c.day === day && c.start === startTime && (c.prof === prof || c.room === room));
-
-                    if (conflict) {
-                        appendChatMessage(`<strong>Conflict Detected!</strong><br>Cannot schedule because ${conflict.prof === prof ? `Professor ${prof}` : `Room ${room}`} is already booked for '${conflict.subject}'. Please start over.`, 'ai');
-                    } else {
-                        const newClass = { id: 'c' + Date.now(), subject, prof, room, students: 50, status: 'draft', color: '#3b82f6', day, start: startTime };
-                        scheduleData[newClass.id] = newClass;
-                        await saveScheduleToFirestore();
-                        await logActivity(`scheduled '${subject}' using the AI assistant.`);
-                        renderCalendar();
-                        appendChatMessage(`All set! I've scheduled <strong>${subject}</strong> for you.`, 'ai');
-                    }
-                    resetConversationState();
-                    break;
-            }
-        }
-
-        function handleOptimize() {
-            if (!currentUser || currentUser.role !== 'admin') { showToast("Only admins can optimize schedules.", "error"); return; }
-            showModal('optimizer-modal');
-            const beforeContainer = document.getElementById('optimizer-before');
-            const afterContainer = document.getElementById('optimizer-after');
-            beforeContainer.innerHTML = '<p class="p-4 text-center">Analyzing current schedule...</p>';
-            afterContainer.innerHTML = '<p class="p-4 text-center">Generating optimal schedule...</p>';
-
-            setTimeout(() => {
-                const scheduledClasses = Object.values(scheduleData).flat().filter(c => c && c.day);
-                const optimizedClasses = JSON.parse(JSON.stringify(scheduledClasses));
-                if(optimizedClasses.length > 1) {
-                    const lastClass = optimizedClasses.pop();
-                    lastClass.day = 2; lastClass.start = "T09:00:00";
-                    optimizedClasses.unshift(lastClass);
-                }
-                beforeContainer.innerHTML = scheduledClasses.map(c => `<div class="p-1 text-xs rounded" style="background-color:${c.color}22"><strong>${c.subject}</strong> - Day ${c.day} at ${c.start.substring(1,6)}</div>`).join('');
-                afterContainer.innerHTML = optimizedClasses.map(c => `<div class="p-1 text-xs rounded" style="background-color:${c.color}22"><strong>${c.subject}</strong> - Day ${c.day} at ${c.start.substring(1,6)}</div>`).join('');
-            }, 1500);
-        }
-
-        async function sendNextSubstituteRequest(subReqId) {
-            const subReqRef = doc(db, "substituteRequests", subReqId);
-            const subReqSnap = await getDoc(subReqRef);
-            if (!subReqSnap.exists()) return;
-            const subReqData = subReqSnap.data();
-
-            const { potentialSubs, currentIndex, originalClass, adminInitiator } = subReqData;
-
-            if (currentIndex >= potentialSubs.length) {
-                await updateDoc(subReqRef, { status: 'failed' });
-                await addDoc(collection(db, "notifications"), {
-                    toUser: adminInitiator, type: 'substitution_failed',
-                    originalClass: originalClass, status: 'pending', createdAt: serverTimestamp()
-                });
-                await logActivity(`Smart Substitute Finder failed for '${originalClass.subject}'. All teachers declined.`);
-                return;
-            }
-
-            const nextTeacher = potentialSubs[currentIndex];
-            await addDoc(collection(db, "notifications"), {
-                toUser: nextTeacher, type: 'substitution_request',
-                originalClass: originalClass, substituteRequestId: subReqId,
-                status: 'pending', createdAt: serverTimestamp()
-            });
-        }
-
-        async function handleSubstitutionResponse(notiId, subReqId, response) {
-            const notiRef = doc(db, "notifications", notiId);
-            const subReqRef = doc(db, "substituteRequests", subReqId);
-            
-            await updateDoc(notiRef, { status: response });
-
-            const subReqSnap = await getDoc(subReqRef);
-            if (!subReqSnap.exists()) return;
-            const subReqData = subReqSnap.data();
-
-            if (response === 'accepted') {
-                const classToUpdate = scheduleData[subReqData.originalClass.id];
-                if (classToUpdate) {
-                    classToUpdate.prof = currentUser.name;
-                    delete classToUpdate.isAbsent;
-                    await saveScheduleToFirestore();
-                }
-                await updateDoc(subReqRef, { status: 'resolved', resolvedBy: currentUser.name });
-                await addDoc(collection(db, "notifications"), {
-                    toUser: subReqData.adminInitiator, type: 'substitution_resolved',
-                    originalClass: subReqData.originalClass, resolvedBy: currentUser.name,
-                    status: 'pending', createdAt: serverTimestamp()
-                });
-                await logActivity(`accepted substitution for '${subReqData.originalClass.subject}'.`);
-                showToast("Substitution accepted!", "success");
-            } else {
-                await updateDoc(subReqRef, {
-                    currentIndex: subReqData.currentIndex + 1,
-                    declinedBy: [...subReqData.declinedBy, currentUser.name]
-                });
-                await sendNextSubstituteRequest(subReqId);
-                await logActivity(`declined substitution for '${subReqData.originalClass.subject}'.`);
-                showToast("Substitution declined. The system will ask the next available teacher.", "success");
-            }
-        }
-        
-        function toggleHeatmap(event) {
-            const calendarEl = document.getElementById('calendar');
-            const slots = calendarEl.querySelectorAll('.fc-timegrid-slot');
-            slots.forEach(slot => {
-                slot.classList.remove('heatmap-1', 'heatmap-2', 'heatmap-3', 'heatmap-4');
-            });
-            
-            if (!event.target.checked) return;
-
-            const classCounts = {};
-            calendar.getEvents().forEach(event => {
-                const day = event.start.getDay();
-                const hour = event.start.getHours();
-                const key = `${day}-${hour}`;
-                classCounts[key] = (classCounts[key] || 0) + 1;
-            });
-            
-            slots.forEach(slot => {
-                const timeAttr = slot.dataset.time;
-                if (!timeAttr) return;
-                const hour = parseInt(timeAttr.split(':')[0]);
-                const dayEl = slot.closest('.fc-timegrid-col');
-                if (!dayEl) return;
-                const day = Array.from(dayEl.parentElement.children).indexOf(dayEl);
-                
-                const key = `${day}-${hour}`;
-                const count = classCounts[key];
-                if (count > 0) {
-                    slot.classList.add(`heatmap-${Math.min(count, 4)}`);
-                }
-            });
-        }
-        
-        function updateFacultyFilter() {
-            const profs = new Set();
-            Object.values(scheduleData).flat().forEach(c => { if(c.prof) profs.add(c.prof) });
-            const filter = document.getElementById('view-as-filter');
-            filter.innerHTML = '<option value="all">Admin View (All)</option>';
-            profs.forEach(p => filter.innerHTML += `<option value="${p}">${p}</option>`);
-        }
-
-        function filterByFaculty(profName) {
-            calendar.getEvents().forEach(event => {
-                const classNames = event.extendedProps.isAbsent ? ['absent'] : [];
-                if (profName !== 'all' && event.extendedProps.prof !== profName) {
-                    classNames.push('filtered-out');
-                }
-                event.setProp('classNames', classNames);
-            });
-        }
-        
-        async function submitForApproval() {
-             if (!currentUser || currentUser.role !== 'admin') { showToast("Only admins can submit schedules.", "error"); return; }
-             scheduleData.isLocked = true;
-             await saveScheduleToFirestore();
-             await addDoc(collection(db, "notifications"), {
-                 fromUser: currentUser.name,
-                 toUser: "KASHY",
-                 type: 'approval_request',
-                 status: 'pending',
-                 createdAt: serverTimestamp()
-             });
-             await logActivity(`submitted the schedule for approval. Schedule is now locked.`);
-             showToast("Schedule submitted and locked.", "success");
-        }
-
-        function updateCalendarLockState() {
-            const overlay = document.getElementById('calendar-lock-overlay');
-            if (scheduleData.isLocked && (!currentUser || currentUser.role !== 'admin')) {
-                overlay.classList.remove('hidden');
-                overlay.classList.add('flex');
-                calendar.setOption('editable', false);
-            } else {
-                overlay.classList.add('hidden');
-                overlay.classList.remove('flex');
-                calendar.setOption('editable', true);
-            }
-        }
-        
-        // --- UTILITY & OTHER FUNCTIONS ---
-        function toggleDarkMode() {
-            document.documentElement.classList.toggle('dark');
-            const icon = document.querySelector('#dark-mode-toggle i');
-            icon.className = document.documentElement.classList.contains('dark') ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
-            if (workloadChart) updateChartTheme(workloadChart);
-        }
-
-        function updateChartTheme(chart) {
-            const isDark = document.documentElement.classList.contains('dark');
-            const labelColor = isDark ? '#cbd5e1' : '#475569';
-            if(chart.options.scales) {
-                chart.options.scales.x.ticks.color = labelColor; chart.options.scales.y.ticks.color = labelColor;
-                chart.options.scales.x.grid.color = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
-                chart.options.scales.y.grid.color = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
-            }
-            if(chart.options.plugins.legend) chart.options.plugins.legend.labels.color = labelColor;
-            chart.update();
-        }
-
-        function showToast(message, type = "error") {
-            const toast = document.getElementById('toast');
-            toast.querySelector('p').textContent = message;
-            toast.className = `toast fixed bottom-6 left-1/2 -translate-x-1/2 text-white py-2 px-5 rounded-lg shadow-lg opacity-0 transform translate-y-10 z-[70] ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`;
-            toast.classList.remove('opacity-0', 'translate-y-10');
-            setTimeout(() => { toast.classList.add('opacity-0', 'translate-y-10'); }, 3000);
-        }
-
-        function showModal(id) { 
-            const modal = document.getElementById(id);
-            if (!modal) return;
-            modal.classList.remove('hidden', 'invisible');
-            setTimeout(() => {
-                modal.classList.remove('opacity-0');
-                modal.querySelector('div:first-child').classList.remove('scale-95');
-            }, 10);
-        }
-        function hideModal(id) { 
-            const modal = document.getElementById(id);
-            if (!modal) return;
-            modal.classList.add('opacity-0');
-            modal.querySelector('div:first-child').classList.add('scale-95');
-            setTimeout(() => { modal.classList.add('hidden', 'invisible'); }, 300);
-        }
-        
-        function updateDashboard() {
-            const scheduledClasses = Object.values(scheduleData).flat().filter(c => c && c.id && c.day);
-            const totalStudents = scheduledClasses.reduce((sum, c) => sum + (c.students || 0), 0);
-            
-            if(document.getElementById('kpi-total-classes')) {
-                document.getElementById('kpi-total-classes').textContent = scheduledClasses.length;
-                document.getElementById('kpi-unscheduled').textContent = (scheduleData.unscheduled || []).length;
-                document.getElementById('kpi-conflicts').textContent = conflictCount;
-                document.getElementById('kpi-total-students').textContent = totalStudents;
-            }
-        
-            const workload = {};
-            scheduledClasses.forEach(c => { if(c.prof) workload[c.prof] = (workload[c.prof] || 0) + 1; });
-            const workloadCtx = document.getElementById('workloadChart')?.getContext('2d');
-            if(workloadCtx) {
-                if (workloadChart) workloadChart.destroy();
-                workloadChart = new Chart(workloadCtx, {
-                    type: 'bar', data: { labels: Object.keys(workload), datasets: [{ label: 'Classes', data: Object.values(workload), backgroundColor: 'rgba(79, 70, 229, 0.6)' }] },
-                    options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => `${ctx.raw} classes (${(ctx.raw * 50 / 60).toFixed(1)} hrs)` } } }, scales: { y: { ticks: { autoSkip: false } } } }
-                });
-                updateChartTheme(workloadChart);
-            }
-        }
-        
-        // --- FINAL SETUP ---
-        document.addEventListener('DOMContentLoaded', () => {
-            initializeModals();
-            initializeCalendar();
-            setupEventListeners();
-            loadDefaultSchedule();
-            resetConversationState();
-        });
-    </script>
+    <header class="bg-gray-900/80 backdrop-blur-sm sticky top-0 z-50 border-b border-gray-700/50">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <div id="header-left" class="text-2xl font-bold text-white tracking-wider font-poppins">
+                <div id="logo-container">Aca<span class="text-indigo-400">Dexa</span></div>
+                <div id="user-info-container" class="hidden items-center gap-2">
+                    <i class="fa-solid fa-user-circle text-indigo-400 text-2xl"></i>
+                    <span id="username-display" class="font-bold text-white"></span>
+                </div>
+            </div>
+            
+            <div class="hidden md:flex space-x-8 items-center">
+                <a href="#dashboard" class="text-gray-300 hover:text-indigo-400 transition hidden" id="nav-dashboard-link">Dashboard</a>
+                <a href="#features" class="text-gray-300 hover:text-indigo-400 transition">Core Features</a>
+                <a href="#schedule-workspace" class="text-gray-300 hover:text-indigo-400 transition">Scheduling Workspace</a>
+            </div>
+
+            <div class="flex items-center gap-4">
+                 <button id="notifications-btn" class="text-gray-300 hover:text-indigo-400 transition text-xl relative hidden" title="Notifications">
+                     <i class="fa-solid fa-bell"></i>
+                     <span id="notification-badge" class="notification-badge hidden"></span>
+                 </button>
+                 <button id="tutorial-btn" class="text-gray-300 hover:text-indigo-400 transition text-xl" title="How to Use">
+                     <i class="fa-solid fa-circle-question"></i>
+                 </button>
+                <button id="dark-mode-toggle" class="text-gray-300 hover:text-indigo-400 transition text-xl" title="Toggle Dark Mode">
+                    <i class="fa-solid fa-moon"></i>
+                </button>
+                <div id="auth-container" class="flex items-center gap-4">
+                    <button id="login-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition shadow-md hover:shadow-lg">Staff Login</button>
+                    <div id="user-actions-container" class="hidden items-center gap-4">
+                          <button id="logout-btn" class="bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition">Logout</button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <section class="hero-bg text-white py-24 sm:py-32">
+            <div class="container mx-auto px-6 text-center">
+                <h2 class="text-5xl md:text-8xl font-extrabold font-poppins tracking-tight">Aca<span class="text-indigo-400">Dexa</span></h2>
+                <h1 class="mt-4 text-3xl md:text-5xl font-bold tracking-tight">
+                    Intelligent Scheduling for Smart Campuses
+                </h1>
+                <p class="mt-6 text-lg md:text-xl max-w-3xl mx-auto text-gray-300">
+                    The modern platform for scheduling classes, managing resources, and resolving conflicts with AI-powered assistance.
+                </p>
+                <div class="mt-8 flex justify-center gap-4">
+                    <a href="#schedule-workspace" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-lg text-lg transition">Get Started</a>
+                </div>
+            </div>
+        </section>
+
+        <section id="dashboard" class="py-20 bg-slate-100 dark:bg-gray-900 hidden">
+            <div class="container mx-auto px-6">
+                <div class="flex flex-wrap justify-between items-center mb-8 gap-4">
+                    <div>
+                        <h2 class="text-3xl md:text-4xl font-bold text-slate-800 dark:text-slate-100" id="welcome-message">Welcome</h2>
+                        <p class="mt-1 text-slate-500 dark:text-slate-400">Here's your campus overview for today.</p>
+                    </div>
+                    <div id="admin-controls" class="flex gap-2 flex-wrap">
+                        <button id="optimize-schedule-btn" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg transition flex items-center gap-2">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> Optimize Schedule
+                        </button>
+                        <button id="submit-approval-btn" class="bg-sky-600 hover:bg-sky-700 text-white font-semibold py-2 px-4 rounded-lg transition flex items-center gap-2">
+                            <i class="fa-solid fa-paper-plane"></i> Submit for Approval
+                        </button>
+                          <button id="print-schedule-btn" class="bg-slate-600 hover:bg-slate-700 text-white font-semibold py-2 px-4 rounded-lg transition flex items-center gap-2">
+                            <i class="fa-solid fa-print"></i> Print Schedule
+                        </button>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+                     <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md border border-slate-200 dark:border-gray-700 flex items-center gap-4">
+                        <div class="bg-indigo-100 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-300 rounded-full h-12 w-12 flex items-center justify-center text-xl"><i class="fa-solid fa-calendar-check"></i></div>
+                        <div>
+                            <div class="text-3xl font-bold text-slate-800 dark:text-white" id="kpi-total-classes">0</div>
+                            <div class="text-slate-500 dark:text-slate-400">Classes Scheduled</div>
+                        </div>
+                    </div>
+                     <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md border border-slate-200 dark:border-gray-700 flex items-center gap-4">
+                        <div class="bg-indigo-100 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-300 rounded-full h-12 w-12 flex items-center justify-center text-xl"><i class="fa-solid fa-users"></i></div>
+                        <div>
+                            <div class="text-3xl font-bold text-slate-800 dark:text-white" id="kpi-total-students">0</div>
+                            <div class="text-slate-500 dark:text-slate-400">Total Students</div>
+                        </div>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md border border-slate-200 dark:border-gray-700 flex items-center gap-4">
+                        <div class="bg-indigo-100 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-300 rounded-full h-12 w-12 flex items-center justify-center text-xl"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                        <div>
+                            <div class="text-3xl font-bold text-slate-800 dark:text-white" id="kpi-conflicts">0</div>
+                            <div class="text-slate-500 dark:text-slate-400">Active Conflicts</div>
+                        </div>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md border border-slate-200 dark:border-gray-700 flex items-center gap-4">
+                        <div class="bg-indigo-100 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-300 rounded-full h-12 w-12 flex items-center justify-center text-xl"><i class="fa-solid fa-inbox"></i></div>
+                        <div>
+                            <div class="text-3xl font-bold text-slate-800 dark:text-white" id="kpi-unscheduled">0</div>
+                            <div class="text-slate-500 dark:text-slate-400">Unscheduled</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid lg:grid-cols-3 gap-8">
+                    <div class="lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md border border-slate-200 dark:border-gray-700">
+                        <h3 class="text-xl font-bold mb-4 text-slate-800 dark:text-white">Faculty Workload Distribution</h3>
+                        <canvas id="workloadChart"></canvas>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md border border-slate-200 dark:border-gray-700">
+                        <h3 class="text-xl font-bold mb-4 text-slate-800 dark:text-white">Live Activity Feed</h3>
+                        <div id="activity-feed" class="space-y-3 h-96 overflow-y-auto pr-2">
+                            </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="features" class="py-20 bg-white dark:bg-gray-900">
+            <div class="container mx-auto px-6">
+                 <div class="text-center mb-12">
+                    <h2 class="text-3xl md:text-4xl font-bold text-slate-800 dark:text-slate-100">A Platform Built for Schedulers</h2>
+                    <p class="mt-2 text-slate-500 dark:text-slate-400 max-w-2xl mx-auto">AcaDexa is built to handle the complexities of academic scheduling.</p>
+                </div>
+                <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                    <div class="feature-card p-8 rounded-xl">
+                        <div class="bg-indigo-100 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-300 rounded-full h-12 w-12 flex items-center justify-center mb-4"><i class="fa-solid fa-check-to-slot"></i></div>
+                        <h3 class="text-xl font-bold mb-2 text-slate-800 dark:text-white">Approval Workflows</h3>
+                        <p class="text-slate-500 dark:text-slate-400">Streamline timetable finalization with multi-level approval. Authorities can review, suggest changes, or approve schedules with a click.</p>
+                    </div>
+                    <div class="feature-card p-8 rounded-xl">
+                        <div class="bg-indigo-100 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-300 rounded-full h-12 w-12 flex items-center justify-center mb-4"><i class="fa-solid fa-lightbulb"></i></div>
+                        <h3 class="text-xl font-bold mb-2 text-slate-800 dark:text-white">Conflict Rearrangement</h3>
+                        <p class="text-slate-500 dark:text-slate-400">When conflicts arise, our AI assistant provides the best alternative rearrangements, balancing faculty and room constraints.</p>
+                    </div>
+                    <div class="feature-card p-8 rounded-xl">
+                        <div class="bg-indigo-100 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-300 rounded-full h-12 w-12 flex items-center justify-center mb-4"><i class="fa-solid fa-building"></i></div>
+                        <h3 class="text-xl font-bold mb-2 text-slate-800 dark:text-white">Multi-Department & Shift</h3>
+                        <p class="text-slate-500 dark:text-slate-400">Effortlessly manage schedules across multiple departments, programs, and shifts within a single, unified platform.</p>
+                    </div>
+                     <div class="feature-card p-8 rounded-xl">
+                        <div class="bg-indigo-100 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-300 rounded-full h-12 w-12 flex items-center justify-center mb-4"><i class="fa-solid fa-chalkboard-user"></i></div>
+                        <h3 class="text-xl font-bold mb-2 text-slate-800 dark:text-white">Smart Classroom Ready</h3>
+                        <p class="text-slate-500 dark:text-slate-400">Integrate with smart displays for real-time schedule updates and automatically book required A/V equipment for each class.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <section id="schedule-workspace" class="py-20 bg-slate-100 dark:bg-gray-800/50">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl md:text-4xl font-bold text-slate-800 dark:text-slate-100">Interactive Scheduling Workspace</h2>
+                    <p class="mt-2 text-slate-500 dark:text-slate-400 max-w-2xl mx-auto">Add classes, then drag them from the "Unscheduled" list onto the calendar. Log in to save your changes.</p>
+                </div>
+                
+                 <div class="bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-700 p-4 rounded-xl shadow-md mb-6 max-w-6xl mx-auto">
+                    <form id="add-class-form" class="grid sm:grid-cols-6 gap-4 items-end">
+                        <input type="text" id="subject" class="mt-1 block w-full rounded-md shadow-sm sm:text-sm dark:bg-gray-800 border-slate-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-indigo-500" placeholder="Subject Name" required>
+                        <input type="text" id="prof" class="mt-1 block w-full rounded-md shadow-sm sm:text-sm dark:bg-gray-800 border-slate-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-indigo-500" placeholder="Professor" required>
+                        <input type="text" id="room" class="mt-1 block w-full rounded-md shadow-sm sm:text-sm dark:bg-gray-800 border-slate-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-indigo-500" placeholder="Room No." required>
+                        <input type="number" id="students" class="mt-1 block w-full rounded-md shadow-sm sm:text-sm dark:bg-gray-800 border-slate-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-indigo-500" placeholder="No. of Students" required>
+                        <select id="color" class="mt-1 block w-full rounded-md shadow-sm sm:text-sm dark:bg-gray-800 border-slate-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-indigo-500">
+                            <option value="#8b5cf6">Violet</option>
+                            <option value="#3b82f6">Blue</option>
+                            <option value="#10b981">Emerald</option>
+                            <option value="#f97316">Orange</option>
+                            <option value="#ec4899">Pink</option>
+                        </select>
+                        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition w-full h-fit">Add to List</button>
+                    </form>
+                </div>
+
+                <div class="grid lg:grid-cols-12 gap-6" id="calendar-container">
+                    <div class="lg:col-span-2">
+                         <h3 class="font-bold text-center text-slate-700 dark:text-slate-300 mb-2">Unscheduled Classes</h3>
+                         <div id="unscheduled-list" class="bg-white dark:bg-gray-800/50 border border-slate-200 dark:border-gray-700 p-4 rounded-xl shadow-lg min-h-[100px] space-y-2"></div>
+                    </div>
+                    <div class="lg:col-span-10 bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-700 p-4 rounded-2xl shadow-lg relative">
+                        <div class="flex justify-end items-center gap-4 mb-2">
+                             <div class="flex items-center" id="view-as-container">
+                                 <label for="view-as-filter" class="text-sm font-medium text-slate-700 dark:text-slate-300 mr-2">View As:</label>
+                                 <select id="view-as-filter" class="rounded-md shadow-sm sm:text-sm dark:bg-gray-800 border-slate-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-indigo-500"></select>
+                             </div>
+                            <div class="flex items-center">
+                                <label for="heatmap-toggle" class="text-sm font-medium text-slate-700 dark:text-slate-300 mr-2">Show Heatmap</label>
+                                <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                    <input type="checkbox" name="heatmap-toggle" id="heatmap-toggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                                    <label for="heatmap-toggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-slate-300 cursor-pointer"></label>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="calendar"></div>
+                        <div id="calendar-lock-overlay" class="absolute inset-0 bg-slate-900/50 flex-col items-center justify-center rounded-2xl hidden z-20 cursor-not-allowed">
+                            <i class="fa-solid fa-lock text-white text-4xl mb-4"></i>
+                            <p class="text-white text-xl font-bold">Schedule Submitted for Approval</p>
+                            <p class="text-slate-300">Editing is disabled until the schedule is approved or rejected.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+    </main>
+
+    <footer class="bg-gray-900 text-gray-400">
+        <div class="container mx-auto px-6 py-12">
+            <div class="mt-8 border-t border-gray-700 pt-8 text-center text-sm">
+                <p>&copy; 2025 AcaDexa. All rights reserved. Created by Kanishq, Anamika, Yokesh, Kiruthik, Saravana, and Harine.</p>
+            </div>
+        </div>
+    </footer>
+
+    <div id="modals-container">
+    </div>
+
+    <script type="text/template" id="modals-template">
+        <div id="class-details-modal" class="modal fixed inset-0 bg-black bg-opacity-50 z-[60] hidden items-center justify-center opacity-0 invisible">
+            <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-2xl max-w-md w-full transform scale-95 transition-transform duration-300 relative">
+                <button id="close-class-details-btn" class="absolute top-4 right-4 text-slate-500 dark:hover:text-white hover:text-slate-800 text-2xl">&times;</button>
+                <h3 id="class-modal-title" class="text-2xl font-bold mb-2 text-slate-800 dark:text-white"></h3>
+                <p id="class-modal-time" class="text-slate-500 dark:text-slate-400 mb-6"></p>
+                <div class="space-y-4">
+                    <div class="flex items-center gap-4"><i class="fa-solid fa-user-tie w-4 text-center"></i><span id="class-modal-prof"></span></div>
+                    <div class="flex items-center gap-4"><i class="fa-solid fa-building w-4 text-center"></i><span id="class-modal-room"></span></div>
+                    <div>
+                        <div class="flex items-center gap-4"><i class="fa-solid fa-users w-4 text-center"></i><span id="class-modal-students"></span></div>
+                        <div class="w-full bg-slate-200 dark:bg-gray-700 rounded-full h-2.5 mt-2"><div id="class-modal-capacity-bar" class="bg-indigo-600 h-2.5 rounded-full" style="width: 0%"></div></div>
+                    </div>
+                    <div class="flex items-center gap-4"><i class="fa-solid fa-circle w-4 text-center"></i>Status: <span id="class-modal-status" class="font-semibold"></span></div>
+                </div>
+                <div class="mt-6 pt-6 border-t border-slate-200 dark:border-gray-700">
+                    <h4 class="font-bold text-slate-800 dark:text-white mb-2">Lecture Notes</h4>
+                    <textarea id="class-modal-notes" class="w-full p-2 rounded-md bg-slate-100 dark:bg-gray-700 border border-slate-300 dark:border-gray-600" rows="4" placeholder="Add notes for this lecture..."></textarea>
+                    <button id="save-notes-btn" class="hidden mt-2 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition">Save Notes</button>
+                </div>
+                 <div id="admin-action-buttons" class="mt-6 pt-6 border-t border-slate-200 dark:border-gray-700 flex gap-2">
+                    <button id="mark-absent-btn" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded-lg transition">Mark Teacher Absent</button>
+                    <button id="delete-class-btn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition">Delete Class</button>
+                </div>
+            </div>
+        </div>
+        <div id="tutorial-modal" class="modal fixed inset-0 bg-black bg-opacity-50 z-[60] hidden items-center justify-center opacity-0 invisible">
+            <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-2xl max-w-2xl w-full transform scale-95 transition-transform duration-300 relative">
+                 <button id="close-tutorial-btn" class="absolute top-4 right-4 text-slate-500 dark:hover:text-white hover:text-slate-800 text-2xl">&times;</button>
+                 <h3 class="text-2xl font-bold mb-6 text-center text-slate-800 dark:text-white">How to Use AcaDexa</h3>
+                 <div class="space-y-4 text-slate-600 dark:text-slate-300">
+                    <p><strong>1. Add a Class:</strong> Use the form above the calendar to enter class details. Click "Add to List".</p>
+                    <p><strong>2. Schedule a Class:</strong> Drag your new class from the "Unscheduled" list onto a time slot in the calendar.</p>
+                    <p><strong>3. View & Manage:</strong> Click any class on the calendar to see details, manage smart features, or mark a teacher absent.</p>
+                    <p><strong>4. Analyze & Optimize:</strong> Use the Dashboard to view analytics or run the AI Optimizer to find a more efficient schedule.</p>
+                    <p><strong>5. Log In to Save:</strong> Your changes are only saved when you are logged in. Use the "Staff Login" button to authenticate.</p>
+                </div>
+            </div>
+        </div>
+        <div id="toast" class="toast fixed bottom-6 left-1/2 -translate-x-1/2 bg-red-600 text-white py-2 px-5 rounded-lg shadow-lg opacity-0 transform translate-y-10 z-[70]">
+            <p id="toast-message">Toast message</p>
+        </div>
+        <button id="ask-ai-btn" class="fixed bottom-6 right-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full h-16 w-16 flex items-center justify-center shadow-lg text-2xl z-40"><i class="fa-solid fa-robot"></i></button>
+        <div id="ai-chat-modal" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center opacity-0 invisible">
+             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-lg w-full h-[70vh] flex flex-col transform scale-95 transition-transform duration-300">
+                <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center bg-slate-50 dark:bg-gray-900 rounded-t-lg"><h3 class="text-xl font-bold text-slate-800 dark:text-white">AI Assistant</h3><button id="close-chat-btn" class="text-slate-500 hover:text-slate-800 dark:hover:text-white text-2xl">&times;</button></div>
+                <div id="chat-window" class="flex-grow p-4 space-y-4 overflow-y-auto"><div class="flex justify-start"><div class="chat-bubble bg-slate-200 dark:bg-gray-700 text-slate-800 dark:text-slate-200 p-3 rounded-lg">Hello! I'm the AcaDexa assistant. You can ask me to schedule a class for you.</div></div></div>
+                <div class="p-4 border-t dark:border-gray-700 bg-slate-50 dark:bg-gray-900 rounded-b-lg"><form id="chat-form" class="flex gap-2"><input type="text" id="chat-input" placeholder="Type 'schedule a class' to begin..." class="flex-grow rounded-md shadow-sm sm:text-sm dark:bg-gray-700 border-slate-300 dark:border-gray-600"><button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold p-2 rounded-lg transition"><i class="fa-solid fa-paper-plane"></i></button></form></div>
+            </div>
+        </div>
+        <div id="auth-modal" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center opacity-0 invisible">
+            <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-2xl max-w-sm w-full transform scale-95 transition-transform duration-300 relative">
+                 <button id="close-auth-btn" class="absolute top-4 right-4 text-slate-500 dark:hover:text-white hover:text-slate-800 text-2xl">&times;</button>
+                 <h3 id="auth-title" class="text-2xl font-bold mb-6 text-center text-slate-800 dark:text-white">Staff Login</h3>
+                 <form id="auth-form"><div class="space-y-4"><input type="text" id="auth-username" placeholder="Username" class="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" required><div class="relative"><input type="password" id="auth-password" placeholder="Password" class="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" required><button type="button" id="password-toggle-btn" class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400"><i class="fa-solid fa-eye"></i></button></div></div><p id="auth-error" class="text-red-500 text-sm mt-2 h-4"></p><button type="submit" id="auth-submit-btn" class="mt-6 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition">Login</button></form>
+            </div>
+        </div>
+        <div id="notifications-modal" class="modal fixed inset-0 bg-black bg-opacity-50 z-[60] hidden items-center justify-center opacity-0 invisible">
+            <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-2xl max-w-lg w-full transform scale-95 transition-transform duration-300">
+                <button id="close-notifications-modal" class="absolute top-4 right-4 text-slate-500 dark:hover:text-white hover:text-slate-800 text-2xl">&times;</button>
+                <h3 class="text-2xl font-bold mb-4 text-slate-800 dark:text-white">Your Notifications</h3>
+                <div id="notifications-list" class="space-y-3 max-h-96 overflow-y-auto"></div>
+            </div>
+        </div>
+        <div id="optimizer-modal" class="modal fixed inset-0 bg-black bg-opacity-50 z-[60] hidden items-center justify-center opacity-0 invisible">
+             <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-2xl max-w-4xl w-full transform scale-95 transition-transform duration-300">
+                <button id="close-optimizer-modal" class="absolute top-4 right-4 text-slate-500 dark:hover:text-white hover:text-slate-800 text-2xl">&times;</button>
+                <h3 class="text-2xl font-bold mb-2 text-slate-800 dark:text-white">AI Schedule Optimizer</h3>
+                <p class="text-slate-500 dark:text-slate-400 mb-6">The AI has analyzed your schedule and found a more optimal arrangement to reduce conflicts and improve resource utilization.</p>
+                <div class="grid grid-cols-2 gap-6">
+                    <div><h4 class="font-bold text-center mb-2">Before</h4><div id="optimizer-before" class="border rounded-lg p-2 bg-slate-50 dark:bg-gray-700 h-64 overflow-y-auto"></div></div>
+                    <div><h4 class="font-bold text-center mb-2">After (Optimized)</h4><div id="optimizer-after" class="border rounded-lg p-2 bg-slate-50 dark:bg-gray-700 h-64 overflow-y-auto"></div></div>
+                </div>
+                 <div class="mt-6 text-center">
+                    <button id="apply-optimization-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition">Apply Optimized Schedule</button>
+                </div>
+            </div>
+        </div>
+    </script>
+
+
+    <script type="module">
+        // Firebase Imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
+        import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection, query, where, updateDoc, addDoc, getDoc, serverTimestamp, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY", // Replace with your actual Firebase API key
+            authDomain: "acadexaa.firebaseapp.com",
+            projectId: "acadexaa",
+            storageBucket: "acadexaa.appspot.com",
+            messagingSenderId: "933959447585",
+            appId: "1:933959447585:web:ac2fd1e1c79412342c5f60",
+            measurementId: "G-64F5SMENND"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        // --- GLOBAL STATE ---
+        let currentUser = null; 
+        let scheduleData = {};
+        let scheduleUnsubscribe = null;
+        let notificationsUnsubscribe = null;
+        let activityFeedUnsubscribe = null;
+        let workloadChart = null;
+        let calendar = null;
+
+        // --- State for the conversational AI assistant
+        let conversationState = {};
+        function resetConversationState() {
+            conversationState = {
+                active: false,
+                stage: null,
+                collectedInfo: { subject: null, prof: null, room: null, day: null, time: null }
+            };
+        }
+
+        const roomCapacities = { "101": 50, "102": 45, "Lab 3": 25, "303": 50, "Lab 1": 25, "202": 30 };
+        const userCredentials = {
+            "KASHY": "sihwinners",
+            "ZAP": "maja",
+            "Kanishq": "pass1", "Anamika": "pass2", "Yokesh": "pass3",
+            "Kiruthik": "pass4", "Saravana": "pass5", "Harine": "pass6",
+        };
+        const userUIDs = {
+            "KASHY": "user_kashy_id", "ZAP": "user_zap_id", "Kanishq": "user_kanishq_id",
+            "Anamika": "user_anamika_id", "Yokesh": "user_yokesh_id", "Kiruthik": "user_kiruthik_id",
+            "Saravana": "user_saravana_id", "Harine": "user_harine_id",
+        };
+         const userRoles = {
+            "KASHY": "admin", "ZAP": "teacher", "Kanishq": "teacher", "Anamika": "teacher",
+            "Yokesh": "teacher", "Kiruthik": "teacher", "Saravana": "teacher", "Harine": "teacher",
+        };
+        
+        // --- DATA & STATE MANAGEMENT ---
+        function loadDefaultSchedule() {
+             scheduleData = {
+                "c1": { id: "c1", subject: "Calculus I", prof: "Kanishq", room: "101", students: 48, status: "approved", color: "#ec4899", start: "T09:00:00", day: 1, notes: "First lecture on limits and derivatives." },
+                "c2": { id: "c2", subject: "Intro to Physics", prof: "ZAP", room: "102", students: 40, status: "approved", color: "#10b981", start: "T10:00:00", day: 1 },
+                "c3": { id: "c3", subject: "Machine Learning", prof: "Anamika", room: "Lab 3", students: 22, status: "pending", color: "#3b82f6", start: "T11:00:00", day: 3 },
+                "c4": { id: "c4", subject: "Data Structures", prof: "Yokesh", room: "303", students: 45, status: "pending", color: "#3b82f6", start: "T13:00:00", day: 4 },
+                "unscheduled": [
+                    { id: "c5", subject: "Organic Chemistry", prof: "Kiruthik", room: "Lab 1", students: 20, status: "draft", color: "#f97316" },
+                    { id: "c6", subject: "Modern History", prof: "Saravana", room: "202", students: 30, status: "draft", color: "#8b5cf6" },
+                    { id: "c7", subject: "World Literature", prof: "Harine", room: "202", students: 25, status: "draft", color: "#8b5cf6" }
+                ]
+            };
+            renderUnscheduled();
+            renderCalendar();
+            updateDashboard();
+            updateFacultyFilter();
+        }
+
+        async function saveScheduleToFirestore() {
+            if (!currentUser) return;
+            const scheduleOwnerUID = userUIDs["KASHY"]; // Always save to the main admin schedule
+            const simplifiedSchedule = { unscheduled: scheduleData.unscheduled || [], isLocked: scheduleData.isLocked || false };
+            Object.values(scheduleData).forEach(item => {
+                if(item.id && !Array.isArray(item)) simplifiedSchedule[item.id] = item;
+            });
+            const scheduleRef = doc(db, "schedules", scheduleOwnerUID);
+            try {
+                await setDoc(scheduleRef, { scheduleData: JSON.stringify(simplifiedSchedule) });
+            } catch (error) { console.error("Error saving schedule: ", error); }
+        }
+
+        function listenToSchedule() {
+            if (!currentUser || scheduleUnsubscribe) return;
+            const scheduleOwnerUID = userUIDs["KASHY"];
+            const scheduleRef = doc(db, "schedules", scheduleOwnerUID);
+            scheduleUnsubscribe = onSnapshot(scheduleRef, (docSnap) => {
+                if (docSnap.exists() && docSnap.data().scheduleData) {
+                    scheduleData = JSON.parse(docSnap.data().scheduleData);
+                } else {
+                    loadDefaultSchedule();
+                    if(currentUser.role === 'admin') {
+                        saveScheduleToFirestore();
+                    }
+                }
+                renderUnscheduled();
+                renderCalendar();
+                updateFacultyFilter();
+                updateCalendarLockState();
+            }, (error) => console.error("Snapshot listener error:", error));
+        }
+
+        function listenToNotifications() {
+            if (!currentUser || notificationsUnsubscribe) return;
+            const q = query(collection(db, "notifications"), where("toUser", "==", currentUser.name), where("status", "==", "pending"));
+            notificationsUnsubscribe = onSnapshot(q, (querySnapshot) => {
+                const notifications = [];
+                querySnapshot.forEach((doc) => {
+                    notifications.push({ id: doc.id, ...doc.data() });
+                });
+                renderNotifications(notifications);
+            });
+        }
+        
+        async function logActivity(text) {
+            if (currentUser) {
+                await addDoc(collection(db, "activity_feed"), {
+                    user: currentUser.name,
+                    text: text,
+                    timestamp: serverTimestamp()
+                });
+            }
+        }
+
+        function listenToActivityFeed() {
+            if (currentUser && currentUser.role === 'admin' && !activityFeedUnsubscribe) {
+                const q = query(collection(db, "activity_feed"), orderBy("timestamp", "desc"), limit(10));
+                activityFeedUnsubscribe = onSnapshot(q, (querySnapshot) => {
+                    const feedEl = document.getElementById('activity-feed');
+                    if (!feedEl) return;
+                    feedEl.innerHTML = '';
+                    if (querySnapshot.empty) {
+                        feedEl.innerHTML = `<p class="text-slate-400 text-sm text-center">No recent activity.</p>`;
+                        return;
+                    }
+                    querySnapshot.forEach(doc => {
+                        const data = doc.data();
+                        const time = data.timestamp ? new Date(data.timestamp.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+                        const itemEl = document.createElement('div');
+                        itemEl.className = 'text-sm border-l-2 border-slate-300 dark:border-gray-600 pl-3';
+                        itemEl.innerHTML = `<p class="text-slate-700 dark:text-slate-300"><strong>${data.user}</strong> ${data.text}</p><p class="text-xs text-slate-400">${time}</p>`;
+                        feedEl.appendChild(itemEl);
+                    });
+                });
+            } else if (activityFeedUnsubscribe) {
+                activityFeedUnsubscribe();
+                activityFeedUnsubscribe = null;
+            }
+        }
+        
+        function convertScheduleToEvents() {
+            const events = [];
+            const today = new Date();
+            const dayOfWeek = today.getDay();
+            
+            Object.values(scheduleData).forEach(item => {
+                if(Array.isArray(item) || !item.day) return;
+                
+                const eventDate = new Date();
+                eventDate.setDate(today.getDate() - dayOfWeek + item.day);
+                const [hours, minutes] = item.start.substring(1).split(':');
+                eventDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+
+                events.push({
+                    id: item.id,
+                    title: item.subject,
+                    start: eventDate,
+                    end: new Date(eventDate.getTime() + 50 * 60000),
+                    color: item.color,
+                    extendedProps: { ...item }
+                });
+            });
+            return events;
+        }
+
+        // --- UI RENDERING & INITIALIZATION ---
+        function initializeModals() {
+            const modalsTemplate = document.getElementById('modals-template').innerHTML;
+            document.getElementById('modals-container').innerHTML = modalsTemplate;
+        }
+
+        function renderCalendar() {
+            if (!calendar) return;
+            calendar.removeAllEvents();
+            calendar.addEventSource(convertScheduleToEvents());
+            detectAllConflicts();
+        }
+
+        function renderUnscheduled() {
+            const listEl = document.getElementById('unscheduled-list');
+            if(!listEl) return;
+            listEl.innerHTML = '';
+            (scheduleData.unscheduled || []).forEach(classData => {
+                listEl.appendChild(createUnscheduledElement(classData));
+            });
+            // Draggable is re-initialized each time the list is rendered.
+            // This is a simple and effective approach for this app's scale.
+            new FullCalendar.Draggable(listEl, {
+                itemSelector: '.unscheduled-item',
+                eventData: (eventEl) => ({
+                    id: eventEl.dataset.id, title: eventEl.dataset.subject, color: eventEl.dataset.color,
+                    duration: '00:50', extendedProps: { ...JSON.parse(eventEl.dataset.classinfo) }
+                })
+            });
+        }
+        
+        function createUnscheduledElement(classData) {
+            const el = document.createElement('div');
+            el.className = 'unscheduled-item p-2 rounded-md text-sm';
+            el.style.backgroundColor = classData.color + '33';
+            el.style.borderLeft = `4px solid ${classData.color}`;
+            el.dataset.id = classData.id; el.dataset.subject = classData.subject; el.dataset.color = classData.color;
+            el.dataset.classinfo = JSON.stringify(classData);
+            el.innerHTML = `<strong class="font-bold text-slate-800 dark:text-slate-100">${classData.subject}</strong><div class="text-xs text-slate-600 dark:text-slate-300">${classData.prof}</div>`;
+            return el;
+        }
+
+        function initializeCalendar() {
+            const calendarEl = document.getElementById('calendar');
+            if(!calendarEl) return;
+            calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'timeGridWeek',
+                headerToolbar: { left: 'prev,next today', center: 'title', right: 'timeGridWeek,timeGridDay' },
+                allDaySlot: false, 
+                editable: true, 
+                droppable: true, // This is essential for drag-and-drop from the external list
+                slotMinTime: '08:00:00',
+                slotMaxTime: '18:00:00', 
+                eventReceive: handleEventReceive, // The key callback for when a drop occurs
+                eventDrop: handleEventDrop, 
+                eventClick: handleEventClick
+            });
+            calendar.render();
+        }
+
+        function renderNotifications(notifications) {
+            const badge = document.getElementById('notification-badge');
+            const list = document.getElementById('notifications-list');
+            list.innerHTML = '';
+
+            if (notifications.length > 0) {
+                badge.textContent = notifications.length;
+                badge.classList.remove('hidden');
+                notifications.forEach(noti => {
+                    const el = document.createElement('div');
+                    el.className = 'p-3 bg-slate-100 dark:bg-gray-700 rounded-lg';
+                    
+                    switch(noti.type) {
+                        case 'approval_request':
+                            el.innerHTML = `<p>A new schedule has been submitted for approval.</p><p class="text-sm text-slate-500 mt-1">${new Date(noti.createdAt.seconds * 1000).toLocaleString()}</p><button data-id="${noti.id}" class="approve-schedule-btn mt-2 w-full bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-3 rounded-lg text-sm">Review & Unlock Schedule</button>`;
+                            break;
+                        case 'substitution_request':
+                            el.innerHTML = `<p class="mb-2">You have a substitution request for <strong>${noti.originalClass.subject}</strong> at ${noti.originalClass.start.substring(1,6)}.</p><div class="flex gap-2"><button data-noti-id="${noti.id}" data-sub-req-id="${noti.substituteRequestId}" class="accept-sub-btn w-full bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-3 rounded-lg text-sm">Accept</button><button data-noti-id="${noti.id}" data-sub-req-id="${noti.substituteRequestId}" class="decline-sub-btn w-full bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded-lg text-sm">Decline</button></div>`;
+                            break;
+                        case 'substitution_resolved':
+                            el.innerHTML = `<p><strong>${noti.resolvedBy}</strong> has accepted the substitution for <strong>${noti.originalClass.subject}</strong>.</p><button data-id="${noti.id}" class="acknowledge-btn mt-2 w-full bg-slate-600 hover:bg-slate-700 text-white font-bold py-1 px-3 rounded-lg text-sm">Acknowledge</button>`;
+                            break;
+                        case 'substitution_failed':
+                            el.innerHTML = `<p class="text-red-500"><strong>Urgent:</strong> No substitute could be found for <strong>${noti.originalClass.subject}</strong> after requesting all available staff.</p><button data-id="${noti.id}" class="acknowledge-btn mt-2 w-full bg-slate-600 hover:bg-slate-700 text-white font-bold py-1 px-3 rounded-lg text-sm">Acknowledge</button>`;
+                            break;
+                    }
+                    list.appendChild(el);
+                });
+            } else {
+                badge.classList.add('hidden');
+                list.innerHTML = '<p class="text-slate-500 text-center">No new notifications.</p>';
+            }
+        }
+        
+        // --- EVENT HANDLERS & LOGIC ---
+        function setupEventListeners() {
+            document.getElementById('add-class-form').addEventListener('submit', handleAddClass);
+            document.getElementById('dark-mode-toggle').addEventListener('click', toggleDarkMode);
+            document.getElementById('tutorial-btn').addEventListener('click', () => showModal('tutorial-modal'));
+            
+            document.addEventListener('click', async (event) => {
+                const target = event.target;
+                const closestButton = target.closest('button');
+                if (!closestButton) return;
+                
+                const actionId = closestButton.id;
+                const classList = closestButton.classList;
+                
+                if (actionId === 'login-btn') showModal('auth-modal');
+                if (actionId === 'logout-btn') handleLogout();
+                if (actionId === 'ask-ai-btn') showModal('ai-chat-modal');
+                if (actionId === 'close-chat-btn') hideModal('ai-chat-modal');
+                if (actionId === 'close-tutorial-btn') hideModal('tutorial-modal');
+                if (actionId === 'close-auth-btn') hideModal('auth-modal');
+                if (actionId === 'close-class-details-btn') hideModal('class-details-modal');
+                if (actionId === 'delete-class-btn') handleDeleteClass();
+                if (actionId === 'mark-absent-btn') handleMarkAbsent();
+                if (actionId === 'save-notes-btn') handleSaveNotes(closestButton);
+                if (actionId === 'notifications-btn') showModal('notifications-modal');
+                if (actionId === 'close-notifications-modal') hideModal('notifications-modal');
+                if (actionId === 'optimize-schedule-btn') handleOptimize();
+                if (actionId === 'close-optimizer-modal') hideModal('optimizer-modal');
+                if (actionId === 'apply-optimization-btn') { showToast("Optimization applied!", "success"); hideModal('optimizer-modal'); }
+                if (actionId === 'print-schedule-btn') window.print();
+                if (actionId === 'submit-approval-btn') submitForApproval();
+                if (actionId === 'password-toggle-btn') handlePasswordToggle();
+
+                // Notification button handlers
+                if(classList.contains('approve-schedule-btn')) handleApprovalResponse(closestButton.dataset.id);
+                if(classList.contains('accept-sub-btn')) handleSubstitutionResponse(closestButton.dataset.notiId, closestButton.dataset.subReqId, 'accepted');
+                if(classList.contains('decline-sub-btn')) handleSubstitutionResponse(closestButton.dataset.notiId, closestButton.dataset.subReqId, 'declined');
+                if(classList.contains('acknowledge-btn')) {
+                    await updateDoc(doc(db, "notifications", closestButton.dataset.id), { status: 'acknowledged' });
+                }
+            });
+
+            document.addEventListener('submit', (event) => {
+                event.preventDefault();
+                if (event.target.id === 'auth-form') handleAuthSubmit(event);
+                if (event.target.id === 'chat-form') handleChatSubmit(event);
+            });
+            
+            document.getElementById('heatmap-toggle').addEventListener('change', toggleHeatmap);
+            document.getElementById('view-as-filter').addEventListener('change', (e) => filterByFaculty(e.target.value));
+        }
+
+        async function handleApprovalResponse(notiId) {
+            if (currentUser.role !== 'admin') return;
+            scheduleData.isLocked = false;
+            await saveScheduleToFirestore();
+            await logActivity(`approved and unlocked the schedule.`);
+            const notiRef = doc(db, "notifications", notiId);
+            await updateDoc(notiRef, { status: 'approved' });
+            showToast('Schedule Unlocked.', 'success');
+            hideModal('notifications-modal');
+        }
+
+        function handleEventClick(info) {
+            const props = info.event.extendedProps;
+            document.getElementById('class-modal-title').textContent = props.subject;
+            const timeFormat = new Intl.DateTimeFormat('en', { hour: 'numeric', minute: 'numeric' });
+            document.getElementById('class-modal-time').textContent = `${info.event.start.toLocaleDateString('en-US', { weekday: 'long' })}, ${timeFormat.format(info.event.start)}`;
+            document.getElementById('class-modal-prof').textContent = props.prof;
+            document.getElementById('class-modal-room').textContent = `Room ${props.room}`;
+            const capacity = roomCapacities[props.room] || props.students;
+            document.getElementById('class-modal-students').textContent = `${props.students} / ${capacity} Students`;
+            const percentage = Math.min((props.students / capacity) * 100, 100);
+            const capacityBar = document.getElementById('class-modal-capacity-bar');
+            capacityBar.style.width = `${percentage}%`;
+            capacityBar.className = 'h-2.5 rounded-full ';
+            if(percentage > 90) capacityBar.classList.add('bg-red-500'); else if(percentage > 70) capacityBar.classList.add('bg-amber-500'); else capacityBar.classList.add('bg-indigo-600');
+            document.getElementById('class-modal-status').textContent = props.status.charAt(0).toUpperCase() + props.status.slice(1);
+            
+            const notesTextarea = document.getElementById('class-modal-notes');
+            const saveNotesBtn = document.getElementById('save-notes-btn');
+            notesTextarea.value = props.notes || '';
+            saveNotesBtn.dataset.classId = props.id;
+            
+            if (currentUser && (currentUser.role === 'admin' || currentUser.name === props.prof)) {
+                notesTextarea.disabled = false;
+                saveNotesBtn.classList.remove('hidden');
+            } else {
+                notesTextarea.disabled = true;
+                saveNotesBtn.classList.add('hidden');
+            }
+
+            document.getElementById('delete-class-btn').dataset.classId = props.id;
+            document.getElementById('mark-absent-btn').dataset.classId = props.id;
+            
+            const adminActionButtons = document.getElementById('admin-action-buttons');
+            if (currentUser && currentUser.role === 'admin') {
+                adminActionButtons.classList.remove('hidden');
+            } else {
+                adminActionButtons.classList.add('hidden');
+            }
+            showModal('class-details-modal');
+        }
+
+        async function handleSaveNotes(button) {
+            const classId = button.dataset.classId;
+            const newNotes = document.getElementById('class-modal-notes').value;
+            if (scheduleData[classId]) {
+                scheduleData[classId].notes = newNotes;
+                await saveScheduleToFirestore();
+                await logActivity(`updated notes for '${scheduleData[classId].subject}'.`);
+                showToast("Notes saved successfully!", "success");
+            }
+        }
+        
+        async function handleDeleteClass() {
+            const deleteBtn = document.getElementById('delete-class-btn');
+            if (!deleteBtn) return;
+            const classId = deleteBtn.dataset.classId;
+
+            if (!currentUser || currentUser.role !== 'admin') {
+                showToast("Only admins can delete classes.", "error");
+                return;
+            }
+            if (scheduleData.isLocked) {
+                showToast("Cannot delete classes while schedule is locked for approval.", "error");
+                return;
+            }
+            if (!classId || !scheduleData[classId]) {
+                showToast("Error: Class not found. Please close the modal and try again.", "error");
+                return;
+            }
+
+            try {
+                const deletedClassSubject = scheduleData[classId].subject;
+                delete scheduleData[classId];
+
+                await saveScheduleToFirestore();
+                await logActivity(`deleted the class '${deletedClassSubject}'.`);
+                
+                renderCalendar();
+                hideModal('class-details-modal');
+                showToast(`Class '${deletedClassSubject}' deleted successfully.`, "success");
+            } catch (error) {
+                console.error("Error deleting class:", error);
+                showToast("A database error occurred while deleting the class.", "error");
+            }
+        }
+        
+        async function handleMarkAbsent() {
+            const absentBtn = document.getElementById('mark-absent-btn');
+            if (!absentBtn) return;
+            const classId = absentBtn.dataset.classId;
+
+            if (!currentUser || currentUser.role !== 'admin') {
+                showToast("Only admins can mark teachers absent.", "error");
+                return;
+            }
+            if (scheduleData.isLocked) {
+                showToast("Cannot modify absences while schedule is locked.", "error");
+                return;
+            }
+            if (!classId || !scheduleData[classId]) {
+                showToast("Error: Class not found. Please close the modal and try again.", "error");
+                return;
+            }
+
+            const classInfo = scheduleData[classId];
+
+            if (classInfo.isAbsent) {
+                showToast("This class is already marked as absent.", "error");
+                return;
+            }
+
+            try {
+                const scheduledClasses = Object.values(scheduleData).filter(c => c && c.day);
+                const busyProfsAtTime = new Set(scheduledClasses.filter(c => c.day === classInfo.day && c.start === classInfo.start).map(c => c.prof));
+                const allTeachers = Object.keys(userCredentials).filter(name => userRoles[name] === 'teacher');
+                const availableProfs = allTeachers.filter(p => !busyProfsAtTime.has(p) && p !== classInfo.prof);
+                
+                classInfo.isAbsent = true;
+                await saveScheduleToFirestore();
+                renderCalendar();
+                hideModal('class-details-modal');
+
+                if (availableProfs.length === 0) {
+                    showToast(`Absence marked for ${classInfo.prof}, but no substitutes are available at this time.`, "error");
+                    await logActivity(`marked ${classInfo.prof} absent for '${classInfo.subject}', but no substitutes were found.`);
+                    return;
+                }
+
+                const subRequestRef = await addDoc(collection(db, "substituteRequests"), {
+                    originalClass: classInfo,
+                    status: 'pending', potentialSubs: availableProfs,
+                    currentIndex: 0, declinedBy: [],
+                    adminInitiator: currentUser.name, createdAt: serverTimestamp()
+                });
+
+                await sendNextSubstituteRequest(subRequestRef.id);
+                await logActivity(`marked ${classInfo.prof} absent and initiated the Smart Substitute Finder.`);
+                showToast(`Absence marked. Finding a substitute for ${classInfo.subject}...`, "success");
+
+            } catch (error) {
+                console.error("Error marking absent:", error);
+                showToast("A database error occurred while marking absence.", "error");
+            }
+        }
+
+        // --- FIX STARTS HERE for Drag and Drop ---
+        
+        /**
+        * @description FIX: This robust function handles the dropping of an external event onto the calendar.
+        * It includes clear permission checks and error handling to provide better user feedback.
+        * This is the most common point of failure for the drag-and-drop feature.
+        */
+        async function handleEventReceive(info) {
+            // 1. Check permissions. If these fail, revert the drop and notify the user.
+            if (!currentUser) {
+                showToast("You must be logged in to schedule a class.", "error");
+                info.revert(); // Visually removes the dropped event.
+                return; 
+            }
+            if (scheduleData.isLocked && currentUser.role !== 'admin') { 
+                showToast("Schedule is locked for approval. Cannot make changes.", "error"); 
+                info.revert(); 
+                return; 
+            }
+
+            const props = info.event.extendedProps;
+            
+            // 2. Sanity check for valid properties from the dragged item.
+            if (!props || !props.id) {
+                showToast("Error reading class data. Drag failed.", "error");
+                info.revert();
+                return;
+            }
+            
+            try {
+                // 3. Update the application's state.
+                scheduleData[props.id] = { 
+                    ...props, 
+                    day: info.event.start.getDay(), 
+                    start: 'T' + info.event.start.toTimeString().substring(0, 8) 
+                };
+                scheduleData.unscheduled = (scheduleData.unscheduled || []).filter(c => c.id !== props.id);
+                
+                // 4. Save the new state to the database.
+                await saveScheduleToFirestore(); 
+                await logActivity(`scheduled '${props.subject}' by dragging.`);
+                
+                // 5. Re-render the UI to reflect the changes.
+                renderUnscheduled(); 
+                renderCalendar(); 
+                updateFacultyFilter();
+            } catch (error) {
+                console.error("Error receiving event:", error);
+                showToast("An error occurred while saving the schedule.", "error");
+                info.revert(); // If any part of the process fails, revert the change.
+            }
+        }
+
+        // --- FIX ENDS HERE ---
+
+        async function handleEventDrop(info) {
+            if (!currentUser || (scheduleData.isLocked && currentUser.role !== 'admin')) { 
+                showToast("Please log in or unlock the schedule.", "error"); 
+                info.revert(); 
+                return; 
+            }
+            const classId = info.event.id;
+            scheduleData[classId] = { ...scheduleData[classId], day: info.event.start.getDay(), start: 'T' + info.event.start.toTimeString().substring(0, 8) };
+            await saveScheduleToFirestore(); 
+            await logActivity(`moved the class '${scheduleData[classId].subject}'.`);
+            renderCalendar();
+        }
+        
+        let conflictCount = 0;
+        function detectAllConflicts() {
+            if(!calendar) return;
+            calendar.getEvents().forEach(e => e.setProp('classNames', e.extendedProps.isAbsent ? ['absent'] : []));
+            const scheduledClasses = Object.values(scheduleData).filter(c => c && c.day);
+            const conflictsFound = new Set();
+            const timeSlots = {};
+
+            scheduledClasses.forEach(classInfo => {
+                if (classInfo.isAbsent) return;
+                const key = `${classInfo.day}-${classInfo.start}`;
+                timeSlots[key] = timeSlots[key] || { profs: [], rooms: [] };
+                timeSlots[key].profs.push({prof: classInfo.prof, id: classInfo.id});
+                timeSlots[key].rooms.push({room: classInfo.room, id: classInfo.id});
+                const capacity = roomCapacities[classInfo.room];
+                if (capacity && classInfo.students > capacity) conflictsFound.add(classInfo.id);
+            });
+
+            Object.values(timeSlots).forEach(slot => {
+                const profCounts = slot.profs.reduce((acc, p) => ({...acc, [p.prof]: (acc[p.prof] || 0) + 1}), {});
+                const roomCounts = slot.rooms.reduce((acc, r) => ({...acc, [r.room]: (acc[r.room] || 0) + 1}), {});
+                slot.profs.forEach(p => { if (profCounts[p.prof] > 1) conflictsFound.add(p.id); });
+                slot.rooms.forEach(r => { if (roomCounts[r.room] > 1) conflictsFound.add(r.id); });
+            });
+
+            conflictCount = conflictsFound.size;
+            if (conflictCount > 0) conflictsFound.forEach(id => calendar.getEventById(id)?.setProp('classNames', ['conflict']));
+            updateDashboard();
+        }
+        
+        async function handleAddClass(e) {
+            e.preventDefault();
+            if (!currentUser || (scheduleData.isLocked && currentUser.role !== 'admin')) { showToast("Please log in or unlock the schedule.", "error"); return; }
+            const form = e.target;
+            if (!scheduleData.unscheduled) scheduleData.unscheduled = [];
+            const newClass = { 
+                id: 'c' + Date.now(), subject: form.subject.value, prof: form.prof.value, room: form.room.value,
+                students: parseInt(form.students.value, 10), status: 'draft', color: form.color.value, 
+            };
+            scheduleData.unscheduled.push(newClass);
+            renderUnscheduled();
+            await saveScheduleToFirestore();
+            await logActivity(`added '${newClass.subject}' to the unscheduled list.`);
+            updateFacultyFilter();
+            form.reset();
+        }
+
+        // --- AUTH & STATE CHANGES ---
+        function updateUIForAuthState() {
+            const loginBtn = document.getElementById('login-btn');
+            const userActionsContainer = document.getElementById('user-actions-container');
+            const dashboard = document.getElementById('dashboard');
+            const navDashboardLink = document.getElementById('nav-dashboard-link');
+            const welcomeMsg = document.getElementById('welcome-message');
+            const notificationsBtn = document.getElementById('notifications-btn');
+            const userInfoContainer = document.getElementById('user-info-container');
+            const usernameDisplay = document.getElementById('username-display');
+            const logoContainer = document.getElementById('logo-container');
+            const adminControls = document.getElementById('admin-controls');
+
+            if (currentUser) {
+                loginBtn.classList.add('hidden');
+                userActionsContainer.classList.remove('hidden');
+                userActionsContainer.classList.add('flex');
+                logoContainer.classList.add('hidden');
+                userInfoContainer.classList.remove('hidden');
+                userInfoContainer.classList.add('flex');
+                usernameDisplay.textContent = currentUser.name;
+                welcomeMsg.textContent = `Welcome, ${currentUser.name}`; 
+                if (currentUser.role === 'admin') {
+                    dashboard.classList.remove('hidden'); 
+                    navDashboardLink.classList.remove('hidden');
+                    adminControls.classList.remove('hidden');
+                    adminControls.classList.add('flex');
+                    listenToActivityFeed();
+                } else {
+                    dashboard.classList.add('hidden');
+                    navDashboardLink.classList.add('hidden');
+                    adminControls.classList.add('hidden');
+                    adminControls.classList.remove('flex');
+                }
+                notificationsBtn.classList.remove('hidden');
+            } else {
+                loginBtn.classList.remove('hidden');
+                userActionsContainer.classList.add('hidden');
+                userActionsContainer.classList.remove('flex');
+                logoContainer.classList.remove('hidden');
+                userInfoContainer.classList.add('hidden');
+                userInfoContainer.classList.remove('flex');
+                dashboard.classList.add('hidden'); 
+                navDashboardLink.classList.add('hidden');
+                notificationsBtn.classList.add('hidden');
+                if (activityFeedUnsubscribe) activityFeedUnsubscribe();
+            }
+        }
+        
+        function handleAuthSubmit(e) {
+             e.preventDefault();
+             const username = document.getElementById('auth-username').value;
+             const password = document.getElementById('auth-password').value;
+             const errorEl = document.getElementById('auth-error');
+             errorEl.textContent = '';
+
+             if (userCredentials[username] && userCredentials[username] === password) {
+                currentUser = { name: username, uid: userUIDs[username], role: userRoles[username] };
+                updateUIForAuthState();
+                listenToSchedule();
+                listenToNotifications();
+                hideModal('auth-modal');
+             } else {
+                errorEl.textContent = "Invalid username or password.";
+             }
+        }
+
+        function handleLogout() {
+            if(scheduleUnsubscribe) scheduleUnsubscribe();
+            if(notificationsUnsubscribe) notificationsUnsubscribe();
+            scheduleUnsubscribe = null; 
+            notificationsUnsubscribe = null;
+            currentUser = null;
+            updateUIForAuthState(); 
+            loadDefaultSchedule();
+        }
+
+        function handlePasswordToggle() {
+            const passwordInput = document.getElementById('auth-password');
+            const icon = document.querySelector('#password-toggle-btn i');
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+        
+        // --- AI SCHEDULER & INNOVATIVE FEATURES ---
+        function appendChatMessage(message, sender) {
+            const chatWindow = document.getElementById('chat-window');
+            const messageEl = document.createElement('div');
+            const bubble = document.createElement('div');
+            
+            messageEl.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+            bubble.className = `p-3 rounded-lg ${sender === 'user' ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-gray-700 text-slate-800 dark:text-slate-200'}`;
+            bubble.innerHTML = message;
+            
+            messageEl.appendChild(bubble);
+            chatWindow.appendChild(messageEl);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        async function handleChatSubmit(e) {
+            e.preventDefault();
+            if (!currentUser) {
+                showToast("Please log in to use the assistant.", "error");
+                return;
+            }
+            const input = document.getElementById('chat-input');
+            const userInput = input.value.trim();
+            if (!userInput) return;
+
+            appendChatMessage(userInput, 'user');
+            input.value = '';
+
+            const lowerInput = userInput.toLowerCase();
+
+            if (lowerInput === 'cancel' || lowerInput === 'reset' || lowerInput === 'stop') {
+                resetConversationState();
+                appendChatMessage("OK, I've cancelled the current operation. How can I help?", 'ai');
+                return;
+            }
+
+            if (!conversationState.active) {
+                if (lowerInput.includes('schedule') || lowerInput.includes('add') || lowerInput.includes('new')) {
+                    conversationState.active = true;
+                    conversationState.stage = 'promptSubject';
+                    appendChatMessage("Great! What is the name of the subject?", 'ai');
+                } else if (lowerInput === 'hi' || lowerInput === 'hello') {
+                    appendChatMessage("Hello! You can ask me to schedule a class.", 'ai');
+                } else {
+                    appendChatMessage("Sorry, I can only help with scheduling. Try saying 'schedule a class'.", 'ai');
+                }
+                return;
+            }
+
+            // --- Handle active conversation ---
+            switch (conversationState.stage) {
+                case 'promptSubject':
+                    conversationState.collectedInfo.subject = userInput;
+                    conversationState.stage = 'promptProf';
+                    appendChatMessage(`Got it. Which professor will be teaching <strong>${userInput}</strong>?`, 'ai');
+                    break;
+
+                case 'promptProf':
+                    conversationState.collectedInfo.prof = userInput;
+                    conversationState.stage = 'promptRoom';
+                    appendChatMessage(`OK. Which room should <strong>${conversationState.collectedInfo.subject}</strong> be in?`, 'ai');
+                    break;
+
+                case 'promptRoom':
+                    conversationState.collectedInfo.room = userInput;
+                    conversationState.stage = 'promptDay';
+                    appendChatMessage(`Perfect. On which day of the week?`, 'ai');
+                    break;
+
+                case 'promptDay':
+                    const dayMap = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
+                    const dayNum = dayMap[lowerInput];
+                    if (dayNum === undefined) {
+                        appendChatMessage("That doesn't seem to be a valid day. Please enter a full day of the week (e.g., 'Monday').", 'ai');
+                        return;
+                    }
+                    conversationState.collectedInfo.day = dayNum;
+                    conversationState.stage = 'promptTime';
+                    appendChatMessage(`Excellent. Lastly, at what time on ${userInput}? (e.g., 9am, 2:30pm)`, 'ai');
+                    break;
+
+                case 'promptTime':
+                    const timeMatch = userInput.toLowerCase().match(/(\d{1,2})(?::(\d{2}))?(am|pm)?/);
+                    if (!timeMatch) {
+                        appendChatMessage("Sorry, I don't recognize that time format. Please use a format like '9am', '2pm', or '14:30'.", 'ai');
+                        return;
+                    }
+                    let hour = parseInt(timeMatch[1]);
+                    let minute = parseInt(timeMatch[2] || '0');
+                    if (timeMatch[3] === 'pm' && hour < 12) hour += 12;
+                    if (timeMatch[3] === 'am' && hour === 12) hour = 0;
+
+                    const timeString = `T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
+                    conversationState.collectedInfo.time = timeString;
+
+                    const { subject, prof, room, day, time: startTime } = conversationState.collectedInfo;
+                    const scheduledClasses = Object.values(scheduleData).filter(c => c && c.day);
+                    const conflict = scheduledClasses.find(c => c.day === day && c.start === startTime && (c.prof === prof || c.room === room));
+
+                    if (conflict) {
+                        appendChatMessage(`<strong>Conflict Detected!</strong><br>Cannot schedule because ${conflict.prof === prof ? `Professor ${prof}` : `Room ${room}`} is already booked for '${conflict.subject}'. Please start over.`, 'ai');
+                    } else {
+                        const newClass = { id: 'c' + Date.now(), subject, prof, room, students: 50, status: 'draft', color: '#3b82f6', day, start: startTime };
+                        scheduleData[newClass.id] = newClass;
+                        await saveScheduleToFirestore();
+                        await logActivity(`scheduled '${subject}' using the AI assistant.`);
+                        renderCalendar();
+                        appendChatMessage(`All set! I've scheduled <strong>${subject}</strong> for you.`, 'ai');
+                    }
+                    resetConversationState();
+                    break;
+            }
+        }
+
+        function handleOptimize() {
+            if (!currentUser || currentUser.role !== 'admin') { showToast("Only admins can optimize schedules.", "error"); return; }
+            showModal('optimizer-modal');
+            const beforeContainer = document.getElementById('optimizer-before');
+            const afterContainer = document.getElementById('optimizer-after');
+            beforeContainer.innerHTML = '<p class="p-4 text-center">Analyzing current schedule...</p>';
+            afterContainer.innerHTML = '<p class="p-4 text-center">Generating optimal schedule...</p>';
+
+            setTimeout(() => {
+                const scheduledClasses = Object.values(scheduleData).flat().filter(c => c && c.day);
+                const optimizedClasses = JSON.parse(JSON.stringify(scheduledClasses));
+                if(optimizedClasses.length > 1) {
+                    const lastClass = optimizedClasses.pop();
+                    lastClass.day = 2; lastClass.start = "T09:00:00";
+                    optimizedClasses.unshift(lastClass);
+                }
+                beforeContainer.innerHTML = scheduledClasses.map(c => `<div class="p-1 text-xs rounded" style="background-color:${c.color}22"><strong>${c.subject}</strong> - Day ${c.day} at ${c.start.substring(1,6)}</div>`).join('');
+                afterContainer.innerHTML = optimizedClasses.map(c => `<div class="p-1 text-xs rounded" style="background-color:${c.color}22"><strong>${c.subject}</strong> - Day ${c.day} at ${c.start.substring(1,6)}</div>`).join('');
+            }, 1500);
+        }
+
+        async function sendNextSubstituteRequest(subReqId) {
+            const subReqRef = doc(db, "substituteRequests", subReqId);
+            const subReqSnap = await getDoc(subReqRef);
+            if (!subReqSnap.exists()) return;
+            const subReqData = subReqSnap.data();
+
+            const { potentialSubs, currentIndex, originalClass, adminInitiator } = subReqData;
+
+            if (currentIndex >= potentialSubs.length) {
+                await updateDoc(subReqRef, { status: 'failed' });
+                await addDoc(collection(db, "notifications"), {
+                    toUser: adminInitiator, type: 'substitution_failed',
+                    originalClass: originalClass, status: 'pending', createdAt: serverTimestamp()
+                });
+                await logActivity(`Smart Substitute Finder failed for '${originalClass.subject}'. All teachers declined.`);
+                return;
+            }
+
+            const nextTeacher = potentialSubs[currentIndex];
+            await addDoc(collection(db, "notifications"), {
+                toUser: nextTeacher, type: 'substitution_request',
+                originalClass: originalClass, substituteRequestId: subReqId,
+                status: 'pending', createdAt: serverTimestamp()
+            });
+        }
+
+        async function handleSubstitutionResponse(notiId, subReqId, response) {
+            const notiRef = doc(db, "notifications", notiId);
+            const subReqRef = doc(db, "substituteRequests", subReqId);
+            
+            await updateDoc(notiRef, { status: response });
+
+            const subReqSnap = await getDoc(subReqRef);
+            if (!subReqSnap.exists()) return;
+            const subReqData = subReqSnap.data();
+
+            if (response === 'accepted') {
+                const classToUpdate = scheduleData[subReqData.originalClass.id];
+                if (classToUpdate) {
+                    classToUpdate.prof = currentUser.name;
+                    delete classToUpdate.isAbsent;
+                    await saveScheduleToFirestore();
+                }
+                await updateDoc(subReqRef, { status: 'resolved', resolvedBy: currentUser.name });
+                await addDoc(collection(db, "notifications"), {
+                    toUser: subReqData.adminInitiator, type: 'substitution_resolved',
+                    originalClass: subReqData.originalClass, resolvedBy: currentUser.name,
+                    status: 'pending', createdAt: serverTimestamp()
+                });
+                await logActivity(`accepted substitution for '${subReqData.originalClass.subject}'.`);
+                showToast("Substitution accepted!", "success");
+            } else {
+                await updateDoc(subReqRef, {
+                    currentIndex: subReqData.currentIndex + 1,
+                    declinedBy: [...subReqData.declinedBy, currentUser.name]
+                });
+                await sendNextSubstituteRequest(subReqId);
+                await logActivity(`declined substitution for '${subReqData.originalClass.subject}'.`);
+                showToast("Substitution declined. The system will ask the next available teacher.", "success");
+            }
+        }
+        
+        function toggleHeatmap(event) {
+            const calendarEl = document.getElementById('calendar');
+            const slots = calendarEl.querySelectorAll('.fc-timegrid-slot');
+            slots.forEach(slot => {
+                slot.classList.remove('heatmap-1', 'heatmap-2', 'heatmap-3', 'heatmap-4');
+            });
+            
+            if (!event.target.checked) return;
+
+            const classCounts = {};
+            calendar.getEvents().forEach(event => {
+                const day = event.start.getDay();
+                const hour = event.start.getHours();
+                const key = `${day}-${hour}`;
+                classCounts[key] = (classCounts[key] || 0) + 1;
+            });
+            
+            slots.forEach(slot => {
+                const timeAttr = slot.dataset.time;
+                if (!timeAttr) return;
+                const hour = parseInt(timeAttr.split(':')[0]);
+                const dayEl = slot.closest('.fc-timegrid-col');
+                if (!dayEl) return;
+                const day = Array.from(dayEl.parentElement.children).indexOf(dayEl);
+                
+                const key = `${day}-${hour}`;
+                const count = classCounts[key];
+                if (count > 0) {
+                    slot.classList.add(`heatmap-${Math.min(count, 4)}`);
+                }
+            });
+        }
+        
+        function updateFacultyFilter() {
+            const profs = new Set();
+            Object.values(scheduleData).flat().forEach(c => { if(c.prof) profs.add(c.prof) });
+            const filter = document.getElementById('view-as-filter');
+            filter.innerHTML = '<option value="all">Admin View (All)</option>';
+            profs.forEach(p => filter.innerHTML += `<option value="${p}">${p}</option>`);
+        }
+
+        function filterByFaculty(profName) {
+            calendar.getEvents().forEach(event => {
+                const classNames = event.extendedProps.isAbsent ? ['absent'] : [];
+                if (profName !== 'all' && event.extendedProps.prof !== profName) {
+                    classNames.push('filtered-out');
+                }
+                event.setProp('classNames', classNames);
+            });
+        }
+        
+        async function submitForApproval() {
+             if (!currentUser || currentUser.role !== 'admin') { showToast("Only admins can submit schedules.", "error"); return; }
+             scheduleData.isLocked = true;
+             await saveScheduleToFirestore();
+             await addDoc(collection(db, "notifications"), {
+                 fromUser: currentUser.name,
+                 toUser: "KASHY",
+                 type: 'approval_request',
+                 status: 'pending',
+                 createdAt: serverTimestamp()
+             });
+             await logActivity(`submitted the schedule for approval. Schedule is now locked.`);
+             showToast("Schedule submitted and locked.", "success");
+        }
+
+        function updateCalendarLockState() {
+            const overlay = document.getElementById('calendar-lock-overlay');
+            if (scheduleData.isLocked && (!currentUser || currentUser.role !== 'admin')) {
+                overlay.classList.remove('hidden');
+                overlay.classList.add('flex');
+                calendar.setOption('editable', false);
+            } else {
+                overlay.classList.add('hidden');
+                overlay.classList.remove('flex');
+                calendar.setOption('editable', true);
+            }
+        }
+        
+        // --- UTILITY & OTHER FUNCTIONS ---
+        function toggleDarkMode() {
+            document.documentElement.classList.toggle('dark');
+            const icon = document.querySelector('#dark-mode-toggle i');
+            icon.className = document.documentElement.classList.contains('dark') ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+            if (workloadChart) updateChartTheme(workloadChart);
+        }
+
+        function updateChartTheme(chart) {
+            const isDark = document.documentElement.classList.contains('dark');
+            const labelColor = isDark ? '#cbd5e1' : '#475569';
+            if(chart.options.scales) {
+                chart.options.scales.x.ticks.color = labelColor; chart.options.scales.y.ticks.color = labelColor;
+                chart.options.scales.x.grid.color = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+                chart.options.scales.y.grid.color = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+            }
+            if(chart.options.plugins.legend) chart.options.plugins.legend.labels.color = labelColor;
+            chart.update();
+        }
+
+        function showToast(message, type = "error") {
+            const toast = document.getElementById('toast');
+            toast.querySelector('p').textContent = message;
+            toast.className = `toast fixed bottom-6 left-1/2 -translate-x-1/2 text-white py-2 px-5 rounded-lg shadow-lg opacity-0 transform translate-y-10 z-[70] ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`;
+            toast.classList.remove('opacity-0', 'translate-y-10');
+            setTimeout(() => { toast.classList.add('opacity-0', 'translate-y-10'); }, 3000);
+        }
+
+        function showModal(id) { 
+            const modal = document.getElementById(id);
+            if (!modal) return;
+            modal.classList.remove('hidden', 'invisible');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modal.querySelector('div:first-child').classList.remove('scale-95');
+            }, 10);
+        }
+        function hideModal(id) { 
+            const modal = document.getElementById(id);
+            if (!modal) return;
+            modal.classList.add('opacity-0');
+            modal.querySelector('div:first-child').classList.add('scale-95');
+            setTimeout(() => { modal.classList.add('hidden', 'invisible'); }, 300);
+        }
+        
+        function updateDashboard() {
+            const scheduledClasses = Object.values(scheduleData).flat().filter(c => c && c.id && c.day);
+            const totalStudents = scheduledClasses.reduce((sum, c) => sum + (c.students || 0), 0);
+            
+            if(document.getElementById('kpi-total-classes')) {
+                document.getElementById('kpi-total-classes').textContent = scheduledClasses.length;
+                document.getElementById('kpi-unscheduled').textContent = (scheduleData.unscheduled || []).length;
+                document.getElementById('kpi-conflicts').textContent = conflictCount;
+                document.getElementById('kpi-total-students').textContent = totalStudents;
+            }
+        
+            const workload = {};
+            scheduledClasses.forEach(c => { if(c.prof) workload[c.prof] = (workload[c.prof] || 0) + 1; });
+            const workloadCtx = document.getElementById('workloadChart')?.getContext('2d');
+            if(workloadCtx) {
+                if (workloadChart) workloadChart.destroy();
+                workloadChart = new Chart(workloadCtx, {
+                    type: 'bar', data: { labels: Object.keys(workload), datasets: [{ label: 'Classes', data: Object.values(workload), backgroundColor: 'rgba(79, 70, 229, 0.6)' }] },
+                    options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => `${ctx.raw} classes (${(ctx.raw * 50 / 60).toFixed(1)} hrs)` } } }, scales: { y: { ticks: { autoSkip: false } } } }
+                });
+                updateChartTheme(workloadChart);
+            }
+        }
+        
+        // --- FINAL SETUP ---
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeModals();
+            initializeCalendar();
+            setupEventListeners();
+            loadDefaultSchedule();
+            resetConversationState();
+        });
+    </script>
 </body>
 </html>
