@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+
 <html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
@@ -379,7 +379,7 @@
         <div id="ai-chat-modal" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center opacity-0 invisible">
              <div class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-lg w-full h-[70vh] flex flex-col transform scale-95 transition-transform duration-300">
                 <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center bg-slate-50 dark:bg-gray-900 rounded-t-lg"><h3 class="text-xl font-bold text-slate-800 dark:text-white">KASHY</h3><button id="close-chat-btn" class="text-slate-500 hover:text-slate-800 dark:hover:text-white text-2xl">&times;</button></div>
-                <div id="chat-window" class="flex-grow p-4 space-y-4 overflow-y-auto"><div class="flex justify-start"><div class="chat-bubble bg-slate-200 dark:bg-gray-700 text-slate-800 dark:text-slate-200 p-3 rounded-lg">Hello! I'm KASHY, your scheduling assistant. How can I help? (Chatbot functionality requires an API key).</div></div></div>
+                <div id="chat-window" class="flex-grow p-4 space-y-4 overflow-y-auto"><div class="flex justify-start"><div class="chat-bubble bg-slate-200 dark:bg-gray-700 text-slate-800 dark:text-slate-200 p-3 rounded-lg">Hello! I'm KASHY, your scheduling assistant. How can I help?</div></div></div>
                 <div class="p-4 border-t dark:border-gray-700 bg-slate-50 dark:bg-gray-900 rounded-b-lg"><form id="chat-form" class="flex gap-2"><input type="text" id="chat-input" placeholder="Ask a question..." class="flex-grow rounded-md shadow-sm sm:text-sm dark:bg-gray-700 border-slate-300 dark:border-gray-600"><button id="voice-input-btn" type="button" class="text-slate-500 hover:text-indigo-600 font-bold p-2 rounded-lg transition text-xl"><i class="fa-solid fa-microphone"></i></button><button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold p-2 rounded-lg transition"><i class="fa-solid fa-paper-plane"></i></button></form></div>
             </div>
         </div>
@@ -418,8 +418,14 @@
         // Firebase Imports
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-analytics.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
+        import { getAuth } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot, collection, query, where, updateDoc, addDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+
+        // ===================================================================================
+        // IMPORTANT: PASTE YOUR GOOGLE GEMINI API KEY HERE
+        // Get your key from Google AI Studio: https://aistudio.google.com/
+        // ===================================================================================
+        const GEMINI_API_KEY = "AIzaSyA9qU2qTJEbR4b34u1na3PDHDFQKPEQLco"; // <--- PASTE YOUR KEY INSIDE THE QUOTES
 
         // Your web app's Firebase configuration
         const firebaseConfig = {
@@ -494,7 +500,6 @@
 
         function listenToSchedule() {
             if (!currentUser || scheduleUnsubscribe) return;
-            // Everyone listens to the main admin's (KASHY's) schedule
             const scheduleOwnerUID = userUIDs["KASHY"];
             const scheduleRef = doc(db, "schedules", scheduleOwnerUID);
             scheduleUnsubscribe = onSnapshot(scheduleRef, (docSnap) => {
@@ -522,9 +527,6 @@
                     notifications.push({ id: doc.id, ...doc.data() });
                 });
                 renderNotifications(notifications);
-                if (notifications.length > 0 && !document.getElementById('notifications-modal').classList.contains('flex')) {
-                    // Do not auto-open, just show badge
-                }
             });
         }
         
@@ -665,28 +667,26 @@
             document.getElementById('delete-class-btn').dataset.classId = props.id;
             document.getElementById('mark-absent-btn').dataset.classId = props.id;
 
-            // Role-based visibility for class modal buttons
             if (currentUser && currentUser.role === 'admin') {
                 document.getElementById('mark-absent-btn').parentElement.classList.remove('hidden');
             } else {
                 document.getElementById('mark-absent-btn').parentElement.classList.add('hidden');
             }
-
             showModal('class-details-modal');
         }
 
         function handleDeleteClass() {
-             if (!currentUser || currentUser.role !== 'admin' || scheduleData.isLocked) { showToast("You don't have permission to do that or schedule is locked."); return; }
+             if (!currentUser || currentUser.role !== 'admin' || scheduleData.isLocked) { showToast("You don't have permission or schedule is locked.", "error"); return; }
             const classId = document.getElementById('delete-class-btn').dataset.classId;
             if (scheduleData[classId]) {
                 delete scheduleData[classId];
-                saveScheduleToFirestore(currentUser.uid); renderCalendar(); hideModal('class-details-modal');
+                saveScheduleToFirestore(userUIDs['KASHY']); renderCalendar(); hideModal('class-details-modal');
                 showToast("Class deleted successfully.", "success");
             }
         }
 
         function handleEventReceive(info) {
-             if (!currentUser || (scheduleData.isLocked && currentUser.role !== 'admin')) { showToast("Please log in or unlock schedule to make changes."); info.revert(); return; }
+             if (!currentUser || (scheduleData.isLocked && currentUser.role !== 'admin')) { showToast("Please log in or unlock the schedule.", "error"); info.revert(); return; }
             const props = info.event.extendedProps;
             scheduleData[props.id] = { ...props, day: info.event.start.getDay(), start: 'T' + info.event.start.toTimeString().substring(0, 8) };
             scheduleData.unscheduled = (scheduleData.unscheduled || []).filter(c => c.id !== props.id);
@@ -694,7 +694,7 @@
         }
 
         function handleEventDrop(info) {
-            if (!currentUser || (scheduleData.isLocked && currentUser.role !== 'admin')) { showToast("Please log in or unlock schedule to make changes."); info.revert(); return; }
+            if (!currentUser || (scheduleData.isLocked && currentUser.role !== 'admin')) { showToast("Please log in or unlock the schedule.", "error"); info.revert(); return; }
             const classId = info.event.id;
             scheduleData[classId] = { ...scheduleData[classId], day: info.event.start.getDay(), start: 'T' + info.event.start.toTimeString().substring(0, 8) };
             saveScheduleToFirestore(userUIDs['KASHY']); renderCalendar();
@@ -735,7 +735,6 @@
             document.getElementById('dark-mode-toggle').addEventListener('click', toggleDarkMode);
             document.getElementById('tutorial-btn').addEventListener('click', () => showModal('tutorial-modal'));
             
-            // Centralized click handler for dynamically added buttons
             document.addEventListener('click', (event) => {
                 const target = event.target;
                 const closestButton = target.closest('button');
@@ -756,15 +755,15 @@
                     'close-notifications-modal': () => hideModal('notifications-modal'),
                     'optimize-schedule-btn': handleOptimize,
                     'close-optimizer-modal': () => hideModal('optimizer-modal'),
-                    'apply-optimization-btn': () => showToast("Optimization applied!", "success"),
+                    'apply-optimization-btn': () => {
+                        showToast("Optimization applied!", "success");
+                        hideModal('optimizer-modal');
+                    },
                     'print-schedule-btn': () => window.print(),
                     'submit-approval-btn': submitForApproval,
                     'password-toggle-btn': handlePasswordToggle
                 };
-
-                if (actions[actionId]) {
-                    actions[actionId]();
-                }
+                if (actions[actionId]) actions[actionId]();
             });
 
             document.addEventListener('submit', (event) => {
@@ -779,7 +778,7 @@
         
         function handleAddClass(e) {
             e.preventDefault();
-            if (!currentUser || (scheduleData.isLocked && currentUser.role !== 'admin')) { showToast("Please log in or unlock schedule to add classes."); return; }
+            if (!currentUser || (scheduleData.isLocked && currentUser.role !== 'admin')) { showToast("Please log in or unlock the schedule.", "error"); return; }
             const form = e.target;
             if (!scheduleData.unscheduled) scheduleData.unscheduled = [];
             const newClass = { 
@@ -810,36 +809,30 @@
                 loginBtn.classList.add('hidden');
                 userActionsContainer.classList.remove('hidden');
                 userActionsContainer.classList.add('flex');
-                
                 logoContainer.classList.add('hidden');
                 userInfoContainer.classList.remove('hidden');
                 userInfoContainer.classList.add('flex');
                 usernameDisplay.textContent = currentUser.name;
-                
                 welcomeMsg.textContent = `Welcome, ${currentUser.name}`; 
-                
                 if (currentUser.role === 'admin') {
                     dashboard.classList.remove('hidden'); 
                     navDashboardLink.classList.remove('hidden');
                     adminControls.classList.remove('hidden');
                     adminControls.classList.add('flex');
-                } else { // Teacher view
+                } else {
                     dashboard.classList.add('hidden');
                     navDashboardLink.classList.add('hidden');
                     adminControls.classList.add('hidden');
                     adminControls.classList.remove('flex');
                 }
-
                 notificationsBtn.classList.remove('hidden');
-            } else { // Logged out view
+            } else {
                 loginBtn.classList.remove('hidden');
                 userActionsContainer.classList.add('hidden');
                 userActionsContainer.classList.remove('flex');
-
                 logoContainer.classList.remove('hidden');
                 userInfoContainer.classList.add('hidden');
                 userInfoContainer.classList.remove('flex');
-                
                 dashboard.classList.add('hidden'); 
                 navDashboardLink.classList.add('hidden');
                 notificationsBtn.classList.add('hidden');
@@ -888,9 +881,82 @@
             }
         }
         
-        // --- INNOVATIVE FEATURES ---
+        // --- INNOVATIVE FEATURES & CHATBOT ---
+        async function callGeminiAPI(prompt) {
+            const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
+            const payload = { contents: [{ parts: [{ text: prompt }] }] };
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error.message || "An API error occurred.");
+                }
+                const result = await response.json();
+                return result.candidates[0].content.parts[0].text;
+            } catch (error) {
+                console.error("Gemini API call failed:", error);
+                return `Sorry, I encountered an error: ${error.message}`;
+            }
+        }
+
+        function appendChatMessage(message, sender) {
+            const chatWindow = document.getElementById('chat-window');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.className = `chat-bubble p-3 rounded-lg max-w-[80%]`;
+            if (sender === 'user') {
+                bubbleDiv.classList.add('bg-indigo-600', 'text-white');
+            } else {
+                bubbleDiv.classList.add('bg-slate-200', 'dark:bg-gray-700', 'text-slate-800', 'dark:text-slate-200');
+            }
+            bubbleDiv.innerHTML = message.replace(/\n/g, '<br>'); // Support newlines in response
+            messageDiv.appendChild(bubbleDiv);
+            chatWindow.appendChild(messageDiv);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        async function handleChatSubmit(e) {
+            e.preventDefault();
+            if (!GEMINI_API_KEY) {
+                appendChatMessage("The chatbot is not configured. The administrator needs to add a Gemini API key to the `index.html` file.", 'ai');
+                return;
+            }
+            const input = document.getElementById('chat-input');
+            const userMessage = input.value.trim();
+            if (!userMessage) return;
+
+            appendChatMessage(userMessage, 'user');
+            input.value = '';
+
+            const typingIndicator = document.createElement('div');
+            typingIndicator.id = 'typing-indicator';
+            typingIndicator.className = 'flex justify-start';
+            typingIndicator.innerHTML = `<div class="chat-bubble bg-slate-200 dark:bg-gray-700 p-3 rounded-lg">KASHY is thinking...</div>`;
+            document.getElementById('chat-window').appendChild(typingIndicator);
+            document.getElementById('chat-window').scrollTop = document.getElementById('chat-window').scrollHeight;
+
+            try {
+                const systemPrompt = `You are KASHY, an expert AI assistant for the AcaDexa scheduling platform. Be helpful and concise. Use the current schedule data to answer questions. Current schedule data: ${JSON.stringify(scheduleData)}`;
+                const fullPrompt = `${systemPrompt}\n\nUser question: "${userMessage}"`;
+                const aiResponse = await callGeminiAPI(fullPrompt);
+                appendChatMessage(aiResponse, 'ai');
+            } catch (error) {
+                console.error("Chatbot error:", error);
+                appendChatMessage("Sorry, I'm having trouble connecting right now.", 'ai');
+            } finally {
+                typingIndicator.remove();
+            }
+        }
+
+
         function handleOptimize() {
-            if (!currentUser || currentUser.role !== 'admin') { showToast("Only admins can optimize schedules."); return; }
+            if (!currentUser || currentUser.role !== 'admin') { showToast("Only admins can optimize schedules.", "error"); return; }
             showModal('optimizer-modal');
             const beforeContainer = document.getElementById('optimizer-before');
             const afterContainer = document.getElementById('optimizer-after');
@@ -911,7 +977,7 @@
         }
 
         async function handleMarkAbsent() {
-            if (!currentUser || currentUser.role !== 'admin' || scheduleData.isLocked) { showToast("Only admins can mark teachers absent, or schedule is locked."); return; }
+            if (!currentUser || currentUser.role !== 'admin' || scheduleData.isLocked) { showToast("Only admins can mark teachers absent, or schedule is locked.", "error"); return; }
             const classId = document.getElementById('mark-absent-btn').dataset.classId;
             const classInfo = scheduleData[classId];
             classInfo.isAbsent = true;
@@ -931,7 +997,6 @@
             hideModal('class-details-modal');
         }
         
-        // ... (This space is for the rest of the functions from the previous version)
         function toggleHeatmap(event) {
             const calendarEl = document.getElementById('calendar');
             const slots = calendarEl.querySelectorAll('.fc-timegrid-slot');
@@ -946,18 +1011,20 @@
                 const key = `${event.start.getDay()}-${event.start.getHours()}`;
                 classCounts[key] = (classCounts[key] || 0) + 1;
             });
-
-            // This is complex and depends heavily on FullCalendar's internal DOM structure.
-            // This is a best-effort attempt and might need adjustments.
-            calendarEl.querySelectorAll('.fc-timegrid-col').forEach((col, dayIndex) => {
-                col.querySelectorAll('.fc-timegrid-slot').forEach(slot => {
-                    const timeAttr = slot.dataset.time;
+            
+            calendarEl.querySelectorAll('.fc-col-header-cell, .fc-timegrid-col').forEach((col, dayIndex) => {
+                // Adjust dayIndex for FullCalendar's DOM structure (header + body cols)
+                 const actualDayIndex = col.cellIndex;
+                 if(actualDayIndex === undefined) return;
+                
+                col.querySelectorAll('.fc-timegrid-slot-lane').forEach(slot => {
+                    const timeAttr = slot.parentElement.dataset.time;
                     if (!timeAttr) return;
                     const hour = parseInt(timeAttr.split(':')[0]);
-                    const key = `${dayIndex}-${hour}`;
+                    const key = `${actualDayIndex}-${hour}`;
                     const count = classCounts[key];
                     if (count > 0) {
-                        slot.classList.add(`heatmap-${Math.min(count, 4)}`);
+                        slot.parentElement.classList.add(`heatmap-${Math.min(count, 4)}`);
                     }
                 });
             });
@@ -973,16 +1040,16 @@
 
         function filterByFaculty(profName) {
             calendar.getEvents().forEach(event => {
-                if (profName === 'all' || event.extendedProps.prof === profName) {
-                    event.setProp('classNames', event.extendedProps.isAbsent ? ['absent'] : []);
-                } else {
-                    event.setProp('classNames', ['filtered-out']);
+                const classNames = event.extendedProps.isAbsent ? ['absent'] : [];
+                if (profName !== 'all' && event.extendedProps.prof !== profName) {
+                    classNames.push('filtered-out');
                 }
+                event.setProp('classNames', classNames);
             });
         }
         
         async function submitForApproval() {
-             if (!currentUser || currentUser.role !== 'admin') { showToast("Only admins can submit schedules for approval."); return; }
+             if (!currentUser || currentUser.role !== 'admin') { showToast("Only admins can submit schedules.", "error"); return; }
              scheduleData.isLocked = true;
              await saveScheduleToFirestore(userUIDs['KASHY']);
              await addDoc(collection(db, "notifications"), {
@@ -1098,11 +1165,6 @@
             }
         }
         
-        async function handleChatSubmit(e) {
-            // NOTE: Chatbot is non-functional without a valid API key.
-            e.preventDefault();
-            appendChatMessage("I am currently unable to process requests. Please ensure a valid API key is configured by the developer.", 'ai');
-        }
 
         // --- FINAL SETUP ---
         document.addEventListener('DOMContentLoaded', () => {
@@ -1114,3 +1176,4 @@
     </script>
 </body>
 </html>
+
