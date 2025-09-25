@@ -1,3 +1,5 @@
+
+<!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
@@ -424,7 +426,7 @@
         // IMPORTANT: PASTE YOUR NEW GOOGLE GEMINI API KEY HERE
         // Get your key from Google AI Studio: https://aistudio.google.com/
         // ===================================================================================
-        const GEMINI_API_KEY = "AIzaSyDwIgzCE8jSJY7F5BnxbXXU-ZXcQhYOUgw"; // <--- PASTE YOUR NEW, SECRET KEY INSIDE THE QUOTES
+        const GEMINI_API_KEY = "AIzaSyCDAZZil3m8aeONE-3GzQu-4rB7eW-N1vQ"; // <--- PASTE YOUR NEW, SECRET KEY INSIDE THE QUOTES
 
         // Your web app's Firebase configuration
         const firebaseConfig = {
@@ -890,8 +892,8 @@
         
         // --- INNOVATIVE FEATURES & CHATBOT ---
         async function callGeminiAPI(prompt) {
-            // *** CODE FIX: Using the newer v1 API endpoint and a modern model name ***
-            const API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
+            // *** CODE FIX: Using the widely compatible `gemini-pro` model and `v1beta` endpoint. ***
+            const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
             
             const payload = { contents: [{ parts: [{ text: prompt }] }] };
 
@@ -991,12 +993,10 @@
             const classInfo = scheduleData[classId];
             if (!classInfo) return;
             
-            // 1. Find available teachers
             const scheduledClasses = Object.values(scheduleData).filter(c => c && c.day);
             const busyProfsAtTime = new Set(scheduledClasses.filter(c => c.day === classInfo.day && c.start === classInfo.start).map(c => c.prof));
             const allProfs = new Set(Object.values(userRoles).filter(role => role === 'teacher').map((_, name) => name));
             Object.keys(userCredentials).forEach(name => { if(userRoles[name] === 'teacher') allProfs.add(name)});
-            
             const availableProfs = [...allProfs].filter(p => !busyProfsAtTime.has(p) && p !== classInfo.prof);
             
             if (availableProfs.length === 0) {
@@ -1004,13 +1004,11 @@
                 return;
             }
 
-            // 2. Mark class as absent in the main schedule
             classInfo.isAbsent = true;
             await saveScheduleToFirestore();
             renderCalendar();
             hideModal('class-details-modal');
 
-            // 3. Create a substitution request document
             const subRequestRef = await addDoc(collection(db, "substituteRequests"), {
                 originalClass: classInfo,
                 status: 'pending',
@@ -1021,7 +1019,6 @@
                 createdAt: serverTimestamp()
             });
 
-            // 4. Start the cascading notification process
             await sendNextSubstituteRequest(subRequestRef.id);
             showToast(`Smart Substitute Finder initiated for ${classInfo.subject}.`, "success");
         }
@@ -1035,7 +1032,6 @@
             const { potentialSubs, currentIndex, originalClass, adminInitiator } = subReqData;
 
             if (currentIndex >= potentialSubs.length) {
-                // All potential subs have been asked
                 await updateDoc(subReqRef, { status: 'failed' });
                 await addDoc(collection(db, "notifications"), {
                     toUser: adminInitiator,
@@ -1062,23 +1058,20 @@
             const notiRef = doc(db, "notifications", notiId);
             const subReqRef = doc(db, "substituteRequests", subReqId);
             
-            await updateDoc(notiRef, { status: response }); // Mark notification as handled
+            await updateDoc(notiRef, { status: response });
 
             const subReqSnap = await getDoc(subReqRef);
             if (!subReqSnap.exists()) return;
             const subReqData = subReqSnap.data();
 
             if (response === 'accepted') {
-                // Update schedule
                 const classToUpdate = scheduleData[subReqData.originalClass.id];
                 if (classToUpdate) {
                     classToUpdate.prof = currentUser.name;
                     delete classToUpdate.isAbsent;
                     await saveScheduleToFirestore();
                 }
-                // Update sub request
                 await updateDoc(subReqRef, { status: 'resolved', resolvedBy: currentUser.name });
-                // Notify admin of success
                 await addDoc(collection(db, "notifications"), {
                     toUser: subReqData.adminInitiator,
                     type: 'substitution_resolved',
@@ -1089,7 +1082,6 @@
                 });
                 showToast("Substitution accepted!", "success");
             } else { // declined
-                // Update sub request and try next teacher
                 await updateDoc(subReqRef, {
                     currentIndex: subReqData.currentIndex + 1,
                     declinedBy: [...subReqData.declinedBy, currentUser.name]
