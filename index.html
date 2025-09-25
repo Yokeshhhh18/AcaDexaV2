@@ -132,19 +132,19 @@
 
             <div class="flex items-center gap-4">
                  <button id="notifications-btn" class="text-gray-300 hover:text-indigo-400 transition text-xl relative hidden" title="Notifications">
-                    <i class="fa-solid fa-bell"></i>
-                    <span id="notification-badge" class="notification-badge hidden"></span>
+                     <i class="fa-solid fa-bell"></i>
+                     <span id="notification-badge" class="notification-badge hidden"></span>
                  </button>
                  <button id="tutorial-btn" class="text-gray-300 hover:text-indigo-400 transition text-xl" title="How to Use">
-                    <i class="fa-solid fa-circle-question"></i>
-                </button>
+                     <i class="fa-solid fa-circle-question"></i>
+                 </button>
                 <button id="dark-mode-toggle" class="text-gray-300 hover:text-indigo-400 transition text-xl" title="Toggle Dark Mode">
                     <i class="fa-solid fa-moon"></i>
                 </button>
                 <div id="auth-container" class="flex items-center gap-4">
                     <button id="login-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition shadow-md hover:shadow-lg">Staff Login</button>
                     <div id="user-actions-container" class="hidden items-center gap-4">
-                         <button id="logout-btn" class="bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition">Logout</button>
+                          <button id="logout-btn" class="bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition">Logout</button>
                     </div>
                 </div>
             </div>
@@ -181,7 +181,7 @@
                         <button id="submit-approval-btn" class="bg-sky-600 hover:bg-sky-700 text-white font-semibold py-2 px-4 rounded-lg transition flex items-center gap-2">
                             <i class="fa-solid fa-paper-plane"></i> Submit for Approval
                         </button>
-                         <button id="print-schedule-btn" class="bg-slate-600 hover:bg-slate-700 text-white font-semibold py-2 px-4 rounded-lg transition flex items-center gap-2">
+                          <button id="print-schedule-btn" class="bg-slate-600 hover:bg-slate-700 text-white font-semibold py-2 px-4 rounded-lg transition flex items-center gap-2">
                             <i class="fa-solid fa-print"></i> Print Schedule
                         </button>
                     </div>
@@ -225,7 +225,7 @@
                     <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md border border-slate-200 dark:border-gray-700">
                         <h3 class="text-xl font-bold mb-4 text-slate-800 dark:text-white">Live Activity Feed</h3>
                         <div id="activity-feed" class="space-y-3 h-96 overflow-y-auto pr-2">
-                           </div>
+                            </div>
                     </div>
                 </div>
             </div>
@@ -294,9 +294,9 @@
                     <div class="lg:col-span-10 bg-white dark:bg-gray-900/50 border border-slate-200 dark:border-gray-700 p-4 rounded-2xl shadow-lg relative">
                         <div class="flex justify-end items-center gap-4 mb-2">
                              <div class="flex items-center" id="view-as-container">
-                                <label for="view-as-filter" class="text-sm font-medium text-slate-700 dark:text-slate-300 mr-2">View As:</label>
-                                <select id="view-as-filter" class="rounded-md shadow-sm sm:text-sm dark:bg-gray-800 border-slate-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-indigo-500"></select>
-                            </div>
+                                 <label for="view-as-filter" class="text-sm font-medium text-slate-700 dark:text-slate-300 mr-2">View As:</label>
+                                 <select id="view-as-filter" class="rounded-md shadow-sm sm:text-sm dark:bg-gray-800 border-slate-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-indigo-500"></select>
+                             </div>
                             <div class="flex items-center">
                                 <label for="heatmap-toggle" class="text-sm font-medium text-slate-700 dark:text-slate-300 mr-2">Show Heatmap</label>
                                 <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
@@ -327,7 +327,7 @@
     </footer>
 
     <div id="modals-container">
-        </div>
+    </div>
 
     <script type="text/template" id="modals-template">
         <div id="class-details-modal" class="modal fixed inset-0 bg-black bg-opacity-50 z-[60] hidden items-center justify-center opacity-0 invisible">
@@ -412,14 +412,14 @@
 
     <script type="module">
         // Firebase Imports
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
-        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-analytics.js";
-        import { getAuth } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot, collection, query, where, updateDoc, addDoc, getDoc, serverTimestamp, orderBy, limit } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
+        import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection, query, where, updateDoc, addDoc, getDoc, serverTimestamp, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         // Your web app's Firebase configuration
         const firebaseConfig = {
-            apiKey: "AIzaSyDpb0a6yHbofdUO86EXkg6ILn5nQa98_zs", // Replace with your actual Firebase API key
+            apiKey: "YOUR_API_KEY", // Replace with your actual Firebase API key
             authDomain: "acadexaa.firebaseapp.com",
             projectId: "acadexaa",
             storageBucket: "acadexaa.appspot.com",
@@ -441,7 +441,6 @@
         let notificationsUnsubscribe = null;
         let activityFeedUnsubscribe = null;
         let workloadChart = null;
-        let capacityChart = null;
         let calendar = null;
 
         // --- NEW: State for the conversational AI assistant
@@ -463,28 +462,46 @@
         const roomCapacities = { "101": 50, "102": 45, "Lab 3": 25, "303": 50, "Lab 1": 25, "202": 30 };
         const userCredentials = {
             "KASHY": "sihwinners",
-            "ZAP": "maja"
+            "ZAP": "maja",
+            "Kanishq": "pass1",
+            "Anamika": "pass2",
+            "Yokesh": "pass3",
+            "Kiruthik": "pass4",
+            "Saravana": "pass5",
+            "Harine": "pass6",
         };
         const userUIDs = {
             "KASHY": "user_kashy_id",
-            "ZAP": "user_zap_id"
+            "ZAP": "user_zap_id",
+            "Kanishq": "user_kanishq_id",
+            "Anamika": "user_anamika_id",
+            "Yokesh": "user_yokesh_id",
+            "Kiruthik": "user_kiruthik_id",
+            "Saravana": "user_saravana_id",
+            "Harine": "user_harine_id",
         };
          const userRoles = {
             "KASHY": "admin",
-            "ZAP": "teacher"
+            "ZAP": "teacher",
+            "Kanishq": "teacher",
+            "Anamika": "teacher",
+            "Yokesh": "teacher",
+            "Kiruthik": "teacher",
+            "Saravana": "teacher",
+            "Harine": "teacher",
         };
         
         // --- DATA & STATE MANAGEMENT ---
         function loadDefaultSchedule() {
              scheduleData = {
-                "c1": { id: "c1", subject: "Calculus I", prof: "Kanishq", room: "101", students: 48, status: "approved", color: "#ec4899", start: "T09:00:00", day: 1 },
+                "c1": { id: "c1", subject: "Calculus I", prof: "Kanishq", room: "101", students: 48, status: "approved", color: "#ec4899", start: "T09:00:00", day: 1, notes: "First lecture on limits and derivatives." },
                 "c2": { id: "c2", subject: "Intro to Physics", prof: "ZAP", room: "102", students: 40, status: "approved", color: "#10b981", start: "T10:00:00", day: 1 },
                 "c3": { id: "c3", subject: "Machine Learning", prof: "Anamika", room: "Lab 3", students: 22, status: "pending", color: "#3b82f6", start: "T11:00:00", day: 3 },
                 "c4": { id: "c4", subject: "Data Structures", prof: "Yokesh", room: "303", students: 45, status: "pending", color: "#3b82f6", start: "T13:00:00", day: 4 },
                 "unscheduled": [
                     { id: "c5", subject: "Organic Chemistry", prof: "Kiruthik", room: "Lab 1", students: 20, status: "draft", color: "#f97316" },
-                    { id: "c6", subject: "History", prof: "Saravana", room: "202", students: 30, status: "draft", color: "#8b5cf6" },
-                    { id: "c7", subject: "Literature", prof: "Harine", room: "202", students: 25, status: "draft", color: "#8b5cf6" }
+                    { id: "c6", subject: "Modern History", prof: "Saravana", room: "202", students: 30, status: "draft", color: "#8b5cf6" },
+                    { id: "c7", subject: "World Literature", prof: "Harine", room: "202", students: 25, status: "draft", color: "#8b5cf6" }
                 ]
             };
             renderUnscheduled();
@@ -495,7 +512,7 @@
 
         async function saveScheduleToFirestore() {
             if (!currentUser) return;
-            const scheduleOwnerUID = userUIDs["KASHY"]; // Always save to the main schedule
+            const scheduleOwnerUID = userUIDs["KASHY"]; // Always save to the main admin schedule
             const simplifiedSchedule = { unscheduled: scheduleData.unscheduled || [], isLocked: scheduleData.isLocked || false };
             Object.values(scheduleData).forEach(item => {
                 if(item.id && !Array.isArray(item)) simplifiedSchedule[item.id] = item;
@@ -539,8 +556,9 @@
         }
         
         async function logActivity(text) {
-            if (currentUser && currentUser.role === 'admin') {
+            if (currentUser) { // Log activity for any logged-in user
                 await addDoc(collection(db, "activity_feed"), {
+                    user: currentUser.name,
                     text: text,
                     timestamp: serverTimestamp()
                 });
@@ -560,10 +578,10 @@
                     }
                     querySnapshot.forEach(doc => {
                         const data = doc.data();
-                        const time = data.timestamp ? new Date(data.timestamp.seconds * 1000).toLocaleTimeString() : '';
+                        const time = data.timestamp ? new Date(data.timestamp.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
                         const itemEl = document.createElement('div');
                         itemEl.className = 'text-sm border-l-2 border-slate-300 dark:border-gray-600 pl-3';
-                        itemEl.innerHTML = `<p class="text-slate-700 dark:text-slate-300">${data.text}</p><p class="text-xs text-slate-400">${time}</p>`;
+                        itemEl.innerHTML = `<p class="text-slate-700 dark:text-slate-300"><strong>${data.user}</strong> ${data.text}</p><p class="text-xs text-slate-400">${time}</p>`;
                         feedEl.appendChild(itemEl);
                     });
                 });
@@ -740,7 +758,7 @@
             if (currentUser.role !== 'admin') return;
             scheduleData.isLocked = false;
             await saveScheduleToFirestore();
-            await logActivity(`Schedule was approved and unlocked.`);
+            await logActivity(`approved and unlocked the schedule.`);
             const notiRef = doc(db, "notifications", notiId);
             await updateDoc(notiRef, { status: 'approved' });
             showToast('Schedule Unlocked.', 'success');
@@ -793,7 +811,7 @@
             if (scheduleData[classId]) {
                 scheduleData[classId].notes = newNotes;
                 await saveScheduleToFirestore();
-                await logActivity(`${currentUser.name} updated notes for '${scheduleData[classId].subject}'.`);
+                await logActivity(`updated notes for '${scheduleData[classId].subject}'.`);
                 showToast("Notes saved successfully!", "success");
             }
         }
@@ -805,7 +823,7 @@
                 const deletedClass = { ...scheduleData[classId] };
                 delete scheduleData[classId];
                 await saveScheduleToFirestore(); 
-                await logActivity(`${currentUser.name} deleted the class '${deletedClass.subject}'.`);
+                await logActivity(`deleted the class '${deletedClass.subject}'.`);
                 renderCalendar(); 
                 hideModal('class-details-modal');
                 showToast("Class deleted successfully.", "success");
@@ -818,7 +836,7 @@
             scheduleData[props.id] = { ...props, day: info.event.start.getDay(), start: 'T' + info.event.start.toTimeString().substring(0, 8) };
             scheduleData.unscheduled = (scheduleData.unscheduled || []).filter(c => c.id !== props.id);
             await saveScheduleToFirestore(); 
-            await logActivity(`${currentUser.name} scheduled '${props.subject}'.`);
+            await logActivity(`scheduled '${props.subject}'.`);
             renderUnscheduled(); renderCalendar(); updateFacultyFilter();
         }
 
@@ -827,7 +845,7 @@
             const classId = info.event.id;
             scheduleData[classId] = { ...scheduleData[classId], day: info.event.start.getDay(), start: 'T' + info.event.start.toTimeString().substring(0, 8) };
             await saveScheduleToFirestore(); 
-            await logActivity(`${currentUser.name} moved the class '${scheduleData[classId].subject}'.`);
+            await logActivity(`moved the class '${scheduleData[classId].subject}'.`);
             renderCalendar();
         }
         
@@ -873,7 +891,7 @@
             scheduleData.unscheduled.push(newClass);
             renderUnscheduled();
             await saveScheduleToFirestore();
-            await logActivity(`${currentUser.name} added '${newClass.subject}' to the unscheduled list.`);
+            await logActivity(`added '${newClass.subject}' to the unscheduled list.`);
             updateFacultyFilter();
             form.reset();
         }
@@ -971,6 +989,20 @@
         
         // --- AI SCHEDULER & INNOVATIVE FEATURES ---
         
+        function appendChatMessage(message, sender) {
+            const chatWindow = document.getElementById('chat-window');
+            const messageEl = document.createElement('div');
+            const bubble = document.createElement('div');
+            
+            messageEl.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+            bubble.className = `p-3 rounded-lg ${sender === 'user' ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-gray-700 text-slate-800 dark:text-slate-200'}`;
+            bubble.innerHTML = message;
+            
+            messageEl.appendChild(bubble);
+            chatWindow.appendChild(messageEl);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
         async function handleChatSubmit(e) {
             e.preventDefault();
             if (!currentUser) {
@@ -1062,7 +1094,7 @@
                         const newClass = { id: 'c' + Date.now(), subject, prof, room, students: 50, status: 'draft', color: '#3b82f6', day, start: startTime };
                         scheduleData[newClass.id] = newClass;
                         await saveScheduleToFirestore();
-                        await logActivity(`${currentUser.name} scheduled '${subject}' using the AI assistant.`);
+                        await logActivity(`scheduled '${subject}' using the AI assistant.`);
                         renderCalendar();
                         appendChatMessage(`All set! I've scheduled <strong>${subject}</strong> for you.`, 'ai');
                     }
@@ -1107,7 +1139,7 @@
             
             if (availableProfs.length === 0) {
                 showToast("No available teachers to substitute.", "error");
-                await logActivity(`Attempted to find substitute for ${classInfo.prof}, but none were available.`);
+                await logActivity(`attempted to find substitute for ${classInfo.prof}, but none were available.`);
                 return;
             }
 
@@ -1127,7 +1159,7 @@
             });
 
             await sendNextSubstituteRequest(subRequestRef.id);
-            await logActivity(`${currentUser.name} marked ${classInfo.prof} absent and initiated the Smart Substitute Finder.`);
+            await logActivity(`marked ${classInfo.prof} absent and initiated the Smart Substitute Finder.`);
             showToast(`Smart Substitute Finder initiated for ${classInfo.subject}.`, "success");
         }
 
@@ -1189,7 +1221,7 @@
                     status: 'pending',
                     createdAt: serverTimestamp()
                 });
-                await logActivity(`${currentUser.name} accepted substitution for '${subReqData.originalClass.subject}'.`);
+                await logActivity(`accepted substitution for '${subReqData.originalClass.subject}'.`);
                 showToast("Substitution accepted!", "success");
             } else { // declined
                 await updateDoc(subReqRef, {
@@ -1197,7 +1229,7 @@
                     declinedBy: [...subReqData.declinedBy, currentUser.name]
                 });
                 await sendNextSubstituteRequest(subReqId);
-                await logActivity(`${currentUser.name} declined substitution for '${subReqData.originalClass.subject}'.`);
+                await logActivity(`declined substitution for '${subReqData.originalClass.subject}'.`);
                 showToast("Substitution declined. The system will ask the next available teacher.", "success");
             }
         }
@@ -1213,24 +1245,26 @@
 
             const classCounts = {};
             calendar.getEvents().forEach(event => {
-                const key = `${event.start.getDay()}-${event.start.getHours()}`;
-                classCounts[key] = (classCounts[key] || 0) + 1;
+                const day = event.start.getDay();
+                const hour = event.start.getHours();
+                for (let i = day * 24 + hour; i < day * 24 + hour + 1; i++) { // Assuming 1 hour slots for heatmap
+                    classCounts[i] = (classCounts[i] || 0) + 1;
+                }
             });
             
-            calendarEl.querySelectorAll('.fc-col-header-cell, .fc-timegrid-col').forEach((col, dayIndex) => {
-                 const actualDayIndex = col.cellIndex;
-                 if(actualDayIndex === undefined) return;
+            slots.forEach(slot => {
+                const timeAttr = slot.dataset.time;
+                if (!timeAttr) return;
+                const hour = parseInt(timeAttr.split(':')[0]);
+                const dayEl = slot.closest('.fc-timegrid-col');
+                if (!dayEl) return;
+                const day = Array.from(dayEl.parentElement.children).indexOf(dayEl);
                 
-                col.querySelectorAll('.fc-timegrid-slot-lane').forEach(slot => {
-                    const timeAttr = slot.parentElement.dataset.time;
-                    if (!timeAttr) return;
-                    const hour = parseInt(timeAttr.split(':')[0]);
-                    const key = `${actualDayIndex}-${hour}`;
-                    const count = classCounts[key];
-                    if (count > 0) {
-                        slot.parentElement.classList.add(`heatmap-${Math.min(count, 4)}`);
-                    }
-                });
+                const key = day * 24 + hour;
+                const count = classCounts[key];
+                if (count > 0) {
+                    slot.classList.add(`heatmap-${Math.min(count, 4)}`);
+                }
             });
         }
         
@@ -1258,12 +1292,12 @@
              await saveScheduleToFirestore();
              await addDoc(collection(db, "notifications"), {
                  fromUser: currentUser.name,
-                 toUser: "KASHY",
+                 toUser: "KASHY", // Always notify the main admin
                  type: 'approval_request',
                  status: 'pending',
                  createdAt: serverTimestamp()
              });
-             await logActivity(`${currentUser.name} submitted the schedule for approval. Schedule is now locked.`);
+             await logActivity(`submitted the schedule for approval. Schedule is now locked.`);
              showToast("Schedule submitted and locked.", "success");
         }
 
@@ -1286,7 +1320,6 @@
             const icon = document.querySelector('#dark-mode-toggle i');
             icon.className = document.documentElement.classList.contains('dark') ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
             if (workloadChart) updateChartTheme(workloadChart);
-            if (capacityChart) updateChartTheme(capacityChart);
         }
 
         function updateChartTheme(chart) {
@@ -1348,21 +1381,6 @@
                 });
                 updateChartTheme(workloadChart);
             }
-
-            const capacityStats = { near: 0, healthy: 0, low: 0 };
-            scheduledClasses.forEach(c => {
-                const cap = roomCapacities[c.room];
-                if(cap) { const util = c.students / cap; if(util > 0.9) capacityStats.near++; else if(util > 0.5) capacityStats.healthy++; else capacityStats.low++; }
-            });
-            const capacityCtx = document.getElementById('capacityChart')?.getContext('2d');
-            if(capacityCtx) {
-                if (capacityChart) capacityChart.destroy();
-                capacityChart = new Chart(capacityCtx, {
-                    type: 'doughnut', data: { labels: ['Near Capacity (>90%)', 'Healthy (50-90%)', 'Low Enrollment (<50%)'], datasets: [{ data: [capacityStats.near, capacityStats.healthy, capacityStats.low], backgroundColor: ['#ef4444', '#f59e0b', '#10b981'] }] },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } } }
-                });
-                updateChartTheme(capacityChart);
-            }
         }
         
         // --- FINAL SETUP ---
@@ -1376,4 +1394,3 @@
     </script>
 </body>
 </html>
-
