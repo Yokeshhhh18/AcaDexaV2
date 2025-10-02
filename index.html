@@ -239,7 +239,6 @@
         let workloadChart = null;
         let db = {};
         const initialDB = {
-            // NEW: Added admin account and separated teaching staff
             users: {
                 'evelyn@acadexa.com': { id: 'evelyn@acadexa.com', fullName: 'Dr. Evelyn Reed', role: 'admin', password: 'admin123' },
                 'kashy@acadexa.com': { id: 'kashy@acadexa.com', fullName: 'Kashy', role: 'staff', password: 'password123' },
@@ -251,12 +250,10 @@
                 'raj@acadexa.com': { id: 'raj@acadexa.com', fullName: 'Raj', role: 'staff', password: 'password123' },
                 'yokesh@acadexa.com': { id: 'yokesh@acadexa.com', fullName: 'Yokesh', role: 'student', password: 'student123', scheduleId: 'grade-10-a' }
             },
-            // NEW: Added settings object for admin controls
             settings: {
                 attendanceCutoff: '08:30'
             },
             schedules: {
-                // MODIFIED: Overhauled the schedule for Grade 10
                 'grade-10-a': {
                     name: 'Grade 10 - Section A',
                     events: {
@@ -277,7 +274,6 @@
                         'evt115': { id: 'evt115', title: 'Physics', prof: 'Kashy', room: 'Lab A', credits: 4, start: '2025-10-10T11:00:00', end: '2025-10-10T12:00:00', backgroundColor: '#3b82f6', notes: 'Review session for exam.' },
                     }
                 },
-                // MODIFIED: Overhauled the schedule for Grade 11
                 'grade-11-b': {
                     name: 'Grade 11 - Section B',
                     events: {
@@ -343,7 +339,6 @@
             }
         }
 
-        // --- UI & VIEW MANAGEMENT ---
         function initializeAppUI(isLoggedIn) {
             updateHeaderUI(isLoggedIn);
             if (isLoggedIn) {
@@ -387,10 +382,9 @@
             document.getElementById('attendance-btn').style.display = isStaffOrAdmin ? 'flex' : 'none';
         }
 
-        // --- EVENT LISTENERS ---
         function setupEventListeners() {
             document.getElementById('student-login-btn').onclick = () => openLoginModal('student');
-            document.getElementById('staff-login-btn').onclick = () => openLoginModal('staff'); // This will handle both staff and admin
+            document.getElementById('staff-login-btn').onclick = () => openLoginModal('staff');
             document.getElementById('attendance-btn').onclick = openAttendancePortal;
             document.getElementById('logout-btn').onclick = handleLogout;
             document.getElementById('auth-form').onsubmit = handleAuthSubmit;
@@ -431,7 +425,6 @@
                     const eventId = e.target.closest('.cover-class-btn').dataset.eventid;
                     confirmRepayment(debtId, eventId);
                 }
-                // NEW: Listener for the admin save button
                 if (e.target.closest('#save-admin-settings-btn')) {
                     const newTime = document.getElementById('attendance-time-input').value;
                     if (newTime) {
@@ -443,9 +436,7 @@
             });
         }
         
-        // --- AUTHENTICATION (LOCAL) ---
         function openLoginModal(role) {
-            // MODIFIED: Admin now logs in via the "Staff Login" button
             activeLoginRole = role;
             if (role === 'staff') {
                  document.getElementById('login-title').textContent = `Staff / Admin Login`;
@@ -463,7 +454,6 @@
             errorEl.textContent = '';
             const user = db.users[email];
 
-            // MODIFIED: Allow staff and admin to log in through the same portal
             const isValidRole = (activeLoginRole === 'staff' && (user?.role === 'staff' || user?.role === 'admin')) || (activeLoginRole === user?.role);
 
             if (user && user.password === password && isValidRole) {
@@ -482,10 +472,8 @@
             initializeAppUI(false);
         }
 
-        // --- DASHBOARDS ---
         function renderStaffDashboard() {
             const dash = document.getElementById('staff-dashboard');
-            // NEW: Admin controls UI
             const adminControlsHTML = `
                 <div class="mt-8 bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-500 p-6 rounded-xl shadow-md">
                     <h3 class="font-bold text-lg mb-4 font-poppins flex items-center gap-2"><i data-lucide="sliders-horizontal"></i> Admin Controls</h3>
@@ -504,11 +492,10 @@
                     <canvas id="workload-chart"></canvas>
                 </div>`;
             
-            lucide.createIcons(); // To render the new icon in admin panel
+            lucide.createIcons();
 
             const staffWorkload = {};
             const staffCredits = {};
-            // MODIFIED: Filter only teaching staff for the workload chart
             const staffList = Object.values(db.users).filter(u => u.role === 'staff');
             staffList.forEach(s => {
                 staffWorkload[s.fullName] = 0;
@@ -546,16 +533,51 @@
         }
 
         function renderStudentDashboard() {
-            // ... (no changes in this function)
+            const dash = document.getElementById('student-dashboard');
+            const myAttendance = db.studentAttendance[currentUser.id] || {};
+            const totalClasses = Object.keys(myAttendance).length;
+            const attendedClasses = Object.values(myAttendance).filter(s => s === 'Present').length;
+            const attendancePercentage = totalClasses > 0 ? ((attendedClasses / totalClasses) * 100).toFixed(1) : 100;
+            
+            const missedClassesHtml = Object.entries(myAttendance)
+                .filter(([eventId, status]) => status === 'Absent')
+                .map(([eventId, status]) => {
+                    let eventDetails = null;
+                    for (const schedule of Object.values(db.schedules)) {
+                        if(schedule.events[eventId]) {
+                            eventDetails = schedule.events[eventId];
+                            break;
+                        }
+                    }
+                    if (!eventDetails) return '';
+                    return `<div class="p-3 bg-slate-100 dark:bg-gray-700 rounded-md">
+                        <p class="font-semibold">${eventDetails.title} with ${eventDetails.prof}</p>
+                        <p class="text-sm text-slate-500">${new Date(eventDetails.start).toLocaleString()}</p>
+                        <div class="mt-2 text-sm p-2 bg-slate-200 dark:bg-gray-600 rounded">
+                           <h5 class="font-bold">Notes:</h5>
+                           <p>${eventDetails.notes || 'No notes available for this session.'}</p>
+                        </div>
+                    </div>`;
+                }).join('') || '<p class="text-slate-500">No missed classes. Great job!</p>';
+
+            dash.innerHTML = `<h2 class="text-3xl font-bold mb-6 font-poppins">Student Dashboard</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="md:col-span-1 bg-white dark:bg-gray-800/50 p-6 rounded-xl shadow-md text-center">
+                        <h3 class="font-bold text-lg mb-2">Overall Attendance</h3>
+                        <p class="text-5xl font-bold text-indigo-500">${attendancePercentage}%</p>
+                    </div>
+                    <div class="md:col-span-2 bg-white dark:bg-gray-800/50 p-6 rounded-xl shadow-md">
+                        <h3 class="font-bold text-lg mb-4">Notes from Missed Classes</h3>
+                        <div class="space-y-3 max-h-64 overflow-y-auto pr-2">${missedClassesHtml}</div>
+                    </div>
+                </div>`;
         }
 
-        // --- ATTENDANCE & BIOMETRICS ---
         function openAttendancePortal() {
             const now = new Date();
             const todayStr = now.toISOString().slice(0, 10);
             const cutoff = new Date(todayStr);
             
-            // MODIFIED: Use dynamic cutoff time from settings
             const [hours, minutes] = db.settings.attendanceCutoff.split(':');
             cutoff.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
 
@@ -580,7 +602,6 @@
         }
         
         function handleLatecomers(todayStr) {
-            // MODIFIED: Ensure we only mark teaching staff, not admins
             const staffList = Object.values(db.users).filter(u => u.role === 'staff');
             staffList.forEach(staff => {
                 if (!db.staffAttendance[todayStr][staff.fullName]) {
@@ -594,7 +615,6 @@
             const dashboard = document.getElementById('staff-status-dashboard');
             dashboard.innerHTML = '';
             const statusColors = { 'Present': 'bg-green-500', 'Absent': 'bg-red-500', 'Pending': 'bg-slate-400' };
-            // MODIFIED: Show all non-student users in the status list
             const staffList = Object.values(db.users).filter(u => u.role === 'staff' || u.role === 'admin');
             
             staffList.forEach(staff => {
@@ -603,11 +623,6 @@
             });
         }
         
-        // --- The rest of the script remains largely the same ---
-        // ... (handleBiometricScan, handleAbsence, calendar functions, etc.)
-        // No logical changes are needed in the remaining functions for this request.
-        // Copying the rest of the functions from the previous version...
-
         function handleBiometricScan() {
             const statusEl = document.getElementById('scanner-status');
             const scanner = document.getElementById('scanner-animation');
@@ -628,7 +643,7 @@
                 renderAttendanceDashboard(todayStr);
                 renderCalendar();
                 
-                if (!isSuccess && currentUser.role === 'staff') { // Admins being absent doesn't create debts
+                if (!isSuccess && currentUser.role === 'staff') {
                     handleAbsence(currentUser.fullName);
                 } else {
                     showToast(`Welcome, ${currentUser.fullName}! You are marked present.`, 'success');
@@ -989,15 +1004,72 @@
         }
         
         function handleChatSubmit(e) {
-            // ... (no changes in this function)
+            e.preventDefault();
+            const input = document.getElementById('chat-input');
+            const query = input.value.trim().toLowerCase();
+            if (!query) return;
+
+            addChatMessage(query, 'user');
+            input.value = '';
+
+            setTimeout(() => {
+                const response = getAcaDexiResponse(query);
+                addChatMessage(response, 'bot');
+            }, 800);
         }
 
         function addChatMessage(message, sender) {
-            // ... (no changes in this function)
+            const chatWindow = document.getElementById('chat-window');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `p-3 rounded-lg max-w-[80%] ${sender === 'user' ? 'bg-indigo-500 text-white self-end' : 'bg-slate-200 dark:bg-gray-700 self-start'}`;
+            messageDiv.textContent = message;
+            chatWindow.appendChild(messageDiv);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
         }
 
         function getAcaDexiResponse(query) {
-            // ... (no changes in this function)
+            const today = new Date();
+            const now = today.getTime();
+            const scheduleId = currentUser.scheduleId || document.getElementById('schedule-selector').value;
+            const schedule = db.schedules[scheduleId];
+            const events = Object.values(schedule.events).sort((a,b) => new Date(a.start) - new Date(b.start));
+
+            if (query.includes("hello") || query.includes("hi")) {
+                return `Hello, ${currentUser.fullName}! How can I help you with your schedule today?`;
+            }
+            if (query.includes("what's next") || query.includes("next class")) {
+                const nextClass = events.find(e => new Date(e.start).getTime() > now);
+                return nextClass ? `Your next class is ${nextClass.title} with ${nextClass.prof} at ${new Date(nextClass.start).toLocaleTimeString()}.` : "You have no more classes scheduled.";
+            }
+            if (query.includes("what is") && (query.includes("hour") || query.includes("period"))) {
+                const match = query.match(/(\d+)(st|nd|rd|th)/);
+                if (match) {
+                    const hourNum = parseInt(match[1]);
+                    const classOfDay = events.filter(e => new Date(e.start).toDateString() === today.toDateString())[hourNum - 1];
+                    return classOfDay ? `The ${hourNum}${match[2]} hour is ${classOfDay.title} with ${classOfDay.prof}.` : `There is no ${hourNum}${match[2]} hour scheduled today.`;
+                }
+            }
+            if (query.includes("my attendance")) {
+                 if (currentUser.role === 'student') {
+                    const myAttendance = db.studentAttendance[currentUser.id] || {};
+                    const totalClasses = Object.keys(myAttendance).length;
+                    const attendedClasses = Object.values(myAttendance).filter(s => s === 'Present').length;
+                    const percentage = totalClasses > 0 ? ((attendedClasses / totalClasses) * 100).toFixed(1) : 100;
+                    return `Your current attendance is ${percentage}%. You've attended ${attendedClasses} out of ${totalClasses} recorded classes.`;
+                }
+                return "Attendance data is available for students.";
+            }
+            if (query.includes("absent for this hour")) {
+                if (currentUser.role === 'student') {
+                    const myAttendance = db.studentAttendance[currentUser.id] || {};
+                    const totalClasses = Object.keys(myAttendance).length;
+                    const attendedClasses = Object.values(myAttendance).filter(s => s === 'Present').length;
+                    const newTotal = totalClasses + 1;
+                    const newPercentage = newTotal > 0 ? ((attendedClasses / newTotal) * 100).toFixed(1) : 0;
+                    return `If you are absent for one more class, your attendance would become approximately ${newPercentage}%.`;
+                }
+            }
+            return "I'm not sure how to answer that. You can ask me about your next class, your attendance, or specific periods.";
         }
         
         function showModal(id) {
@@ -1015,15 +1087,64 @@
         
         let toastTimeout;
         function showToast(message, type = "info", duration = 3000) {
-            // ... (no changes in this function)
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toast-message');
+            toast.classList.remove('bg-red-600', 'bg-green-600', 'bg-sky-600', 'bg-gray-800');
+            const colors = { error: 'bg-red-600', success: 'bg-green-600', info: 'bg-sky-600' };
+            toast.classList.add(colors[type] || 'bg-gray-800');
+            toastMessage.textContent = message;
+            toast.classList.remove('opacity-0', '-translate-y-10');
+            toast.classList.add('opacity-100', 'translate-y-0');
+            
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.remove('opacity-100', 'translate-y-0');
+                toast.classList.add('opacity-0', '-translate-y-10');
+            }, duration);
         }
 
         function renderAvailableSubjects() {
-            // ... (no changes in this function)
+            const container = document.getElementById('available-subjects');
+            container.innerHTML += db.availableSubjects.map(subject =>
+                ` <div class='fc-event p-2 rounded-md text-white text-sm' style="background-color:${subject.backgroundColor}" data-event='${JSON.stringify(subject)}'>
+                    ${subject.title}
+                  </div> `
+            ).join('');
+            new FullCalendar.Draggable(container, {
+                itemSelector: '.fc-event'
+            });
         }
         
         function downloadScheduleICS() {
-            // ... (no changes in this function)
+            const scheduleId = document.getElementById('schedule-selector').value;
+            const schedule = db.schedules[scheduleId];
+            if (!schedule) return;
+
+            let icsContent = `BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//AcaDexa//Schedule Generator//EN\n`;
+
+            Object.values(schedule.events).forEach(event => {
+                const start = new Date(event.start).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+                const end = new Date(event.end).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+                icsContent += `BEGIN:VEVENT\n`;
+                icsContent += `UID:${event.id}@acadexa.com\n`;
+                icsContent += `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'}\n`;
+                icsContent += `DTSTART:${start}\n`;
+                icsContent += `DTEND:${end}\n`;
+                icsContent += `SUMMARY:${event.title}\n`;
+                icsContent += `DESCRIPTION:Professor: ${event.prof}\\nRoom: ${event.room}\\nNotes: ${event.notes || ''}\n`;
+                icsContent += `LOCATION:${event.room}\n`;
+                icsContent += `END:VEVENT\n`;
+            });
+
+            icsContent += `END:VCALENDAR`;
+
+            const blob = new Blob([icsContent], { type: 'text/calendar' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `${schedule.name.replace(/\s+/g, '_')}_schedule.ics`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
     </script>
 </body>
