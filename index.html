@@ -31,7 +31,6 @@
         }
         .font-poppins { font-family: 'Poppins', sans-serif; }
         
-        /* --- BUG FIX 1: Replaced @apply with standard CSS --- */
         .modal {
             transition: opacity 0.3s, visibility 0.3s;
             visibility: hidden;
@@ -45,7 +44,6 @@
             width: 1.25rem; /* 20px */
             height: 1.25rem; /* 20px */
         }
-        /* --- End of Bug Fix 1 --- */
         
         .modal-content { transition: transform 0.3s ease-out; transform: translateY(20px) scale(0.98); }
         .modal.visible .modal-content { transform: translateY(0) scale(1); }
@@ -71,12 +69,16 @@
             <div class="flex items-center gap-2 sm:gap-4">
                 <div id="auth-container" class="flex items-center gap-2 sm:gap-4">
                     <button id="student-login-btn" class="text-sm font-semibold hover:text-indigo-600 dark:hover:text-indigo-400 transition">Student Login</button>
-                    <button id="staff-portal-btn" class="text-sm font-semibold bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">Staff Portal</button>
+                    <button id="staff-login-btn" class="text-sm font-semibold bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">Staff Login</button>
                 </div>
                 <div id="user-info-container" style="display: none;" class="flex items-center gap-4">
                      <button id="notifications-btn" class="relative p-2 rounded-full hover:bg-slate-200 dark:hover:bg-gray-700">
                         <i data-lucide="bell"></i>
                         <span id="notification-badge" class="absolute top-0 right-0 h-4 w-4 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center hidden"></span>
+                    </button>
+                    <button id="attendance-btn" style="display: none;" class="flex items-center gap-2 text-sm font-semibold bg-slate-600 text-white px-4 py-2 rounded-lg hover:bg-slate-700 transition">
+                        <i data-lucide="fingerprint" class="w-4 h-4"></i>
+                        Attendance
                     </button>
                     <span class="font-semibold" id="username-display"></span>
                     <button id="logout-btn" class="text-sm font-semibold hover:text-indigo-600 dark:hover:text-indigo-400 transition">Logout</button>
@@ -150,16 +152,6 @@
                     <p id="auth-error" class="text-red-500 text-sm mt-2 h-4"></p>
                     <button type="submit" class="mt-6 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition">Login</button>
                 </form>
-            </div>
-        </div>
-        <div id="staff-portal-modal" class="modal fixed inset-0 bg-black bg-opacity-60 z-[60] flex items-center justify-center p-4">
-            <div class="modal-content bg-white dark:bg-gray-800 p-8 rounded-lg shadow-2xl max-w-md w-full relative">
-                <button class="close-modal-btn absolute top-4 right-4 text-slate-500 hover:text-indigo-500 transition"><i data-lucide="x"></i></button>
-                <h3 class="text-2xl font-bold mb-6 text-center font-poppins">Staff Portal</h3>
-                <div class="flex flex-col gap-4">
-                    <button id="open-dashboard-btn" class="w-full text-center bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg text-lg flex items-center justify-center gap-2 transition"><i data-lucide="layout-dashboard"></i> View Dashboard</button>
-                    <button id="open-attendance-portal-btn" class="w-full bg-slate-600 hover:bg-slate-700 text-white font-bold py-3 rounded-lg text-lg flex items-center justify-center gap-2 transition"><i data-lucide="fingerprint"></i> Attendance Portal</button>
-                </div>
             </div>
         </div>
         <div id="attendance-portal-modal" class="modal fixed inset-0 bg-black bg-opacity-60 z-[80] flex items-center justify-center p-4">
@@ -348,7 +340,7 @@
             } else {
                 document.getElementById('welcome-screen').classList.remove('hidden');
                 document.getElementById('app-wrapper').classList.add('hidden');
-                hideAllModals(); // *** BUG FIX: Explicitly hide all modals on startup/logout ***
+                hideAllModals(); 
             }
         }
         
@@ -361,26 +353,19 @@
             document.getElementById('ask-ai-btn').style.display = isLoggedIn ? 'flex' : 'none';
             document.getElementById('notifications-btn').style.display = isLoggedIn && currentUser.role === 'staff' ? 'flex' : 'none';
             document.getElementById('staff-schedule-filters').style.display = isLoggedIn && currentUser.role === 'staff' ? 'flex' : 'none';
+            // NEW: Show/hide the direct attendance button
+            document.getElementById('attendance-btn').style.display = isLoggedIn && currentUser.role === 'staff' ? 'flex' : 'none';
         }
 
         // --- EVENT LISTENERS ---
         function setupEventListeners() {
             document.getElementById('student-login-btn').onclick = () => openLoginModal('student');
-            document.getElementById('staff-portal-btn').onclick = () => {
-                if (currentUser && currentUser.role === 'staff') {
-                    showModal('staff-portal-modal');
-                } else {
-                    openLoginModal('staff');
-                }
-            };
-            document.getElementById('open-dashboard-btn').onclick = () => {
-                hideModal('staff-portal-modal');
-                initializeAppUI(true);
-            };
-            document.getElementById('open-attendance-portal-btn').onclick = () => {
-                hideModal('staff-portal-modal');
-                openAttendancePortal();
-            };
+            // MODIFIED: Simplified the staff login button
+            document.getElementById('staff-login-btn').onclick = () => openLoginModal('staff');
+
+            // NEW: Listener for the direct attendance button
+            document.getElementById('attendance-btn').onclick = openAttendancePortal;
+
             document.getElementById('logout-btn').onclick = handleLogout;
             document.getElementById('auth-form').onsubmit = handleAuthSubmit;
             document.getElementById('scan-biometric-btn').onclick = handleBiometricScan;
@@ -393,7 +378,7 @@
                 localStorage.setItem('darkMode', isDark);
                 document.querySelector('#dark-mode-toggle i').setAttribute('data-lucide', isDark ? 'sun' : 'moon');
                 lucide.createIcons();
-                if(workloadChart) renderStaffDashboard(); // Re-render chart with new colors
+                if(workloadChart) renderStaffDashboard(); 
             };
 
             if (localStorage.getItem('darkMode') === 'true') {
@@ -839,7 +824,7 @@
         }
         
         function openStudentAttendanceModal(eventId) {
-            const student = db.users['yokesh@acadexa.com']; // Only one student for simplicity
+            const student = db.users['yokesh@acadexa.com']; 
             const container = document.getElementById('student-list-container');
             const currentStatus = db.studentAttendance[student.id]?.[eventId] || 'Pending';
 
@@ -946,7 +931,7 @@
                 if(event.prof === debt.creditor) {
                     return { ...event, display: 'block', title: `Cover this for ${debt.creditor}?`, 
                              extendedProps: { ...event, originalProf: event.prof, isRepaymentOption: true, debtId: debtId },
-                             className: 'cursor-pointer !bg-green-500' // Highlight repayment options
+                             className: 'cursor-pointer !bg-green-500'
                            };
                 }
                 return { ...event, display: 'background' };
@@ -1050,7 +1035,6 @@
             document.getElementById(id)?.classList.remove('visible');
         }
         
-        // *** BUG FIX: New helper function to hide all modals ***
         function hideAllModals() {
             document.querySelectorAll('.modal').forEach(modal => {
                 modal.classList.remove('visible');
