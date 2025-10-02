@@ -120,6 +120,44 @@
                     </div>
                 </div>
             </div>
+
+            <div id="tutorial-section" class="mt-20 pt-12 border-t dark:border-gray-700">
+                <h2 class="text-4xl font-bold font-poppins text-center mb-12">Getting Started with AcaDexa</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                    <div class="bg-white dark:bg-gray-800/50 p-6 rounded-xl shadow-md">
+                        <h3 class="text-2xl font-bold mb-4 flex items-center gap-3"><i data-lucide="graduation-cap" class="text-indigo-500"></i> As a Student</h3>
+                        <ul class="list-disc list-inside space-y-2 text-slate-600 dark:text-slate-300">
+                            <li>View your weekly schedule on the interactive calendar.</li>
+                            <li>Click on any class to see details like professor, room, and notes.</li>
+                            <li>Check your overall attendance percentage on your dashboard.</li>
+                            <li>Find notes from classes you missed to catch up quickly.</li>
+                            <li>Use the "Ask AcaDexi" AI assistant for quick questions about your schedule.</li>
+                        </ul>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800/50 p-6 rounded-xl shadow-md">
+                        <h3 class="text-2xl font-bold mb-4 flex items-center gap-3"><i data-lucide="briefcase" class="text-indigo-500"></i> As a Staff Member</h3>
+                        <ul class="list-disc list-inside space-y-2 text-slate-600 dark:text-slate-300">
+                            <li>Use the Biometric Portal to mark your daily attendance.</li>
+                            <li>Filter the calendar to see your personal schedule or the full class view.</li>
+                            <li>Drag subjects from the "Scheduling Tools" panel to add new classes.</li>
+                            <li>Click a class you are teaching to mark student attendance.</li>
+                            <li>If you are absent, the system auto-assigns a substitute and creates a "Class Debt".</li>
+                            <li>Check notifications to manage and repay class debts.</li>
+                        </ul>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800/50 p-6 rounded-xl shadow-md">
+                        <h3 class="text-2xl font-bold mb-4 flex items-center gap-3"><i data-lucide="sliders-horizontal" class="text-amber-500"></i> As an Admin</h3>
+                        <ul class="list-disc list-inside space-y-2 text-slate-600 dark:text-slate-300">
+                            <li>You have all the features available to Staff members.</li>
+                            <li>View the Staff Dashboard to see analytics on weekly class loads and credits.</li>
+                            <li>Modify schedules for any class, not just your own.</li>
+                            <li>Use the Admin Controls on your dashboard to set system-wide rules.</li>
+                            <li>Example: Change the daily attendance cut-off time for all staff.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
         </div>
 
         <div id="app-wrapper" class="hidden">
@@ -362,7 +400,10 @@
                 initializeAppUI(false);
             }
         }
-
+        
+        // =================================================================================
+        // == BUG FIX: The function below is now corrected to prevent the blank screen.  ==
+        // =================================================================================
         function initializeAppUI(isLoggedIn) {
             updateHeaderUI(isLoggedIn);
             if (isLoggedIn) {
@@ -372,8 +413,7 @@
                 document.getElementById('staff-dashboard').classList.add('hidden');
                 document.getElementById('student-dashboard').classList.add('hidden');
                 
-                // ** BUG FIX: The following problematic line has been removed. **
-                // document.getElementById('schedule-view').classList.add('hidden');
+                // ** BUG FIX: The problematic line that caused the blank screen has been removed from here. **
 
                 if (currentUser.role === 'staff' || currentUser.role === 'admin') {
                     document.getElementById('staff-dashboard').classList.remove('hidden');
