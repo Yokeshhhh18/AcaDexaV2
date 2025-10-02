@@ -70,6 +70,7 @@
                 <div id="auth-container" class="flex items-center gap-2 sm:gap-4">
                     <button id="student-login-btn" class="text-sm font-semibold hover:text-indigo-600 dark:hover:text-indigo-400 transition">Student Login</button>
                     <button id="staff-login-btn" class="text-sm font-semibold bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">Staff Login</button>
+                    <button id="admin-login-btn" class="text-sm font-semibold bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 transition">Admin Login</button>
                 </div>
                 <div id="user-info-container" style="display: none;" class="flex items-center gap-4">
                      <button id="notifications-btn" class="relative p-2 rounded-full hover:bg-slate-200 dark:hover:bg-gray-700">
@@ -91,13 +92,36 @@
     </header>
 
     <main id="main-content" class="container mx-auto p-4 sm:p-6">
-        <div id="welcome-screen" class="hidden">
-            <div class="text-center py-24">
-                <h1 class="text-5xl md:text-7xl font-extrabold font-poppins tracking-tight">Welcome to Aca<span class="text-indigo-500">Dexa</span></h1>
-                <p class="mt-4 text-lg text-slate-600 dark:text-slate-300">Your all-in-one solution for intelligent academic scheduling.</p>
-                <p class="mt-2 text-slate-500">Please log in to access your dashboard and schedule.</p>
+        <div id="welcome-screen">
+            <div class="text-center pt-12 pb-16">
+                <h1 class="text-5xl md:text-6xl font-extrabold font-poppins tracking-tight">Welcome to Aca<span class="text-indigo-500">Dexa</span></h1>
+                <p class="mt-4 text-lg text-slate-600 dark:text-slate-300">Your intelligent solution for academic scheduling and management.</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+                <div class="welcome-card bg-white dark:bg-gray-800/50 p-8 rounded-xl shadow-lg transform hover:scale-105 hover:-translate-y-2 transition-transform duration-300 cursor-pointer" onclick="document.getElementById('student-login-btn').click();">
+                    <div class="text-center">
+                        <i data-lucide="graduation-cap" class="w-16 h-16 mx-auto text-indigo-500 mb-4"></i>
+                        <h2 class="text-2xl font-bold font-poppins mb-2">Student Portal</h2>
+                        <p class="text-slate-500 dark:text-slate-400">Click here to log in and view your class schedule, check attendance, and access notes from missed classes.</p>
+                    </div>
+                </div>
+                <div class="welcome-card bg-white dark:bg-gray-800/50 p-8 rounded-xl shadow-lg transform hover:scale-105 hover:-translate-y-2 transition-transform duration-300 cursor-pointer" onclick="document.getElementById('staff-login-btn').click();">
+                    <div class="text-center">
+                        <i data-lucide="briefcase" class="w-16 h-16 mx-auto text-indigo-500 mb-4"></i>
+                        <h2 class="text-2xl font-bold font-poppins mb-2">Staff Portal</h2>
+                        <p class="text-slate-500 dark:text-slate-400">Access your teaching schedule, manage student attendance, and use the biometric portal to sign in.</p>
+                    </div>
+                </div>
+                <div class="welcome-card bg-white dark:bg-gray-800/50 p-8 rounded-xl shadow-lg transform hover:scale-105 hover:-translate-y-2 transition-transform duration-300 cursor-pointer" onclick="document.getElementById('admin-login-btn').click();">
+                    <div class="text-center">
+                        <i data-lucide="sliders-horizontal" class="w-16 h-16 mx-auto text-amber-500 mb-4"></i>
+                        <h2 class="text-2xl font-bold font-poppins mb-2">Admin Access</h2>
+                        <p class="text-slate-500 dark:text-slate-400">Manage system-wide settings, view staff workloads, and oversee all schedules and attendance data.</p>
+                    </div>
+                </div>
             </div>
         </div>
+
         <div id="app-wrapper" class="hidden">
             <div id="staff-dashboard" class="hidden"></div>
             <div id="student-dashboard" class="hidden"></div>
@@ -385,6 +409,9 @@
         function setupEventListeners() {
             document.getElementById('student-login-btn').onclick = () => openLoginModal('student');
             document.getElementById('staff-login-btn').onclick = () => openLoginModal('staff');
+            // NEW: Listener for the separate admin login button
+            document.getElementById('admin-login-btn').onclick = () => openLoginModal('admin');
+
             document.getElementById('attendance-btn').onclick = openAttendancePortal;
             document.getElementById('logout-btn').onclick = handleLogout;
             document.getElementById('auth-form').onsubmit = handleAuthSubmit;
@@ -438,8 +465,11 @@
         
         function openLoginModal(role) {
             activeLoginRole = role;
+            // MODIFIED: Set modal title based on the specific role
             if (role === 'staff') {
-                 document.getElementById('login-title').textContent = `Staff / Admin Login`;
+                 document.getElementById('login-title').textContent = `Staff Login`;
+            } else if (role === 'admin') {
+                 document.getElementById('login-title').textContent = `Admin Login`;
             } else {
                  document.getElementById('login-title').textContent = `Student Login`;
             }
@@ -454,9 +484,8 @@
             errorEl.textContent = '';
             const user = db.users[email];
 
-            const isValidRole = (activeLoginRole === 'staff' && (user?.role === 'staff' || user?.role === 'admin')) || (activeLoginRole === user?.role);
-
-            if (user && user.password === password && isValidRole) {
+            // MODIFIED: Simplified login logic now that roles are separated
+            if (user && user.password === password && user.role === activeLoginRole) {
                 currentUser = user;
                 sessionStorage.setItem('acadexaUser', currentUser.id);
                 hideModal('login-modal');
@@ -747,7 +776,7 @@
                     .filter(u => u.role === 'staff')
                     .map(s => `<option value="${s.fullName}">${s.fullName} (Personal)</option>`).join('');
                 staffSelector.innerHTML = `<option value="full-class">Full Class View</option>${staffOptions}`;
-                // BUG FIX: Gracefully handle admin's default view
+
                 if (staffSelector.querySelector(`[value="${currentUser.fullName}"]`)) {
                     staffSelector.value = currentUser.fullName;
                 } else {
