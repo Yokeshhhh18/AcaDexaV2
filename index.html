@@ -747,7 +747,12 @@
                     .filter(u => u.role === 'staff')
                     .map(s => `<option value="${s.fullName}">${s.fullName} (Personal)</option>`).join('');
                 staffSelector.innerHTML = `<option value="full-class">Full Class View</option>${staffOptions}`;
-                staffSelector.value = currentUser.fullName;
+                // BUG FIX: Gracefully handle admin's default view
+                if (staffSelector.querySelector(`[value="${currentUser.fullName}"]`)) {
+                    staffSelector.value = currentUser.fullName;
+                } else {
+                    staffSelector.value = 'full-class';
+                }
             }
         }
         
@@ -1103,13 +1108,17 @@
             }, duration);
         }
 
+        // BUG FIX: This function now correctly resets the innerHTML to prevent duplication errors.
         function renderAvailableSubjects() {
             const container = document.getElementById('available-subjects');
-            container.innerHTML += db.availableSubjects.map(subject =>
+            const subjectsHTML = db.availableSubjects.map(subject =>
                 ` <div class='fc-event p-2 rounded-md text-white text-sm' style="background-color:${subject.backgroundColor}" data-event='${JSON.stringify(subject)}'>
                     ${subject.title}
                   </div> `
             ).join('');
+            
+            container.innerHTML = `<h4 class="font-semibold text-sm mb-2 text-slate-500">Drag a Subject to the Calendar</h4>${subjectsHTML}`;
+            
             new FullCalendar.Draggable(container, {
                 itemSelector: '.fc-event'
             });
