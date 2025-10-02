@@ -228,7 +228,6 @@
                 document.getElementById('welcome-screen').classList.add('hidden');
                 document.getElementById('app-wrapper').classList.remove('hidden');
 
-                // Hide all specific views first
                 document.getElementById('staff-dashboard').classList.add('hidden');
                 document.getElementById('student-dashboard').classList.add('hidden');
                 document.getElementById('schedule-view').classList.add('hidden');
@@ -246,11 +245,12 @@
                 
                 populateScheduleSelector();
                 const defaultSchedule = currentUser.role === 'student' ? currentUser.scheduleId : 'grade-10-a';
-                loadSchedule(defaultSchedule); // This will show the schedule view
+                loadSchedule(defaultSchedule);
                 updateNotifications();
             } else {
                 document.getElementById('welcome-screen').classList.remove('hidden');
                 document.getElementById('app-wrapper').classList.add('hidden');
+                hideAllModals(); // *** BUG FIX: Explicitly hide all modals on startup/logout ***
             }
         }
         
@@ -277,7 +277,7 @@
             };
             document.getElementById('open-dashboard-btn').onclick = () => {
                 hideModal('staff-portal-modal');
-                initializeAppUI(true); // Re-render the main dashboard view
+                initializeAppUI(true);
             };
             document.getElementById('open-attendance-portal-btn').onclick = () => {
                 hideModal('staff-portal-modal');
@@ -949,6 +949,13 @@
         // --- UTILITIES ---
         function showModal(id) { document.getElementById(id)?.classList.add('visible'); }
         function hideModal(id) { document.getElementById(id)?.classList.remove('visible'); }
+        
+        // *** BUG FIX: New helper function to hide all modals ***
+        function hideAllModals() {
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.classList.remove('visible');
+            });
+        }
         
         let toastTimeout;
         function showToast(message, type = "info", duration = 3000) {
