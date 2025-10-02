@@ -410,11 +410,11 @@
                 document.getElementById('welcome-screen').classList.add('hidden');
                 document.getElementById('app-wrapper').classList.remove('hidden');
 
+                // Ensure all views are reset before showing the correct one
                 document.getElementById('staff-dashboard').classList.add('hidden');
                 document.getElementById('student-dashboard').classList.add('hidden');
+                document.getElementById('staff-schedule-tools').classList.add('hidden');
                 
-                // ** BUG FIX: The problematic line that caused the blank screen has been removed from here. **
-
                 if (currentUser.role === 'staff' || currentUser.role === 'admin') {
                     document.getElementById('staff-dashboard').classList.remove('hidden');
                     renderStaffDashboard();
@@ -423,11 +423,11 @@
                 } else { // student
                     document.getElementById('student-dashboard').classList.remove('hidden');
                     renderStudentDashboard();
-                    document.getElementById('staff-schedule-tools').classList.add('hidden');
                 }
+
                 populateScheduleSelector();
                 const defaultSchedule = currentUser.role === 'student' ? currentUser.scheduleId : 'grade-10-a';
-                loadSchedule(defaultSchedule);
+                loadSchedule(defaultSchedule); // This function will correctly show the schedule view
                 updateNotifications();
             } else {
                 document.getElementById('welcome-screen').classList.remove('hidden');
@@ -516,7 +516,10 @@
             }
             showModal('login-modal');
         }
-
+        
+        // =================================================================================
+        // == BUG FIX: Authentication logic now correctly validates against any role.   ==
+        // =================================================================================
         function handleAuthSubmit(e) {
             e.preventDefault();
             const email = document.getElementById('auth-email').value;
@@ -524,10 +527,12 @@
             const errorEl = document.getElementById('auth-error');
             errorEl.textContent = '';
             const user = db.users[email];
-
-            if (user && user.password === password && user.role === activeLoginRole) {
+            
+            // This condition now correctly handles all cases: admin, staff, and student.
+            if (user && user.password === password && (user.role === activeLoginRole || (activeLoginRole === 'staff' && user.role === 'admin'))) {
                 currentUser = user;
                 sessionStorage.setItem('acadexaUser', currentUser.id);
+                document.getElementById('auth-form').reset();
                 hideModal('login-modal');
                 initializeAppUI(true);
             } else {
@@ -565,7 +570,7 @@
 
             const staffWorkload = {};
             const staffCredits = {};
-            const staffList = Object.values(db.users).filter(u => u.role === 'staff');
+            const staffList = Object.values(db.users).filter(u => u.role === 'staff' || u.role === 'admin');
             staffList.forEach(s => {
                 staffWorkload[s.fullName] = 0;
                 staffCredits[s.fullName] = 0;
@@ -573,7 +578,8 @@
 
             Object.values(db.schedules).forEach(schedule => {
                 Object.values(schedule.events).forEach(ev => {
-                    if(staffWorkload.hasOwnProperty(ev.prof)) {
+                    const profUser = Object.values(db.users).find(u => u.fullName === ev.prof);
+                    if(profUser && (profUser.role === 'staff' || profUser.role === 'admin')) {
                         staffWorkload[ev.prof]++;
                         staffCredits[ev.prof] += ev.credits;
                     }
@@ -671,7 +677,7 @@
         }
         
         function handleLatecomers(todayStr) {
-            const staffList = Object.values(db.users).filter(u => u.role === 'staff');
+            const staffList = Object.values(db.users).filter(u => u.role === 'staff' || u.role === 'admin');
             staffList.forEach(staff => {
                 if (!db.staffAttendance[todayStr][staff.fullName]) {
                     handleAbsence(staff.fullName, true);
@@ -702,21 +708,26 @@
                 scanner.classList.remove('scanning');
                 const isSuccess = Math.random() > 0.1;
                 const status = isSuccess ? 'Present' : 'Absent';
-                statusEl.textContent = `Verification ${isSuccess ? 'Successful' : 'Failed'}. Marked as ${status}.`;
                 
                 const todayStr = new Date().toISOString().slice(0, 10);
                 if (!db.staffAttendance[todayStr]) db.staffAttendance[todayStr] = {};
-                db.staffAttendance[todayStr][currentUser.fullName] = status;
-                saveDatabase();
                 
+                // Only mark absent on failure if they haven't already been marked present.
+                if (status === 'Absent' && db.staffAttendance[todayStr][currentUser.fullName] === 'Present') {
+                    statusEl.textContent = 'Already marked present today.';
+                } else {
+                    statusEl.textContent = `Verification ${isSuccess ? 'Successful' : 'Failed'}. Marked as ${status}.`;
+                    db.staffAttendance[todayStr][currentUser.fullName] = status;
+                    if (status === 'Absent') {
+                         handleAbsence(currentUser.fullName);
+                    } else {
+                        showToast(`Welcome, ${currentUser.fullName}! You are marked present.`, 'success');
+                    }
+                }
+                
+                saveDatabase();
                 renderAttendanceDashboard(todayStr);
                 renderCalendar();
-                
-                if (!isSuccess && currentUser.role === 'staff') {
-                    handleAbsence(currentUser.fullName);
-                } else {
-                    showToast(`Welcome, ${currentUser.fullName}! You are marked present.`, 'success');
-                }
             }, 2000);
         }
         
@@ -737,7 +748,9 @@
             });
             
             saveDatabase();
-            showToast(`${staffName} is absent. Debts created and colleagues notified.`, "info");
+            if (!auto) {
+                showToast(`${staffName} is absent. Debts created and colleagues notified.`, "info");
+            }
             updateNotifications();
             renderCalendar();
         }
@@ -812,12 +825,11 @@
             
             if(currentUser?.role === 'staff' || currentUser?.role === 'admin') {
                 const staffSelector = document.getElementById('staff-view-selector');
-                const staffOptions = Object.values(db.users)
-                    .filter(u => u.role === 'staff')
-                    .map(s => `<option value="${s.fullName}">${s.fullName} (Personal)</option>`).join('');
+                const staffList = Object.values(db.users).filter(u => u.role === 'staff' || u.role === 'admin');
+                const staffOptions = staffList.map(s => `<option value="${s.fullName}">${s.fullName} (Personal)</option>`).join('');
                 staffSelector.innerHTML = `<option value="full-class">Full Class View</option>${staffOptions}`;
 
-                if (staffSelector.querySelector(`[value="${currentUser.fullName}"]`)) {
+                if (staffList.some(s => s.fullName === currentUser.fullName)) {
                     staffSelector.value = currentUser.fullName;
                 } else {
                     staffSelector.value = 'full-class';
