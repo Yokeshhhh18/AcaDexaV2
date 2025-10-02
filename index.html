@@ -370,8 +370,6 @@
                 document.getElementById('app-wrapper').classList.remove('hidden');
                 document.getElementById('staff-dashboard').classList.add('hidden');
                 document.getElementById('student-dashboard').classList.add('hidden');
-                document.getElementById('schedule-view').classList.add('hidden');
-
                 if (currentUser.role === 'staff' || currentUser.role === 'admin') {
                     document.getElementById('staff-dashboard').classList.remove('hidden');
                     renderStaffDashboard();
