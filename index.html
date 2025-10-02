@@ -368,8 +368,13 @@
             if (isLoggedIn) {
                 document.getElementById('welcome-screen').classList.add('hidden');
                 document.getElementById('app-wrapper').classList.remove('hidden');
+
                 document.getElementById('staff-dashboard').classList.add('hidden');
                 document.getElementById('student-dashboard').classList.add('hidden');
+                
+                // ** BUG FIX: The following problematic line has been removed. **
+                // document.getElementById('schedule-view').classList.add('hidden');
+
                 if (currentUser.role === 'staff' || currentUser.role === 'admin') {
                     document.getElementById('staff-dashboard').classList.remove('hidden');
                     renderStaffDashboard();
@@ -407,7 +412,6 @@
         function setupEventListeners() {
             document.getElementById('student-login-btn').onclick = () => openLoginModal('student');
             document.getElementById('staff-login-btn').onclick = () => openLoginModal('staff');
-            // NEW: Listener for the separate admin login button
             document.getElementById('admin-login-btn').onclick = () => openLoginModal('admin');
 
             document.getElementById('attendance-btn').onclick = openAttendancePortal;
@@ -463,7 +467,6 @@
         
         function openLoginModal(role) {
             activeLoginRole = role;
-            // MODIFIED: Set modal title based on the specific role
             if (role === 'staff') {
                  document.getElementById('login-title').textContent = `Staff Login`;
             } else if (role === 'admin') {
@@ -482,7 +485,6 @@
             errorEl.textContent = '';
             const user = db.users[email];
 
-            // MODIFIED: Simplified login logic now that roles are separated
             if (user && user.password === password && user.role === activeLoginRole) {
                 currentUser = user;
                 sessionStorage.setItem('acadexaUser', currentUser.id);
@@ -1135,7 +1137,6 @@
             }, duration);
         }
 
-        // BUG FIX: This function now correctly resets the innerHTML to prevent duplication errors.
         function renderAvailableSubjects() {
             const container = document.getElementById('available-subjects');
             const subjectsHTML = db.availableSubjects.map(subject =>
