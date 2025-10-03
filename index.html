@@ -280,6 +280,7 @@
         let workloadChart = null;
         let db = {};
         let confirmCallback = null; // ENHANCEMENT: Variable to hold the callback for the confirm modal
+        const SIMULATED_TODAY = new Date('2025-10-06T10:00:00'); // Use a fixed date for demo logic consistency
 
         const initialDB = {
             users: {
@@ -760,7 +761,7 @@
 
         // --- ATTENDANCE & BIOMETRICS ---
         function openAttendancePortal() {
-            const now = new Date();
+            const now = SIMULATED_TODAY;
             const todayStr = now.toISOString().slice(0, 10);
             const cutoff = new Date(todayStr);
             cutoff.setHours(db.attendanceCutoff.hours, db.attendanceCutoff.minutes, 0, 0);
@@ -819,7 +820,7 @@
                 const status = isSuccess ? 'Present' : 'Absent';
                 statusEl.textContent = `Verification ${isSuccess ? 'Successful' : 'Failed'}. Marked as ${status}.`;
                 
-                const todayStr = new Date().toISOString().slice(0, 10);
+                const todayStr = SIMULATED_TODAY.toISOString().slice(0, 10);
                 if (!db.staffAttendance[todayStr]) db.staffAttendance[todayStr] = {};
                 db.staffAttendance[todayStr][currentUser.fullName] = status;
                 saveDatabase();
@@ -836,17 +837,17 @@
         }
         
         function handleAbsence(staffName, auto = false) {
-            const todayStr = new Date().toISOString().slice(0, 10);
+            const todayStr = SIMULATED_TODAY.toISOString().slice(0, 10);
             if (!db.staffAttendance[todayStr]) db.staffAttendance[todayStr] = {};
             if (auto && db.staffAttendance[todayStr][staffName] === 'Present') return;
 
             db.staffAttendance[todayStr][staffName] = 'Absent';
             
-            Object.values(db.schedules).forEach(schedule => {
+            Object.entries(db.schedules).forEach(([scheduleId, schedule]) => {
                 Object.values(schedule.events).forEach(event => {
                     const eventDate = new Date(event.start).toISOString().slice(0, 10);
                     if (event.prof === staffName && eventDate === todayStr) {
-                        createClassDebt(staffName, event.id, schedule.name);
+                        createClassDebt(staffName, event.id, scheduleId);
                     }
                 });
             });
@@ -928,7 +929,7 @@
                 }
             }
 
-            const todayStr = new Date().toISOString().slice(0, 10);
+            const todayStr = SIMULATED_TODAY.toISOString().slice(0, 10);
             const todayAttendance = db.staffAttendance[todayStr] || {};
             
             const processedEvents = events.map(event => {
@@ -1146,11 +1147,15 @@
         }
 
         // --- DEBT & NOTIFICATION SYSTEM ---
-        function createClassDebt(debtorName, eventId, scheduleName) {
-            const scheduleId = Object.keys(db.schedules).find(id => db.schedules[id].name === scheduleName);
+        function createClassDebt(debtorName, eventId, scheduleId) {
             const classToCover = db.schedules[scheduleId].events[eventId];
 
-            const todayStr = new Date().toISOString().slice(0, 10);
+            if (!classToCover) {
+                console.error(`Could not find class with ID ${eventId} in schedule ${scheduleId} to create a debt.`);
+                return;
+            }
+
+            const todayStr = SIMULATED_TODAY.toISOString().slice(0, 10);
             const presentStaff = Object.values(db.users).filter(u => u.role === 'staff' && u.fullName !== debtorName && db.staffAttendance[todayStr]?.[u.fullName] === 'Present');
             
             const classStartTime = new Date(classToCover.start);
@@ -1311,7 +1316,7 @@
         }
 
         function getAcaDexiResponse(query) {
-            const today = new Date();
+            const today = SIMULATED_TODAY;
             const now = today.getTime();
             const scheduleId = currentUser.role === 'student' ? currentUser.scheduleId : document.getElementById('schedule-selector').value;
             const schedule = db.schedules[scheduleId];
@@ -1550,3 +1555,4 @@
     </script>
 </body>
 </html>
+
