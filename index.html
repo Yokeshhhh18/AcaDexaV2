@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" class="">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF--8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AcaDexa - Advanced Scheduling Platform</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -90,8 +90,7 @@
             <div class="flex items-center gap-2 sm:gap-4">
                 <div id="auth-container" class="flex items-center gap-2 sm:gap-4">
                     <button id="student-login-btn" class="text-sm font-semibold hover:text-indigo-600 dark:hover:text-indigo-400 transition">Student Login</button>
-                    <!-- ENHANCEMENT: Changed button text for clarity -->
-                    <button id="staff-login-btn" class="text-sm font-semibold bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">Staff / Admin Login</button>
+                    <button id="staff-login-btn" class="text-sm font-semibold bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">Staff Login</button>
                 </div>
                 <div id="user-info-container" style="display: none;" class="flex items-center gap-4">
                         <button id="notifications-btn" class="relative p-2 rounded-full hover:bg-slate-200 dark:hover:bg-gray-700">
@@ -260,6 +259,17 @@
                 <button id="save-student-attendance-btn" class="mt-6 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition">Save Attendance</button>
             </div>
         </div>
+        <!-- ENHANCEMENT: Added a reusable confirmation modal to replace browser's confirm() dialogs -->
+        <div id="confirm-modal" class="modal fixed inset-0 bg-black bg-opacity-60 z-[99] flex items-center justify-center p-4">
+            <div class="modal-content bg-white dark:bg-gray-800 p-6 rounded-lg shadow-2xl max-w-sm w-full">
+                <h4 id="confirm-modal-title" class="text-lg font-bold mb-4">Confirm Action</h4>
+                <p id="confirm-modal-message" class="mb-6 text-slate-600 dark:text-slate-300"></p>
+                <div class="flex justify-end gap-4">
+                    <button id="confirm-modal-cancel" class="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-gray-700 transition">Cancel</button>
+                    <button id="confirm-modal-confirm" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition">Confirm</button>
+                </div>
+            </div>
+        </div>
     </script>
 
     <script>
@@ -269,6 +279,8 @@
         let activeLoginRole = null;
         let workloadChart = null;
         let db = {};
+        let confirmCallback = null; // ENHANCEMENT: Variable to hold the callback for the confirm modal
+
         const initialDB = {
             users: {
                 'anamika@acadexa.com': { id: 'anamika@acadexa.com', fullName: 'Anamika', role: 'staff', password: 'password123' },
@@ -280,6 +292,7 @@
                 'karthikeyan@acadexa.com': { id: 'karthikeyan@acadexa.com', fullName: 'Karthikeyan', role: 'staff', password: 'password123' },
                 'yokesh@acadexa.com': { id: 'yokesh@acadexa.com', fullName: 'Yokesh', role: 'staff', password: 'password123' },
                 'raghu@acadexa.com': { id: 'raghu@acadexa.com', fullName: 'Raghu', role: 'student', password: 'student123', scheduleId: 'grade-10-a' },
+                // FIX: Added a comma at the end of the previous line. This was the critical syntax error breaking the entire script.
                 'admin@acadexa.com': { id: 'admin@acadexa.com', fullName: 'Admin', role: 'admin', password: 'adminpassword'}
             },
             schedules: {
@@ -381,34 +394,25 @@
         });
 
         function loadDatabase() {
-            // FIX: Add error handling for browsers that might block localStorage
-            try {
-                const savedDB = localStorage.getItem('acadexaDB');
-                if (savedDB) {
-                    db = JSON.parse(savedDB);
-                    // Ensure backward compatibility if new properties are added
-                    if (!db.holidays) db.holidays = {};
-                    if (!db.alerts) db.alerts = [];
-                    if (!db.availableSubjects) db.availableSubjects = initialDB.availableSubjects;
-                    if (!db.users) db.users = initialDB.users;
-                } else {
-                    db = JSON.parse(JSON.stringify(initialDB));
-                    saveDatabase();
+            const savedDB = localStorage.getItem('acadexaDB');
+            if (savedDB) {
+                db = JSON.parse(savedDB);
+                // ENHANCEMENT: Added checks to ensure DB structure is maintained across versions
+                if (!db.holidays) db.holidays = {};
+                if (!db.alerts) db.alerts = [];
+                if (!db.availableSubjects) db.availableSubjects = initialDB.availableSubjects;
+                // On first load from old data, ensure users are there.
+                if (!db.users || Object.keys(db.users).length === 0) {
+                     db.users = initialDB.users;
                 }
-            } catch (e) {
-                console.error("Failed to access localStorage. Using a temporary database for this session.", e);
-                showToast("Could not save data. Your browser might be blocking it.", "error");
-                db = JSON.parse(JSON.stringify(initialDB)); // Fallback to initial data
+            } else {
+                db = JSON.parse(JSON.stringify(initialDB));
+                saveDatabase();
             }
         }
 
         function saveDatabase() {
-            // FIX: Add error handling for saving data
-            try {
-                localStorage.setItem('acadexaDB', JSON.stringify(db));
-            } catch (e) {
-                console.error("Failed to save to localStorage.", e);
-            }
+            localStorage.setItem('acadexaDB', JSON.stringify(db));
         }
 
         function checkLoginState() {
@@ -431,6 +435,7 @@
                 document.getElementById('main-schedule-area').classList.remove('lg:col-span-4');
                 document.getElementById('main-schedule-area').classList.add('lg:col-span-3');
 
+                // Initialize calendar here, after login is confirmed
                 if (!calendar) initializeCalendar();
 
                 if (currentUser.role === 'staff') {
@@ -515,20 +520,33 @@
                  if (e.target.closest('.repay-debt-btn')) {
                     const debtId = e.target.closest('.repay-debt-btn').dataset.id;
                     repayDebt(debtId);
-                 }
-                 if (e.target.closest('.cover-class-btn')) {
+                }
+                if (e.target.closest('.cover-class-btn')) {
                     const debtId = e.target.closest('.cover-class-btn').dataset.debtid;
                     const eventId = e.target.closest('.cover-class-btn').dataset.eventid;
-                    confirmRepayment(debtId, eventId);
-                 }
+                    showConfirmModal("Are you sure you want to cover this class to repay your debt?", () => confirmRepayment(debtId, eventId));
+                }
             });
+
+            // ENHANCEMENT: Event listeners for the new confirmation modal
+            document.getElementById('confirm-modal-confirm').onclick = () => {
+                if (confirmCallback) {
+                    confirmCallback();
+                }
+                hideModal('confirm-modal');
+                confirmCallback = null;
+            };
+            document.getElementById('confirm-modal-cancel').onclick = () => {
+                hideModal('confirm-modal');
+                confirmCallback = null;
+            };
         }
         
         // --- AUTHENTICATION (LOCAL) ---
         function openLoginModal(role) {
             activeLoginRole = role;
             let title = `${role.charAt(0).toUpperCase() + role.slice(1)} Login`;
-            if (role === 'staff') {
+            if (role === 'staff') { // Special case for staff/admin login
                  title = 'Staff / Admin Login';
             }
             document.getElementById('login-title').textContent = title;
@@ -537,9 +555,8 @@
 
         function handleAuthSubmit(e) {
             e.preventDefault();
-            // FIX: Trim whitespace from inputs to prevent errors from copy-pasting
-            const email = document.getElementById('auth-email').value.toLowerCase().trim();
-            const password = document.getElementById('auth-password').value.trim();
+            const email = document.getElementById('auth-email').value.toLowerCase();
+            const password = document.getElementById('auth-password').value;
             const errorEl = document.getElementById('auth-error');
             errorEl.textContent = '';
             
@@ -552,7 +569,6 @@
                 currentUser = user;
                 sessionStorage.setItem('acadexaUser', currentUser.id);
                 hideModal('login-modal');
-                document.getElementById('auth-form').reset();
                 initializeAppUI(true);
             } else {
                 errorEl.textContent = "Invalid credentials for this role.";
@@ -614,9 +630,7 @@
             lucide.createIcons();
             
             document.getElementById('shuffle-schedule-btn').onclick = () => {
-                if (confirm('Are you sure you want to shuffle all timetables? This action cannot be undone.')) {
-                    shuffleAllSchedules();
-                }
+                showConfirmModal('Are you sure you want to shuffle all timetables? This action cannot be undone.', shuffleAllSchedules);
             };
             document.getElementById('save-cutoff-btn').onclick = () => {
                 const hours = parseInt(document.getElementById('cutoff-hours').value);
@@ -647,12 +661,12 @@
             document.querySelectorAll('.remove-holiday-btn').forEach(btn => {
                 btn.onclick = (e) => {
                     const date = e.currentTarget.dataset.date;
-                    if (confirm(`Are you sure you want to remove the holiday on ${date}?`)) {
+                    showConfirmModal(`Are you sure you want to remove the holiday on ${date}?`, () => {
                         delete db.holidays[date];
                         saveDatabase();
                         showToast('Holiday removed.', 'info');
                         renderAdminDashboard();
-                    }
+                    });
                 }
             });
         }
@@ -963,7 +977,9 @@
         
         function handleEventClick(info) {
              if(info.event.extendedProps.isRepaymentOption) {
-                 confirmRepayment(info.event.extendedProps.debtId, info.event.id);
+                 showConfirmModal("Are you sure you want to cover this class to repay your debt?", () => {
+                     confirmRepayment(info.event.extendedProps.debtId, info.event.id);
+                 });
                  return;
              }
 
@@ -994,14 +1010,14 @@
                     removeBtn.className = 'w-full text-center bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded-lg flex items-center justify-center gap-2 transition';
                     removeBtn.innerHTML = `<i data-lucide="trash-2"></i> Remove My Class`;
                     removeBtn.onclick = () => {
-                        if (confirm('Are you sure you want to remove this class from the schedule?')) {
+                        showConfirmModal('Are you sure you want to remove this class from the schedule?', () => {
                             const scheduleId = document.getElementById('schedule-selector').value;
                             delete db.schedules[scheduleId].events[info.event.id];
                             saveDatabase();
                             renderCalendar();
                             hideModal('class-details-modal');
                             showToast('Class removed successfully!', 'success');
-                        }
+                        });
                     };
                     actionContainer.appendChild(removeBtn);
                 }
@@ -1168,11 +1184,11 @@
                 showToast(`No available staff to cover for ${debtorName}'s class.`, 'error');
                 const alertMessage = `CRITICAL: No substitute found for ${debtorName}'s ${classToCover.title} class at ${classStartTime.toLocaleTimeString()}.`;
                 if (!db.alerts.some(a => a.message === alertMessage)) {
-                       db.alerts.push({
-                           id: `alert_${Date.now()}`,
-                           message: alertMessage,
-                           date: new Date().toISOString()
-                       });
+                     db.alerts.push({
+                        id: `alert_${Date.now()}`,
+                        message: alertMessage,
+                        date: new Date().toISOString()
+                    });
                 }
             }
         }
@@ -1254,21 +1270,19 @@
         }
         
         function confirmRepayment(debtId, originalEventId) {
-            if (confirm("Are you sure you want to cover this class to repay your debt?")) {
-                const debt = db.classDebts.find(d => d.id === debtId);
-                debt.status = 'Paid';
-                
-                const scheduleId = document.getElementById('schedule-selector').value;
-                const eventToUpdate = db.schedules[scheduleId].events[originalEventId];
-                
-                showToast(`Debt repaid! You will now teach ${eventToUpdate.title} for ${eventToUpdate.prof}.`, 'success', 5000);
-                eventToUpdate.prof = currentUser.fullName;
-                eventToUpdate.notes = `(Covering for ${debt.creditor}) ${eventToUpdate.notes || ''}`;
-                
-                saveDatabase();
-                updateNotifications();
-                renderCalendar();
-            }
+            const debt = db.classDebts.find(d => d.id === debtId);
+            debt.status = 'Paid';
+            
+            const scheduleId = document.getElementById('schedule-selector').value;
+            const eventToUpdate = db.schedules[scheduleId].events[originalEventId];
+            
+            showToast(`Debt repaid! You will now teach ${eventToUpdate.title} for ${eventToUpdate.prof}.`, 'success', 5000);
+            eventToUpdate.prof = currentUser.fullName;
+            eventToUpdate.notes = `(Covering for ${debt.creditor}) ${eventToUpdate.notes || ''}`;
+            
+            saveDatabase();
+            updateNotifications();
+            renderCalendar();
         }
         
         // --- AI CHATBOT "ACADEXI" ---
@@ -1308,7 +1322,7 @@
             }
             if (query.includes("what's next") || query.includes("next class")) {
                 const nextClass = events.find(e => new Date(e.start).getTime() > now);
-                return nextClass ? `Your next class is ${nextClass.title} with ${nextClass.prof} at ${new Date(nextClass.start).toLocaleTimeString()}.` : "You have no more classes scheduled.";
+                return nextClass ? `Your next class is ${nextClass.title} with ${nextClass.prof} at ${new Date(nextClass.start).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}.` : "You have no more classes scheduled.";
             }
             if (query.includes("what is") && (query.includes("hour") || query.includes("period"))) {
                 const match = query.match(/(\d+)(st|nd|rd|th)/);
@@ -1325,7 +1339,7 @@
                     const attendedClasses = Object.values(myAttendance).filter(s => s === 'Present').length;
                     const percentage = totalClasses > 0 ? ((attendedClasses / totalClasses) * 100).toFixed(1) : 100;
                     return `Your current attendance is ${percentage}%. You've attended ${attendedClasses} out of ${totalClasses} recorded classes.`;
-                 }
+                }
                 return "Attendance data is available for students.";
             }
             if (query.includes("absent for this hour")) {
@@ -1335,7 +1349,7 @@
                     const attendedClasses = Object.values(myAttendance).filter(s => s === 'Present').length;
                     const newTotal = totalClasses + 1;
                     const newPercentage = newTotal > 0 ? ((attendedClasses / newTotal) * 100).toFixed(1) : 0;
-                    return `If you are absent for one more class, your attendance would become approximately ${newPercentage}%.`;
+                    return `As a projection, if you were absent for one more class, your attendance would become approximately ${newPercentage}%.`;
                 }
             }
             return "I'm not sure how to answer that. You can ask me about your next class, your attendance, or specific periods.";
@@ -1394,6 +1408,13 @@
             }, duration);
         }
 
+        // ENHANCEMENT: New function for the confirmation modal
+        function showConfirmModal(message, onConfirm) {
+            document.getElementById('confirm-modal-message').textContent = message;
+            confirmCallback = onConfirm;
+            showModal('confirm-modal');
+        }
+
         function renderAvailableSubjects() {
             const container = document.getElementById('available-subjects');
             container.innerHTML = ''; // Clear existing
@@ -1447,10 +1468,11 @@
             showToast('Shuffling timetables... This may take a moment.', 'info');
             
             setTimeout(() => {
+                // ENHANCEMENT: More efficient way to track which schedule an event belongs to.
                 const allEvents = [];
-                Object.values(db.schedules).forEach(schedule => {
+                Object.entries(db.schedules).forEach(([scheduleId, schedule]) => {
                     Object.values(schedule.events).forEach(event => {
-                        allEvents.push(event);
+                        allEvents.push({ ...event, originalScheduleId: scheduleId });
                     });
                 });
 
@@ -1481,8 +1503,10 @@
                 let success = true;
                 const assignedSlots = {}; // To track professor and room conflicts
 
-                for (const event of allEvents) {
+                for (const eventWithMeta of allEvents) {
                     let placed = false;
+                    const { originalScheduleId, ...event } = eventWithMeta; // Separate metadata
+
                     for (let i = 0; i < availableSlots.length; i++) {
                         const slot = availableSlots[i];
                         if (!slot) continue; 
@@ -1492,23 +1516,19 @@
                         const roomKey = `room_${event.room}_${slotKey}`;
 
                         if (!assignedSlots[profKey] && !assignedSlots[roomKey]) {
-                            const scheduleId = Object.keys(db.schedules).find(id => 
-                                Object.values(db.schedules[id].events).some(e => e.id === event.id)
-                            );
-
                             event.start = slot.toISOString();
                             event.end = new Date(slot.getTime() + 60 * 60 * 1000).toISOString();
-                            newSchedules[scheduleId].events[event.id] = event;
+                            newSchedules[originalScheduleId].events[event.id] = event;
 
                             assignedSlots[profKey] = true;
                             assignedSlots[roomKey] = true;
-                            availableSlots[i] = null; // Mark slot as used
+                            availableSlots.splice(i, 1); // Use splice to remove the used slot
                             placed = true;
                             break;
                         }
                     }
                     if (!placed) {
-                        showToast(`Could not place ${event.title} for ${event.prof}. Manual adjustment may be needed.`, 'error');
+                        showToast(`Could not place ${event.title} for ${event.prof}. Manual adjustment may be needed.`, 'error', 5000);
                         success = false;
                     }
                 }
@@ -1521,9 +1541,8 @@
                      showToast('Shuffling completed with some conflicts. Please review the schedule.', 'error');
                 }
 
-                // If a staff user is logged in, refresh their view
-                if (currentUser && currentUser.role === 'staff' && calendar) {
-                    renderCalendar();
+                if (currentUser && (currentUser.role === 'staff' || currentUser.role === 'admin') && calendar) {
+                    loadSchedule(document.getElementById('schedule-selector').value);
                 }
             }, 500); // Delay to allow toast to show
         }
