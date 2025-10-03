@@ -57,6 +57,26 @@
         .fc-event { @apply text-xs border-0 cursor-pointer; transition: transform 0.2s, box-shadow 0.2s; }
         .fc-event:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
         .fc-event.absent { @apply opacity-50 line-through bg-gray-500; }
+        .fc-event.holiday-conflict { @apply !bg-amber-500 ring-2 ring-amber-300; }
+
+        .fc-day-holiday { @apply bg-teal-50 dark:bg-teal-900/20 relative; }
+        .fc-day-holiday::after { 
+            content: attr(data-holiday-name);
+            position: absolute;
+            bottom: 4px;
+            right: 4px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            color: #14b8a6;
+            background-color: rgba(255,255,255,0.7);
+            padding: 1px 4px;
+            border-radius: 4px;
+        }
+        html.dark .fc-day-holiday::after {
+            color: #5eead4;
+            background-color: rgba(0,0,0,0.4);
+        }
+
         #scanner-animation.scanning .inner-circle { animation: pulse 1.5s infinite; }
         @keyframes pulse { 0%, 100% { transform: scale(0.8); opacity: 0.7; } 50% { transform: scale(1); opacity: 1; } }
         @media print { body * { visibility: hidden; } #calendar-container, #calendar-container * { visibility: visible; } #schedule-controls, #schedule-controls *, header, main > h2 { visibility: hidden; } #calendar-container { position: absolute; left: 0; top: 0; width: 100%; } }
@@ -72,16 +92,16 @@
                     <button id="staff-login-btn" class="text-sm font-semibold bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">Staff Login</button>
                 </div>
                 <div id="user-info-container" style="display: none;" class="flex items-center gap-4">
-                     <button id="notifications-btn" class="relative p-2 rounded-full hover:bg-slate-200 dark:hover:bg-gray-700">
-                        <i data-lucide="bell"></i>
-                        <span id="notification-badge" class="absolute top-0 right-0 h-4 w-4 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center hidden"></span>
-                    </button>
-                    <button id="attendance-btn" style="display: none;" class="flex items-center gap-2 text-sm font-semibold bg-slate-600 text-white px-4 py-2 rounded-lg hover:bg-slate-700 transition">
-                        <i data-lucide="fingerprint" class="w-4 h-4"></i>
-                        Attendance
-                    </button>
-                    <span class="font-semibold" id="username-display"></span>
-                    <button id="logout-btn" class="text-sm font-semibold hover:text-indigo-600 dark:hover:text-indigo-400 transition">Logout</button>
+                        <button id="notifications-btn" class="relative p-2 rounded-full hover:bg-slate-200 dark:hover:bg-gray-700">
+                            <i data-lucide="bell"></i>
+                            <span id="notification-badge" class="absolute top-0 right-0 h-4 w-4 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center hidden"></span>
+                        </button>
+                        <button id="attendance-btn" style="display: none;" class="flex items-center gap-2 text-sm font-semibold bg-slate-600 text-white px-4 py-2 rounded-lg hover:bg-slate-700 transition">
+                            <i data-lucide="fingerprint" class="w-4 h-4"></i>
+                            Attendance
+                        </button>
+                        <span class="font-semibold" id="username-display"></span>
+                        <button id="logout-btn" class="text-sm font-semibold hover:text-indigo-600 dark:hover:text-indigo-400 transition">Logout</button>
                 </div>
                 <button id="dark-mode-toggle" class="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-gray-700">
                     <i data-lucide="moon"></i>
@@ -101,6 +121,7 @@
         <div id="app-wrapper" class="hidden">
             <div id="staff-dashboard" class="hidden"></div>
             <div id="student-dashboard" class="hidden"></div>
+            <div id="admin-dashboard" class="hidden"></div>
             <div id="schedule-view" class="hidden mt-6">
                 <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
                     <div id="staff-schedule-tools" class="lg:col-span-1 hidden bg-white dark:bg-gray-800/50 p-4 rounded-xl shadow-md">
@@ -247,24 +268,42 @@
                 'nina@acadexa.com': { id: 'nina@acadexa.com', fullName: 'Nina', role: 'staff', password: 'password123' },
                 'raj@acadexa.com': { id: 'raj@acadexa.com', fullName: 'Raj', role: 'staff', password: 'password123' },
                 'zap@acadexa.com': { id: 'zap@acadexa.com', fullName: 'ZapAlert', role: 'staff', password: 'password123' },
-                'yokesh@acadexa.com': { id: 'yokesh@acadexa.com', fullName: 'Yokesh', role: 'student', password: 'student123', scheduleId: 'grade-10-a' }
+                'yokesh@acadexa.com': { id: 'yokesh@acadexa.com', fullName: 'Yokesh', role: 'student', password: 'student123', scheduleId: 'grade-10-a' },
+                'admin@acadexa.com': { id: 'admin@acadexa.com', fullName: 'Admin', role: 'admin', password: 'adminpassword'}
             },
             schedules: {
                 'grade-10-a': {
                     name: 'Grade 10 - Section A',
                     events: {
-                        'evt1': { id: 'evt1', title: 'Physics', prof: 'Kashy', room: 'Lab A', credits: 4, start: '2025-10-06T09:00:00', end: '2025-10-06T10:00:00', backgroundColor: '#3b82f6', notes: 'Chapter 3: Motion and Force. Pre-read required.' },
-                        'evt2': { id: 'evt2', title: 'Chemistry', prof: 'Anna', room: 'Lab B', credits: 4, start: '2025-10-06T10:00:00', end: '2025-10-06T11:00:00', backgroundColor: '#8b5cf6', notes: 'Experiment on titration. Bring lab coats.' },
-                        'evt3': { id: 'evt3', title: 'Math', prof: 'Mike', room: '101', credits: 5, start: '2025-10-06T11:00:00', end: '2025-10-06T12:00:00', backgroundColor: '#ef4444', notes: 'Topic: Advanced Algebra. Homework due.' },
-                        'evt4': { id: 'evt4', title: 'English', prof: 'Sara', room: '102', credits: 3, start: '2025-10-07T09:00:00', end: '2025-10-07T10:00:00', backgroundColor: '#10b981', notes: 'Shakespeare\'s Macbeth, Act 2 analysis.' },
-                        'evt5': { id: 'evt5', title: 'History', prof: 'Leo', room: '102', credits: 3, start: '2025-10-08T14:00:00', end: '2025-10-08T15:00:00', backgroundColor: '#f97316', notes: 'The French Revolution.' }
+                        'evt1': { id: 'evt1', title: 'Math', prof: 'Mike', room: '101', credits: 5, start: '2025-10-06T09:00:00', end: '2025-10-06T10:00:00', backgroundColor: '#ef4444', notes: 'Topic: Advanced Algebra. Homework due.' },
+                        'evt2': { id: 'evt2', title: 'English', prof: 'Sara', room: '102', credits: 3, start: '2025-10-06T10:00:00', end: '2025-10-06T11:00:00', backgroundColor: '#10b981', notes: 'Shakespeare\'s Macbeth, Act 2 analysis.' },
+                        'evt3': { id: 'evt3', title: 'History', prof: 'Leo', room: '102', credits: 3, start: '2025-10-06T13:00:00', end: '2025-10-06T14:00:00', backgroundColor: '#f97316', notes: 'The French Revolution.' },
+                        'evt4': { id: 'evt4', title: 'Physics', prof: 'Kashy', room: 'Lab A', credits: 4, start: '2025-10-07T09:00:00', end: '2025-10-07T10:00:00', backgroundColor: '#3b82f6', notes: 'Chapter 3: Motion and Force. Pre-read required.' },
+                        'evt5': { id: 'evt5', title: 'Chemistry', prof: 'Anna', room: 'Lab B', credits: 4, start: '2025-10-07T10:00:00', end: '2025-10-07T11:00:00', backgroundColor: '#8b5cf6', notes: 'Experiment on titration. Bring lab coats.' },
+                        'evt6': { id: 'evt6', title: 'Art', prof: 'Nina', room: 'Art Room', credits: 2, start: '2025-10-07T13:00:00', end: '2025-10-07T14:00:00', backgroundColor: '#d946ef' },
+                        'evt7': { id: 'evt7', title: 'Math', prof: 'Mike', room: '101', credits: 5, start: '2025-10-08T10:00:00', end: '2025-10-08T11:00:00', backgroundColor: '#ef4444', notes: 'Topic: Geometry.' },
+                        'evt8': { id: 'evt8', title: 'History', prof: 'Leo', room: '102', credits: 3, start: '2025-10-08T11:00:00', end: '2025-10-08T12:00:00', backgroundColor: '#f97316', notes: 'World War I.' },
+                        'evt9': { id: 'evt9', title: 'English', prof: 'Sara', room: '102', credits: 3, start: '2025-10-09T09:00:00', end: '2025-10-09T10:00:00', backgroundColor: '#10b981', notes: 'Poetry analysis.' },
+                        'evt10': { id: 'evt10', title: 'Physics', prof: 'Kashy', room: 'Lab A', credits: 4, start: '2025-10-09T10:00:00', end: '2025-10-09T11:00:00', backgroundColor: '#3b82f6', notes: 'Lab work on electricity.' },
+                        'evt11': { id: 'evt11', title: 'Music', prof: 'ZapAlert', room: 'Music Room', credits: 2, start: '2025-10-09T13:00:00', end: '2025-10-09T14:00:00', backgroundColor: '#0ea5e9' },
+                        'evt12': { id: 'evt12', title: 'Chemistry', prof: 'Anna', room: 'Lab B', credits: 4, start: '2025-10-10T10:00:00', end: '2025-10-10T11:00:00', backgroundColor: '#8b5cf6', notes: 'Organic Chemistry basics.' },
+                        'evt13': { id: 'evt13', title: 'Math', prof: 'Mike', room: '101', credits: 5, start: '2025-10-10T11:00:00', end: '2025-10-10T12:00:00', backgroundColor: '#ef4444', notes: 'Review session for test.' }
                     }
                 },
                 'grade-11-b': {
                     name: 'Grade 11 - Section B',
                     events: {
-                        'evt6': { id: 'evt6', title: 'Biology', prof: 'Nina', room: 'Lab C', credits: 4, start: '2025-10-06T10:00:00', end: '2025-10-06T11:00:00', backgroundColor: '#14b8a6', notes: 'Cellular Biology dissection.' },
-                        'evt7': { id: 'evt7', title: 'Computer Sci', prof: 'Raj', room: 'CS Lab', credits: 4, start: '2025-10-07T11:00:00', end: '2025-10-07T12:00:00', backgroundColor: '#64748b', notes: 'Introduction to Python data structures.' }
+                        'evt14': { id: 'evt14', title: 'Biology', prof: 'Nina', room: 'Lab C', credits: 4, start: '2025-10-06T10:00:00', end: '2025-10-06T11:00:00', backgroundColor: '#14b8a6', notes: 'Cellular Biology dissection.' },
+                        'evt15': { id: 'evt15', title: 'Computer Sci', prof: 'Raj', room: 'CS Lab', credits: 4, start: '2025-10-06T11:00:00', end: '2025-10-06T12:00:00', backgroundColor: '#64748b', notes: 'Introduction to Python data structures.' },
+                        'evt16': { id: 'evt16', title: 'Geography', prof: 'Leo', room: '103', credits: 3, start: '2025-10-07T10:00:00', end: '2025-10-07T11:00:00', backgroundColor: '#f59e0b' },
+                        'evt17': { id: 'evt17', title: 'Music', prof: 'ZapAlert', room: 'Music Room', credits: 2, start: '2025-10-07T11:00:00', end: '2025-10-07T12:00:00', backgroundColor: '#0ea5e9' },
+                        'evt18': { id: 'evt18', title: 'Biology', prof: 'Nina', room: 'Lab C', credits: 4, start: '2025-10-08T09:00:00', end: '2025-10-08T10:00:00', backgroundColor: '#14b8a6', notes: 'Genetics lab.' },
+                        'evt19': { id: 'evt19', title: 'Computer Sci', prof: 'Raj', room: 'CS Lab', credits: 4, start: '2025-10-08T10:00:00', end: '2025-10-08T11:00:00', backgroundColor: '#64748b', notes: 'Algorithms and complexity.' },
+                        'evt20': { id: 'evt20', title: 'Art', prof: 'Nina', room: 'Art Room', credits: 2, start: '2025-10-08T13:00:00', end: '2025-10-08T14:00:00', backgroundColor: '#d946ef' },
+                        'evt21': { id: 'evt21', title: 'History', prof: 'Leo', room: '102', credits: 3, start: '2025-10-09T11:00:00', end: '2025-10-09T12:00:00', backgroundColor: '#f97316' },
+                        'evt22': { id: 'evt22', title: 'Geography', prof: 'Leo', room: '103', credits: 3, start: '2025-10-09T13:00:00', end: '2025-10-09T14:00:00', backgroundColor: '#f59e0b' },
+                        'evt23': { id: 'evt23', title: 'Computer Sci', prof: 'Raj', room: 'CS Lab', credits: 4, start: '2025-10-10T09:00:00', end: '2025-10-10T10:00:00', backgroundColor: '#64748b', notes: 'Project work session.' },
+                        'evt24': { id: 'evt24', title: 'Biology', prof: 'Nina', room: 'Lab C', credits: 4, start: '2025-10-10T10:00:00', end: '2025-10-10T11:00:00', backgroundColor: '#14b8a6', notes: 'Ecosystems discussion.' }
                     }
                 }
             },
@@ -273,11 +312,17 @@
                 'yokesh@acadexa.com': {}
             },
             classDebts: [],
+            alerts: [],
+            holidays: {},
             availableSubjects: [
                 { title: 'Geography', prof: 'Leo', room: '103', credits: 3, backgroundColor: '#f59e0b' },
                 { title: 'Art', prof: 'Nina', room: 'Art Room', credits: 2, backgroundColor: '#d946ef' },
                 { title: 'Music', prof: 'Sara', room: 'Music Room', credits: 2, backgroundColor: '#0ea5e9' }
-            ]
+            ],
+            attendanceCutoff: {
+                hours: 8,
+                minutes: 30
+            }
         };
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -293,6 +338,9 @@
             const savedDB = localStorage.getItem('acadexaDB');
             if (savedDB) {
                 db = JSON.parse(savedDB);
+                 // Ensure new data structures exist if loading from an older DB version
+                if (!db.holidays) db.holidays = {};
+                if (!db.alerts) db.alerts = [];
             } else {
                 db = JSON.parse(JSON.stringify(initialDB));
                 saveDatabase();
@@ -321,21 +369,30 @@
                 document.getElementById('app-wrapper').classList.remove('hidden');
                 document.getElementById('staff-dashboard').classList.add('hidden');
                 document.getElementById('student-dashboard').classList.add('hidden');
+                document.getElementById('admin-dashboard').classList.add('hidden');
                 document.getElementById('schedule-view').classList.add('hidden');
 
                 if (currentUser.role === 'staff') {
                     document.getElementById('staff-dashboard').classList.remove('hidden');
+                    document.getElementById('schedule-view').classList.remove('hidden');
                     renderStaffDashboard();
                     renderAvailableSubjects();
                     document.getElementById('staff-schedule-tools').classList.remove('hidden');
-                } else {
+                    populateScheduleSelector();
+                    loadSchedule('grade-10-a');
+                } else if (currentUser.role === 'student') {
                     document.getElementById('student-dashboard').classList.remove('hidden');
+                    document.getElementById('schedule-view').classList.remove('hidden');
                     renderStudentDashboard();
                     document.getElementById('staff-schedule-tools').classList.add('hidden');
+                     populateScheduleSelector();
+                    loadSchedule(currentUser.scheduleId);
+                } else if (currentUser.role === 'admin') {
+                    document.getElementById('admin-dashboard').classList.remove('hidden');
+                    document.getElementById('schedule-view').classList.add('hidden');
+                    renderAdminDashboard();
                 }
-                populateScheduleSelector();
-                const defaultSchedule = currentUser.role === 'student' ? currentUser.scheduleId : 'grade-10-a';
-                loadSchedule(defaultSchedule);
+                
                 updateNotifications();
             } else {
                 document.getElementById('welcome-screen').classList.remove('hidden');
@@ -353,17 +410,14 @@
             document.getElementById('ask-ai-btn').style.display = isLoggedIn ? 'flex' : 'none';
             document.getElementById('notifications-btn').style.display = isLoggedIn && currentUser.role === 'staff' ? 'flex' : 'none';
             document.getElementById('staff-schedule-filters').style.display = isLoggedIn && currentUser.role === 'staff' ? 'flex' : 'none';
-            // NEW: Show/hide the direct attendance button
             document.getElementById('attendance-btn').style.display = isLoggedIn && currentUser.role === 'staff' ? 'flex' : 'none';
         }
 
         // --- EVENT LISTENERS ---
         function setupEventListeners() {
             document.getElementById('student-login-btn').onclick = () => openLoginModal('student');
-            // MODIFIED: Simplified the staff login button
             document.getElementById('staff-login-btn').onclick = () => openLoginModal('staff');
 
-            // NEW: Listener for the direct attendance button
             document.getElementById('attendance-btn').onclick = openAttendancePortal;
 
             document.getElementById('logout-btn').onclick = handleLogout;
@@ -411,7 +465,11 @@
         // --- AUTHENTICATION (LOCAL) ---
         function openLoginModal(role) {
             activeLoginRole = role;
-            document.getElementById('login-title').textContent = `${role.charAt(0).toUpperCase() + role.slice(1)} Login`;
+            let title = `${role.charAt(0).toUpperCase() + role.slice(1)} Login`;
+            if (role === 'staff') { // Special case for staff/admin login
+                 title = 'Staff / Admin Login';
+            }
+            document.getElementById('login-title').textContent = title;
             showModal('login-modal');
         }
 
@@ -422,7 +480,11 @@
             const errorEl = document.getElementById('auth-error');
             errorEl.textContent = '';
             const user = db.users[email];
-            if (user && user.password === password && user.role === activeLoginRole) {
+            
+            // Allow admin to login via staff portal
+            const validRole = user && (user.role === activeLoginRole || (activeLoginRole === 'staff' && user.role === 'admin'));
+
+            if (user && user.password === password && validRole) {
                 currentUser = user;
                 sessionStorage.setItem('acadexaUser', currentUser.id);
                 hideModal('login-modal');
@@ -439,6 +501,85 @@
         }
 
         // --- DASHBOARDS ---
+        function renderAdminDashboard() {
+            const dash = document.getElementById('admin-dashboard');
+            const holidayListHtml = Object.entries(db.holidays).map(([date, name]) => 
+                `<div class="flex justify-between items-center p-2 bg-slate-100 dark:bg-gray-700 rounded-md">
+                    <span>${date}: <strong>${name}</strong></span>
+                    <button data-date="${date}" class="remove-holiday-btn text-red-500 hover:text-red-700"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                 </div>`
+            ).join('');
+
+            dash.innerHTML = `<h2 class="text-3xl font-bold mb-6 font-poppins">Admin Controls</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white dark:bg-gray-800/50 p-6 rounded-xl shadow-md">
+                        <h3 class="font-bold text-lg mb-4">Staff Attendance Cutoff</h3>
+                        <div class="flex items-center gap-4">
+                            <div>
+                                <label for="cutoff-hours" class="block text-sm font-medium">Hours (24h)</label>
+                                <input type="number" id="cutoff-hours" min="0" max="23" class="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" value="${db.attendanceCutoff.hours}">
+                            </div>
+                            <div>
+                                <label for="cutoff-minutes" class="block text-sm font-medium">Minutes</label>
+                                <input type="number" id="cutoff-minutes" min="0" max="59" class="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" value="${db.attendanceCutoff.minutes}">
+                            </div>
+                            <button id="save-cutoff-btn" class="self-end bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition">Save</button>
+                        </div>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800/50 p-6 rounded-xl shadow-md">
+                        <h3 class="font-bold text-lg mb-4">Holiday Management</h3>
+                        <div class="flex items-center gap-4 mb-4">
+                             <input type="date" id="holiday-date" class="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
+                             <input type="text" id="holiday-name" placeholder="Holiday Name" class="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
+                             <button id="add-holiday-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition">Add</button>
+                        </div>
+                        <h4 class="font-semibold text-sm mb-2">Upcoming Holidays</h4>
+                        <div id="holiday-list" class="space-y-2 max-h-48 overflow-y-auto">${holidayListHtml || '<p class="text-slate-500 text-sm">No holidays scheduled.</p>'}</div>
+                    </div>
+                </div>`;
+            lucide.createIcons();
+            
+            document.getElementById('save-cutoff-btn').onclick = () => {
+                const hours = parseInt(document.getElementById('cutoff-hours').value);
+                const minutes = parseInt(document.getElementById('cutoff-minutes').value);
+                if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+                    showToast('Please enter a valid time.', 'error');
+                    return;
+                }
+                db.attendanceCutoff.hours = hours;
+                db.attendanceCutoff.minutes = minutes;
+                saveDatabase();
+                showToast(`Cutoff time updated to ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`, 'success');
+            };
+
+            document.getElementById('add-holiday-btn').onclick = () => {
+                const date = document.getElementById('holiday-date').value;
+                const name = document.getElementById('holiday-name').value.trim();
+                if (!date || !name) {
+                    showToast('Please provide both a date and a name for the holiday.', 'error');
+                    return;
+                }
+                db.holidays[date] = name;
+                saveDatabase();
+                showToast(`Holiday "${name}" added on ${date}.`, 'success');
+                renderAdminDashboard(); // Re-render to show the new holiday
+                if (calendar) calendar.refetchEvents(); // Refresh calendar if visible
+            };
+
+            document.querySelectorAll('.remove-holiday-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    const date = e.currentTarget.dataset.date;
+                    if (confirm(`Are you sure you want to remove the holiday on ${date}?`)) {
+                        delete db.holidays[date];
+                        saveDatabase();
+                        showToast('Holiday removed.', 'info');
+                        renderAdminDashboard();
+                        if (calendar) calendar.refetchEvents();
+                    }
+                }
+            });
+        }
+
         function renderStaffDashboard() {
             const dash = document.getElementById('staff-dashboard');
             dash.innerHTML = `<h2 class="text-3xl font-bold mb-6 font-poppins">Staff Dashboard</h2>
@@ -504,13 +645,13 @@
                     }
                     if (!eventDetails) return '';
                     return `<div class="p-3 bg-slate-100 dark:bg-gray-700 rounded-md">
-                        <p class="font-semibold">${eventDetails.title} with ${eventDetails.prof}</p>
-                        <p class="text-sm text-slate-500">${new Date(eventDetails.start).toLocaleString()}</p>
-                        <div class="mt-2 text-sm p-2 bg-slate-200 dark:bg-gray-600 rounded">
-                           <h5 class="font-bold">Notes:</h5>
-                           <p>${eventDetails.notes || 'No notes available for this session.'}</p>
-                        </div>
-                    </div>`;
+                            <p class="font-semibold">${eventDetails.title} with ${eventDetails.prof}</p>
+                            <p class="text-sm text-slate-500">${new Date(eventDetails.start).toLocaleString()}</p>
+                            <div class="mt-2 text-sm p-2 bg-slate-200 dark:bg-gray-600 rounded">
+                               <h5 class="font-bold">Notes:</h5>
+                               <p>${eventDetails.notes || 'No notes available for this session.'}</p>
+                            </div>
+                        </div>`;
                 }).join('') || '<p class="text-slate-500">No missed classes. Great job!</p>';
 
             dash.innerHTML = `<h2 class="text-3xl font-bold mb-6 font-poppins">Student Dashboard</h2>
@@ -531,7 +672,7 @@
             const now = new Date();
             const todayStr = now.toISOString().slice(0, 10);
             const cutoff = new Date(todayStr);
-            cutoff.setHours(8, 30, 0, 0);
+            cutoff.setHours(db.attendanceCutoff.hours, db.attendanceCutoff.minutes, 0, 0);
 
             if (!db.staffAttendance[todayStr]) {
                 db.staffAttendance[todayStr] = {};
@@ -619,6 +760,15 @@
                 });
             });
             
+            const alertMessage = `${staffName} was marked absent today. Their classes have been automatically reassigned.`;
+            if (!db.alerts.some(a => a.message === alertMessage)) {
+                 db.alerts.push({
+                    id: `alert_${Date.now()}`,
+                    message: alertMessage,
+                    date: new Date().toISOString()
+                });
+            }
+
             saveDatabase();
             showToast(`${staffName} is absent. Debts created and colleagues notified.`, "info");
             updateNotifications();
@@ -643,7 +793,14 @@
                 droppable: true,
                 eventClick: handleEventClick,
                 eventDrop: handleEventDrop,
-                drop: handleExternalDrop
+                drop: handleExternalDrop,
+                dayCellDidMount: function(arg) {
+                    const dateStr = arg.date.toISOString().slice(0,10);
+                    if (db.holidays[dateStr]) {
+                        arg.el.classList.add('fc-day-holiday');
+                        arg.el.dataset.holidayName = db.holidays[dateStr];
+                    }
+                }
             });
             calendar.render();
         }
@@ -679,14 +836,35 @@
             
             const processedEvents = events.map(event => {
                 const eventDate = new Date(event.start).toISOString().slice(0, 10);
+                let classNames = [];
+
                 if(eventDate === todayStr && todayAttendance[event.prof] === 'Absent') {
-                    return { ...event, classNames: ['absent'], title: `${event.title} (Absent)` };
+                    classNames.push('absent');
                 }
-                return event;
+
+                if (db.holidays[eventDate]) {
+                    classNames.push('holiday-conflict');
+                }
+                
+                return { 
+                    ...event, 
+                    classNames: classNames,
+                    title: eventDate === todayStr && todayAttendance[event.prof] === 'Absent' ? `${event.title} (Absent)` : event.title
+                };
             });
+
+            const holidayEvents = Object.entries(db.holidays).map(([date, name]) => ({
+                id: `holiday_${date}`,
+                title: name,
+                start: date,
+                allDay: true,
+                display: 'background',
+                backgroundColor: '#14b8a6'
+            }));
 
             calendar.removeAllEvents();
             calendar.addEventSource(processedEvents);
+            calendar.addEventSource(holidayEvents);
         }
 
         function populateScheduleSelector() {
@@ -700,15 +878,15 @@
                     .filter(u => u.role === 'staff')
                     .map(s => `<option value="${s.fullName}">${s.fullName} (Personal)</option>`).join('');
                 staffSelector.innerHTML = `<option value="full-class">Full Class View</option>${staffOptions}`;
-                staffSelector.value = currentUser.fullName;
+                staffSelector.value = 'full-class';
             }
         }
         
         function handleEventClick(info) {
              if(info.event.extendedProps.isRepaymentOption) {
-                confirmRepayment(info.event.extendedProps.debtId, info.event.id);
-                return;
-            }
+                 confirmRepayment(info.event.extendedProps.debtId, info.event.id);
+                 return;
+             }
 
             const eventData = info.event.extendedProps;
             const modal = document.getElementById('class-details-modal');
@@ -759,7 +937,14 @@
             const eventId = info.event.id;
             const newStart = info.event.start;
             const newEnd = info.event.end;
+            const newDateStr = newStart.toISOString().slice(0,10);
             
+            if (db.holidays[newDateStr]) {
+                showToast(`Cannot move class. ${newDateStr} is a holiday: ${db.holidays[newDateStr]}.`, "error");
+                info.revert();
+                return;
+            }
+
             const isConflict = Object.values(db.schedules[scheduleId].events).some(event => 
                 event.id !== eventId && newStart < new Date(event.end) && newEnd > new Date(event.start)
             );
@@ -772,12 +957,19 @@
                 db.schedules[scheduleId].events[eventId].end = newEnd.toISOString();
                 saveDatabase();
                 showToast("Schedule updated successfully!", "success");
+                renderCalendar();
             }
         }
         
         function handleExternalDrop(info) {
             const scheduleId = document.getElementById('schedule-selector').value;
             const droppedDate = info.date;
+            const droppedDateStr = droppedDate.toISOString().slice(0,10);
+
+            if (db.holidays[droppedDateStr]) {
+                showToast(`Cannot schedule class. ${droppedDateStr} is a holiday: ${db.holidays[droppedDateStr]}.`, "error");
+                return;
+            }
 
             const isConflict = Object.values(db.schedules[scheduleId].events).some(event => {
                 const eventStart = new Date(event.start);
@@ -882,10 +1074,11 @@
         function updateNotifications() {
             if (!currentUser || currentUser.role !== 'staff') return;
             const myDebts = db.classDebts.filter(d => (d.debtor === currentUser.fullName || d.creditor === currentUser.fullName) && d.status === 'Unpaid');
+            const totalNotifications = myDebts.length + db.alerts.length;
             const badge = document.getElementById('notification-badge');
             
-            if (myDebts.length > 0) {
-                badge.textContent = myDebts.length;
+            if (totalNotifications > 0) {
+                badge.textContent = totalNotifications;
                 badge.classList.remove('hidden');
             } else {
                 badge.classList.add('hidden');
@@ -894,6 +1087,7 @@
         
         function openNotifications() {
             const debtList = document.getElementById('class-debt-list');
+            const alertList = document.getElementById('alert-list');
             const myDebts = db.classDebts.filter(d => (d.debtor === currentUser.fullName || d.creditor === currentUser.fullName) && d.status === 'Unpaid');
             
             if (myDebts.length === 0) {
@@ -913,6 +1107,19 @@
                         </div>`;
                 }).join('');
             }
+
+            if (db.alerts.length === 0) {
+                alertList.innerHTML = '<p class="text-slate-500">No system alerts.</p>';
+            } else {
+                alertList.innerHTML = db.alerts.slice().reverse().map(alert => {
+                    return `
+                        <div class="p-3 bg-slate-100 dark:bg-gray-700 rounded-md">
+                            <p>${alert.message}</p>
+                            <p class="text-xs text-slate-500 mt-1">${new Date(alert.date).toLocaleString()}</p>
+                        </div>`;
+                }).join('');
+            }
+
             showModal('notifications-modal');
         }
 
@@ -928,7 +1135,8 @@
             const allEvents = Object.values(db.schedules[scheduleId].events);
             
             const repaymentEvents = allEvents.map(event => {
-                if(event.prof === debt.creditor) {
+                const eventDateStr = new Date(event.start).toISOString().slice(0,10);
+                if(event.prof === debt.creditor && !db.holidays[eventDateStr]) { // Can't repay on a holiday
                     return { ...event, display: 'block', title: `Cover this for ${debt.creditor}?`, 
                              extendedProps: { ...event, originalProf: event.prof, isRepaymentOption: true, debtId: debtId },
                              className: 'cursor-pointer !bg-green-500'
@@ -1105,3 +1313,4 @@
     </script>
 </body>
 </html>
+
