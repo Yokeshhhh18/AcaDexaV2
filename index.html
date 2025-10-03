@@ -522,7 +522,7 @@
 
         function handleAuthSubmit(e) {
             e.preventDefault();
-            const email = document.getElementById('auth-email').value;
+            const email = document.getElementById('auth-email').value.toLowerCase(); // FIX: Make email case-insensitive
             const password = document.getElementById('auth-password').value;
             const errorEl = document.getElementById('auth-error');
             errorEl.textContent = '';
