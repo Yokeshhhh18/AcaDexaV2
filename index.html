@@ -90,7 +90,8 @@
             <div class="flex items-center gap-2 sm:gap-4">
                 <div id="auth-container" class="flex items-center gap-2 sm:gap-4">
                     <button id="student-login-btn" class="text-sm font-semibold hover:text-indigo-600 dark:hover:text-indigo-400 transition">Student Login</button>
-                    <button id="staff-login-btn" class="text-sm font-semibold bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">Staff Login</button>
+                    <!-- ENHANCEMENT: Changed button text for clarity -->
+                    <button id="staff-login-btn" class="text-sm font-semibold bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">Staff / Admin Login</button>
                 </div>
                 <div id="user-info-container" style="display: none;" class="flex items-center gap-4">
                         <button id="notifications-btn" class="relative p-2 rounded-full hover:bg-slate-200 dark:hover:bg-gray-700">
@@ -130,8 +131,8 @@
                         <div id="subject-creator" class="space-y-3 mb-4 p-3 bg-slate-100 dark:bg-gray-700/50 rounded-lg">
                              <input type="text" id="new-subject-name" placeholder="Subject Name" class="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm">
                              <div class="flex items-center gap-2">
-                                <label for="new-subject-color" class="text-sm">Color:</label>
-                                <input type="color" id="new-subject-color" value="#3b82f6" class="w-full h-8 border-none rounded-md cursor-pointer">
+                                 <label for="new-subject-color" class="text-sm">Color:</label>
+                                 <input type="color" id="new-subject-color" value="#3b82f6" class="w-full h-8 border-none rounded-md cursor-pointer">
                              </div>
                              <button id="add-subject-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-3 rounded-lg transition text-sm">Add Subject</button>
                         </div>
@@ -380,27 +381,38 @@
         });
 
         function loadDatabase() {
-            const savedDB = localStorage.getItem('acadexaDB');
-            if (savedDB) {
-                db = JSON.parse(savedDB);
-                if (!db.holidays) db.holidays = {};
-                if (!db.alerts) db.alerts = [];
-                if (!db.availableSubjects) db.availableSubjects = initialDB.availableSubjects;
-                 // On first load from old data, ensure users are there.
-                if (!db.users) db.users = initialDB.users;
-            } else {
-                db = JSON.parse(JSON.stringify(initialDB));
-                saveDatabase();
+            // FIX: Add error handling for browsers that might block localStorage
+            try {
+                const savedDB = localStorage.getItem('acadexaDB');
+                if (savedDB) {
+                    db = JSON.parse(savedDB);
+                    // Ensure backward compatibility if new properties are added
+                    if (!db.holidays) db.holidays = {};
+                    if (!db.alerts) db.alerts = [];
+                    if (!db.availableSubjects) db.availableSubjects = initialDB.availableSubjects;
+                    if (!db.users) db.users = initialDB.users;
+                } else {
+                    db = JSON.parse(JSON.stringify(initialDB));
+                    saveDatabase();
+                }
+            } catch (e) {
+                console.error("Failed to access localStorage. Using a temporary database for this session.", e);
+                showToast("Could not save data. Your browser might be blocking it.", "error");
+                db = JSON.parse(JSON.stringify(initialDB)); // Fallback to initial data
             }
         }
 
         function saveDatabase() {
-            localStorage.setItem('acadexaDB', JSON.stringify(db));
+            // FIX: Add error handling for saving data
+            try {
+                localStorage.setItem('acadexaDB', JSON.stringify(db));
+            } catch (e) {
+                console.error("Failed to save to localStorage.", e);
+            }
         }
 
         function checkLoginState() {
             const loggedInUserId = sessionStorage.getItem('acadexaUser');
-            // FIX: Check if db.users exists before trying to access it.
             if (loggedInUserId && db.users && db.users[loggedInUserId]) {
                 currentUser = db.users[loggedInUserId];
                 initializeAppUI(true);
@@ -419,7 +431,6 @@
                 document.getElementById('main-schedule-area').classList.remove('lg:col-span-4');
                 document.getElementById('main-schedule-area').classList.add('lg:col-span-3');
 
-                // Initialize calendar here, after login is confirmed
                 if (!calendar) initializeCalendar();
 
                 if (currentUser.role === 'staff') {
@@ -504,12 +515,12 @@
                  if (e.target.closest('.repay-debt-btn')) {
                     const debtId = e.target.closest('.repay-debt-btn').dataset.id;
                     repayDebt(debtId);
-                }
-                if (e.target.closest('.cover-class-btn')) {
+                 }
+                 if (e.target.closest('.cover-class-btn')) {
                     const debtId = e.target.closest('.cover-class-btn').dataset.debtid;
                     const eventId = e.target.closest('.cover-class-btn').dataset.eventid;
                     confirmRepayment(debtId, eventId);
-                }
+                 }
             });
         }
         
@@ -517,7 +528,7 @@
         function openLoginModal(role) {
             activeLoginRole = role;
             let title = `${role.charAt(0).toUpperCase() + role.slice(1)} Login`;
-            if (role === 'staff') { // Special case for staff/admin login
+            if (role === 'staff') {
                  title = 'Staff / Admin Login';
             }
             document.getElementById('login-title').textContent = title;
@@ -526,12 +537,12 @@
 
         function handleAuthSubmit(e) {
             e.preventDefault();
-            const email = document.getElementById('auth-email').value.toLowerCase(); // FIX: Make email case-insensitive
-            const password = document.getElementById('auth-password').value;
+            // FIX: Trim whitespace from inputs to prevent errors from copy-pasting
+            const email = document.getElementById('auth-email').value.toLowerCase().trim();
+            const password = document.getElementById('auth-password').value.trim();
             const errorEl = document.getElementById('auth-error');
             errorEl.textContent = '';
             
-            // FIX: Ensure db.users exists before attempting to find the user.
             const user = db.users ? db.users[email] : null;
             
             // Allow admin to login via staff portal
@@ -541,6 +552,7 @@
                 currentUser = user;
                 sessionStorage.setItem('acadexaUser', currentUser.id);
                 hideModal('login-modal');
+                document.getElementById('auth-form').reset();
                 initializeAppUI(true);
             } else {
                 errorEl.textContent = "Invalid credentials for this role.";
@@ -710,13 +722,13 @@
                     }
                     if (!eventDetails) return '';
                     return `<div class="p-3 bg-slate-100 dark:bg-gray-700 rounded-md">
-                            <p class="font-semibold">${eventDetails.title} with ${eventDetails.prof}</p>
-                            <p class="text-sm text-slate-500">${new Date(eventDetails.start).toLocaleString()}</p>
-                            <div class="mt-2 text-sm p-2 bg-slate-200 dark:bg-gray-600 rounded">
-                               <h5 class="font-bold">Notes:</h5>
-                               <p>${eventDetails.notes || 'No notes available for this session.'}</p>
-                            </div>
-                        </div>`;
+                                <p class="font-semibold">${eventDetails.title} with ${eventDetails.prof}</p>
+                                <p class="text-sm text-slate-500">${new Date(eventDetails.start).toLocaleString()}</p>
+                                <div class="mt-2 text-sm p-2 bg-slate-200 dark:bg-gray-600 rounded">
+                                   <h5 class="font-bold">Notes:</h5>
+                                   <p>${eventDetails.notes || 'No notes available for this session.'}</p>
+                                </div>
+                            </div>`;
                 }).join('') || '<p class="text-slate-500">No missed classes. Great job!</p>';
 
             dash.innerHTML = `<h2 class="text-3xl font-bold mb-6 font-poppins">Student Dashboard</h2>
@@ -1156,11 +1168,11 @@
                 showToast(`No available staff to cover for ${debtorName}'s class.`, 'error');
                 const alertMessage = `CRITICAL: No substitute found for ${debtorName}'s ${classToCover.title} class at ${classStartTime.toLocaleTimeString()}.`;
                 if (!db.alerts.some(a => a.message === alertMessage)) {
-                     db.alerts.push({
-                        id: `alert_${Date.now()}`,
-                        message: alertMessage,
-                        date: new Date().toISOString()
-                    });
+                       db.alerts.push({
+                           id: `alert_${Date.now()}`,
+                           message: alertMessage,
+                           date: new Date().toISOString()
+                       });
                 }
             }
         }
@@ -1313,7 +1325,7 @@
                     const attendedClasses = Object.values(myAttendance).filter(s => s === 'Present').length;
                     const percentage = totalClasses > 0 ? ((attendedClasses / totalClasses) * 100).toFixed(1) : 100;
                     return `Your current attendance is ${percentage}%. You've attended ${attendedClasses} out of ${totalClasses} recorded classes.`;
-                }
+                 }
                 return "Attendance data is available for students.";
             }
             if (query.includes("absent for this hour")) {
@@ -1519,4 +1531,3 @@
     </script>
 </body>
 </html>
-
