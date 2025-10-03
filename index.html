@@ -376,7 +376,6 @@
             lucide.createIcons();
             loadDatabase();
             setupEventListeners();
-            initializeCalendar();
             checkLoginState();
         });
 
@@ -387,6 +386,8 @@
                 if (!db.holidays) db.holidays = {};
                 if (!db.alerts) db.alerts = [];
                 if (!db.availableSubjects) db.availableSubjects = initialDB.availableSubjects;
+                 // On first load from old data, ensure users are there.
+                if (!db.users) db.users = initialDB.users;
             } else {
                 db = JSON.parse(JSON.stringify(initialDB));
                 saveDatabase();
@@ -399,7 +400,8 @@
 
         function checkLoginState() {
             const loggedInUserId = sessionStorage.getItem('acadexaUser');
-            if (loggedInUserId && db.users[loggedInUserId]) {
+            // FIX: Check if db.users exists before trying to access it.
+            if (loggedInUserId && db.users && db.users[loggedInUserId]) {
                 currentUser = db.users[loggedInUserId];
                 initializeAppUI(true);
             } else {
@@ -417,6 +419,8 @@
                 document.getElementById('main-schedule-area').classList.remove('lg:col-span-4');
                 document.getElementById('main-schedule-area').classList.add('lg:col-span-3');
 
+                // Initialize calendar here, after login is confirmed
+                if (!calendar) initializeCalendar();
 
                 if (currentUser.role === 'staff') {
                     document.getElementById('staff-dashboard').classList.remove('hidden');
@@ -526,7 +530,9 @@
             const password = document.getElementById('auth-password').value;
             const errorEl = document.getElementById('auth-error');
             errorEl.textContent = '';
-            const user = db.users[email];
+            
+            // FIX: Ensure db.users exists before attempting to find the user.
+            const user = db.users ? db.users[email] : null;
             
             // Allow admin to login via staff portal
             const validRole = user && (user.role === activeLoginRole || (activeLoginRole === 'staff' && user.role === 'admin'));
@@ -544,6 +550,8 @@
         function handleLogout() {
             currentUser = null;
             sessionStorage.removeItem('acadexaUser');
+            if(calendar) calendar.destroy();
+            calendar = null;
             initializeAppUI(false);
         }
 
@@ -835,9 +843,12 @@
         // --- CALENDAR & SCHEDULE ---
         function initializeCalendar() {
             const calendarEl = document.getElementById('calendar-container');
+            if (calendar) {
+                calendar.destroy();
+            }
             calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: 'timeGridWeek',
-                initialDate: '2025-10-06', // FIX: Set initial date to see the schedule
+                initialDate: '2025-10-06',
                 headerToolbar: {
                     left: 'prev,next today',
                     center: 'title',
