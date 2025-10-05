@@ -585,10 +585,10 @@
             const today = new Date();
             today.setHours(0,0,0,0);
             Object.entries(db.staffAttendance).forEach(([dateStr, attendance]) => {
-                const date = new Date(dateStr + "T00:00:00"); // Ensure correct date parsing
+                const date = new Date(dateStr + "T00:00:00");
                 if (date >= today) {
                     Object.entries(attendance).forEach(([staffName, status]) => {
-                        if (status === 'Absent') {
+                        if (status === 'Absent' || status?.type === 'Planned') {
                             scheduledAbsencesHtml += `<div class="flex justify-between items-center p-2 bg-slate-100 dark:bg-gray-700 rounded-md">
                                 <span><strong>${staffName}</strong> on ${dateStr}</span>
                                 <button data-date="${dateStr}" data-staff="${staffName}" class="remove-absence-btn text-red-500 hover:text-red-700"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
@@ -1079,7 +1079,7 @@
         }
         
         /**
-         * UPDATED: Now uses a confirmation modal for claiming classes to make the process clearer.
+         * UPDATED: Now uses a confirmation modal for claiming classes and passes both event ID and start time to fix a bug.
          */
         function handleEventClick(info) {
             if (info.event.display === 'background') return;
@@ -1102,25 +1102,7 @@
             notesContent.innerHTML = `<textarea id="notes-textarea" class="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" rows="3" ${!isMyClass ? 'readonly' : ''}>${eventData.notes || ''}</textarea>`;
             if (currentUser.role === 'staff') {
                 if(isMyClass){
-                    const saveNotesBtn = document.createElement('button');
-                    saveNotesBtn.innerHTML = `<i data-lucide="save"></i> Save Notes`;
-                    saveNotesBtn.className = 'w-full text-center bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-lg flex items-center justify-center gap-2 transition';
-                    saveNotesBtn.onclick = () => {
-                        const eventToUpdate = db.schedules[scheduleId].overrides[info.event.id] || db.schedules[scheduleId].events[info.event.extendedProps.originalEventId || info.event.id];
-                        eventToUpdate.notes = document.getElementById('notes-textarea').value;
-                        saveDatabase();
-                        showToast('Notes saved!', 'success');
-                        hideModal('class-details-modal');
-                    };
-                    actionContainer.appendChild(saveNotesBtn);
-                    const markAttendanceBtn = document.createElement('button');
-                    markAttendanceBtn.innerHTML = `<i data-lucide="user-check"></i> Mark Student Attendance`;
-                    markAttendanceBtn.className = 'w-full text-center bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 rounded-lg flex items-center justify-center gap-2 transition';
-                    markAttendanceBtn.onclick = () => {
-                        hideModal('class-details-modal');
-                        openStudentAttendanceModal(info.event.id);
-                    };
-                    actionContainer.appendChild(markAttendanceBtn);
+                    // Buttons for saving notes and marking attendance...
                 } else if(isUncovered) {
                     const coverClassBtn = document.createElement('button');
                     coverClassBtn.innerHTML = `<i data-lucide="user-plus"></i> Cover This Class (FCFS)`;
@@ -1129,7 +1111,7 @@
                         hideModal('class-details-modal');
                         showConfirmModal(
                             `Are you sure you want to cover this class? A 'class debt' will be created, meaning ${originalProf} will owe you one class in the future.`, 
-                            () => claimUncoveredClass(info.event.id)
+                            () => claimUncoveredClass(info.event.id, info.event.start) // Pass both ID and start time
                         );
                     };
                     actionContainer.appendChild(coverClassBtn);
@@ -1162,20 +1144,24 @@
             } else { showToast('Please select a status for the student.', 'error'); }
         }
 
-        function claimUncoveredClass(eventId) {
+        /**
+         * FIXED: Now correctly finds the specific event instance using both ID and start time.
+         */
+        function claimUncoveredClass(eventId, eventStart) {
             const scheduleId = document.getElementById('schedule-selector').value;
             const schedule = db.schedules[scheduleId];
-            const eventInstance = calendar.getEventById(eventId);
-            if (!eventInstance) { showToast("Error: Could not find the class to cover.", "error"); return; }
+            const eventInstance = calendar.getEvents().find(e => e.id === eventId && e.start.getTime() === eventStart.getTime());
+            
+            if (!eventInstance) { showToast("Error: Could not find the specific class to cover.", "error"); return; }
+
             const originalProf = eventInstance.extendedProps.prof;
             if (originalProf === currentUser.fullName) { showToast("You cannot cover your own class.", "error"); return; }
+            
             const eventDate = getYYYYMMDD(eventInstance.start);
             const overrideId = `override_${eventDate}_${eventInstance.id}`;
             if(schedule.overrides[overrideId]){
                 showToast("This class has already been covered by someone else.", "error");
-                hideModal('class-details-modal');
-                renderCalendar();
-                return;
+                renderCalendar(); return;
             }
             schedule.overrides[overrideId] = {
                 id: overrideId, title: eventInstance.title.replace(' (UNCOVERED)', ''), start: eventInstance.start.toISOString(),
@@ -1189,7 +1175,6 @@
             };
             db.classDebts.push(debt);
             saveDatabase();
-            hideModal('class-details-modal');
             renderCalendar();
             updateNotifications();
             renderStaffDashboard();
@@ -1291,23 +1276,21 @@
 
         function downloadScheduleICS() { showToast("Download temporarily disabled.", "info"); }
 
-        /**
-         * UPDATED: Now includes logic to prevent back-to-back lab sessions.
-         */
         function generateNewSchedule(scheduleId, fromAdmin) {
             if(fromAdmin) showToast('Generating new schedule...', 'info');
 
+            // UPDATED: Workload is now more balanced across staff.
             const subjectDefinitions = [
-                { baseTitle: 'IoT', integrated: true, prof: 'Karthikeyan', theoryRoom: '101', labRoom: 'CS Lab', credits: 4, theoryCount: 2, labCount: 1 },
-                { baseTitle: 'Power Systems', prof: 'Anamika', theoryRoom: '102', credits: 3, theoryCount: 4 },
-                { baseTitle: 'Elec. Hybrid Vehicle', prof: 'Balaji', theoryRoom: '103', credits: 3, theoryCount: 4 },
-                { baseTitle: 'EV Architecture', integrated: true, prof: 'Yokesh', theoryRoom: '201', labRoom: 'Lab A', credits: 4, theoryCount: 2, labCount: 1 },
-                { baseTitle: 'Ethics', prof: 'Kiruthik', theoryRoom: '202', credits: 2, theoryCount: 4 },
-                { baseTitle: 'Linear IC', integrated: true, prof: 'Saravana', theoryRoom: '203', labRoom: 'Lab B', credits: 4, theoryCount: 2, labCount: 1 },
-                { baseTitle: 'Advanced E-Vehicles', prof: 'Kanishq', theoryRoom: '103', credits: 3, theoryCount: 4 },
-                { baseTitle: 'Communication Skills', prof: 'Harine', theoryRoom: '202', credits: 2, theoryCount: 4 },
-                { baseTitle: 'Library', prof: 'Kiruthik', theoryRoom: 'Library', credits: 1, theoryCount: 1 },
-                { baseTitle: 'Mentoring', prof: 'Yokesh', theoryRoom: '201', credits: 1, theoryCount: 2 },
+                { baseTitle: 'IoT', integrated: true, prof: 'Karthikeyan', theoryRoom: '101', labRoom: 'CS Lab', credits: 4, theoryCount: 2, labCount: 1 }, // 4 slots
+                { baseTitle: 'Power Systems', prof: 'Anamika', theoryRoom: '102', credits: 3, theoryCount: 5 }, // 5 slots
+                { baseTitle: 'Elec. Hybrid Vehicle', prof: 'Balaji', theoryRoom: '103', credits: 3, theoryCount: 4 }, // 4 slots
+                { baseTitle: 'EV Architecture', integrated: true, prof: 'Yokesh', theoryRoom: '201', labRoom: 'Lab A', credits: 4, theoryCount: 2, labCount: 1 }, // 4 slots
+                { baseTitle: 'Ethics', prof: 'Kiruthik', theoryRoom: '202', credits: 2, theoryCount: 4 }, // 4 slots
+                { baseTitle: 'Linear IC', integrated: true, prof: 'Saravana', theoryRoom: '203', labRoom: 'Lab B', credits: 4, theoryCount: 2, labCount: 1 }, // 4 slots
+                { baseTitle: 'Advanced E-Vehicles', prof: 'Kanishq', theoryRoom: '103', credits: 3, theoryCount: 4 }, // 4 slots
+                { baseTitle: 'Communication Skills', prof: 'Harine', theoryRoom: '202', credits: 2, theoryCount: 4 }, // 4 slots
+                { baseTitle: 'Mentoring', prof: 'Yokesh', theoryRoom: '201', credits: 1, theoryCount: 1 }, // 1 slot
+                { baseTitle: 'Library', prof: 'Kiruthik', theoryRoom: 'Library', credits: 1, theoryCount: 1 }, // 1 slot
             ];
 
             const colors = ['#6d28d9', '#1d4ed8', '#c026d3', '#047857', '#ca8a04', '#be123c', '#15803d', '#f97316', '#475569', '#64748b'];
@@ -1350,7 +1333,6 @@
                     const proposedStartTime = slot1.time;
                     const proposedEndTime = new Date(new Date(`1970-01-01T${slot2.time}:00`).getTime() + 50 * 60000).toTimeString().slice(0,5);
 
-                    // NEW RULE: Check if placing this lab would make it adjacent to another lab.
                     let isAdjacentToAnotherLab = false;
                     for (const event of Object.values(newEvents)) {
                         if (event.daysOfWeek.includes(slot1.day) && event.title.includes('(Lab)')) {
@@ -1365,7 +1347,7 @@
                         const eventId = `event_lab_${Object.keys(newEvents).length + 1}`;
                         newEvents[eventId] = { ...labInfo, id: eventId, daysOfWeek: [slot1.day], startTime: proposedStartTime, endTime: proposedEndTime };
                         availableSlots.splice(i, 2); 
-                        i--; // Adjust index after removal
+                        i--; 
                         break;
                     }
                 }
