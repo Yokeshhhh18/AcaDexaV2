@@ -1091,6 +1091,9 @@
             }
         }
         
+        /**
+         * UPDATED: Now adds a dedicated "Actions" header and provides clearer UI for claiming classes and taking attendance.
+         */
         function handleEventClick(info) {
             if (info.event.display === 'background') return;
 
@@ -1114,13 +1117,14 @@
             const isUncovered = info.event.title.includes('UNCOVERED');
 
             notesContent.innerHTML = `<textarea id="notes-textarea" class="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" rows="3" ${!isMyClass ? 'readonly' : ''}>${eventData.notes || ''}</textarea>`;
-            actionContainer.innerHTML = ''; 
+            
+            actionContainer.innerHTML = '<h4 class="font-bold border-t dark:border-gray-700 pt-3">Actions</h4>'; 
             
             if (currentUser.role === 'staff') {
                 if (isMyClass) {
                     const saveNotesBtn = document.createElement('button');
-                    saveNotesBtn.innerHTML = `<i data-lucide="save"></i> Save Notes`;
-                    saveNotesBtn.className = 'w-full text-center bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-lg flex items-center justify-center gap-2 transition';
+                    saveNotesBtn.innerHTML = `<i data-lucide="save"></i> Save Notes for Students`;
+                    saveNotesBtn.className = 'w-full text-center bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-lg flex items-center justify-center gap-2 transition';
                     saveNotesBtn.onclick = () => {
                         const eventToUpdate = db.schedules[scheduleId].overrides[info.event.id] || db.schedules[scheduleId].events[info.event.id];
                         if (eventToUpdate) {
@@ -1143,12 +1147,12 @@
 
                 } else if (isUncovered) {
                     const helpText = document.createElement('p');
-                    helpText.className = 'text-sm text-amber-600 dark:text-amber-400 p-3 bg-amber-50 dark:bg-amber-900/50 rounded-lg';
-                    helpText.innerHTML = "This class is available. By covering it, you will create a <strong>class debt</strong> which must be repaid by the original professor.";
+                    helpText.className = 'text-sm text-center text-amber-600 dark:text-amber-400 p-3 bg-amber-50 dark:bg-amber-900/50 rounded-lg';
+                    helpText.innerHTML = "This class is available. Covering it will create a <strong>class debt</strong>.";
                     actionContainer.appendChild(helpText);
 
                     const coverClassBtn = document.createElement('button');
-                    coverClassBtn.innerHTML = `<i data-lucide="user-plus"></i> Cover This Class (FCFS)`;
+                    coverClassBtn.innerHTML = `<i data-lucide="user-plus"></i> Cover This Class (The "Debt Option")`;
                     coverClassBtn.className = 'w-full text-center bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 rounded-lg flex items-center justify-center gap-2 transition';
                     coverClassBtn.onclick = () => {
                         hideModal('class-details-modal');
