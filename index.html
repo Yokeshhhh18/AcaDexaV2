@@ -384,10 +384,16 @@
             checkLoginState();
         });
         
+        /**
+         * FIXED: A simpler, more robust function to get the YYYY-MM-DD string
+         * that avoids timezone issues within the browser.
+         */
         function getYYYYMMDD(d) {
             const date = new Date(d);
-            date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
-            return date.toISOString().split('T')[0];
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
         }
 
         function loadDatabase() {
@@ -644,7 +650,7 @@
                 saveDatabase();
                 showToast(`Holiday "${name}" added on ${date}.`, 'success');
                 renderAdminDashboard();
-                renderCalendar(); // Refresh calendar to apply holiday blanking
+                renderCalendar();
             };
 
             document.querySelectorAll('.remove-holiday-btn').forEach(btn => {
@@ -655,15 +661,12 @@
                         saveDatabase();
                         showToast('Holiday removed.', 'info');
                         renderAdminDashboard();
-                        renderCalendar(); // Refresh calendar to apply holiday blanking
+                        renderCalendar();
                     });
                 }
             });
         }
         
-        /**
-         * NEW: Renders the entire staff dashboard, including workload chart and the new debt section.
-         */
         function renderStaffDashboard() {
             const dash = document.getElementById('staff-dashboard');
             dash.innerHTML = `
@@ -673,12 +676,9 @@
                         <h3 class="font-bold text-lg mb-4">Weekly Class Load</h3>
                         <canvas id="workload-chart"></canvas>
                     </div>
-                    <div id="debt-management-section" class="bg-white dark:bg-gray-800/50 p-6 rounded-xl shadow-md">
-                        
-                    </div>
+                    <div id="debt-management-section" class="bg-white dark:bg-gray-800/50 p-6 rounded-xl shadow-md"></div>
                 </div>`;
             
-            // Render Debt Management Section
             renderDebtDashboard(document.getElementById('debt-management-section'));
 
             const staffWorkload = {};
@@ -688,7 +688,6 @@
             Object.values(db.schedules).forEach(schedule => {
                 Object.values(schedule.events).forEach(ev => {
                     if(staffWorkload.hasOwnProperty(ev.prof)) {
-                        // Calculate hours, not just class count
                         const startTime = new Date(`1970-01-01T${ev.startTime}:00`);
                         const endTime = new Date(`1970-01-01T${ev.endTime}:00`);
                         const durationHours = (endTime - startTime) / (1000 * 60 * 60);
@@ -703,9 +702,7 @@
                 type: 'bar',
                 data: {
                     labels: Object.keys(staffWorkload),
-                    datasets: [
-                        { label: 'Hours this Week', data: Object.values(staffWorkload), backgroundColor: '#4f46e5' }
-                    ]
+                    datasets: [ { label: 'Hours this Week', data: Object.values(staffWorkload), backgroundColor: '#4f46e5' } ]
                 },
                 options: {
                     scales: {
@@ -717,9 +714,6 @@
             });
         }
 
-        /**
-         * NEW: Renders the dedicated debt management dashboard component.
-         */
         function renderDebtDashboard(container) {
             container.innerHTML = `<h3 class="font-bold text-lg mb-4">Class Debt Management</h3>`;
 
@@ -762,7 +756,6 @@
             `;
             lucide.createIcons();
 
-            // Add event listeners for the new buttons
             container.querySelectorAll('.mark-repaid-btn').forEach(btn => {
                 btn.onclick = () => {
                     const debtId = btn.dataset.id;
@@ -773,16 +766,13 @@
             });
         }
 
-        /**
-         * NEW: Marks a debt as paid and refreshes the dashboard.
-         */
         function markDebtAsRepaid(debtId) {
             const debt = db.classDebts.find(d => d.id === debtId);
             if (debt) {
                 debt.status = 'Paid';
                 saveDatabase();
                 showToast('Debt has been successfully marked as repaid!', 'success');
-                renderStaffDashboard(); // Refresh the dashboard to show the change
+                renderStaffDashboard(); 
             } else {
                 showToast('Error: Could not find the specified debt.', 'error');
             }
@@ -801,10 +791,7 @@
                     let eventDetails = null;
                     for (const schedule of Object.values(db.schedules)) {
                         const allEvents = {...schedule.events, ...schedule.overrides};
-                        if(allEvents[eventId]) {
-                            eventDetails = allEvents[eventId];
-                            break;
-                        }
+                        if(allEvents[eventId]) { eventDetails = allEvents[eventId]; break; }
                     }
                     if (!eventDetails) return '';
                     return `<div class="p-3 bg-slate-100 dark:bg-gray-700 rounded-md">
@@ -836,9 +823,7 @@
             const cutoff = new Date(todayStr);
             cutoff.setHours(db.attendanceCutoff.hours, db.attendanceCutoff.minutes, 0, 0);
 
-            if (!db.staffAttendance[todayStr]) {
-                db.staffAttendance[todayStr] = {};
-            }
+            if (!db.staffAttendance[todayStr]) db.staffAttendance[todayStr] = {};
             
             document.getElementById('current-time').textContent = now.toLocaleTimeString();
             const scanBtn = document.getElementById('scan-biometric-btn');
@@ -890,18 +875,16 @@
                 const status = isSuccess ? 'Present' : 'Absent';
                 statusEl.textContent = `Verification ${isSuccess ? 'Successful' : 'Failed'}. Marked as ${status}.`;
                 
-                const todayStr = getYYYYMMDD(new Date());
-                if (!db.staffAttendance[todayStr]) db.staffAttendance[todayStr] = {};
-                
                 if (isSuccess) {
+                    const todayStr = getYYYYMMDD(new Date());
+                    if (!db.staffAttendance[todayStr]) db.staffAttendance[todayStr] = {};
                     db.staffAttendance[todayStr][currentUser.fullName] = 'Present';
                     saveDatabase();
                     showToast(`Welcome, ${currentUser.fullName}! You are marked present.`, 'success');
+                    renderAttendanceDashboard(todayStr);
                 } else {
                     handleAbsence(currentUser.fullName);
                 }
-                renderAttendanceDashboard(todayStr);
-                renderCalendar();
             }, 1500);
         }
         
@@ -921,10 +904,11 @@
                 });
             }
 
-            showToast(`${staffName} is absent. Their classes are now available for others to cover.`, "info");
+            showToast(`${staffName} is absent. Their classes are now available.`, "info");
             updateNotifications();
             saveDatabase();
             renderCalendar();
+            renderAttendanceDashboard(todayStr);
         }
         
         function initializeCalendar() {
@@ -939,14 +923,9 @@
                     center: 'title',
                     right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
                 },
-                slotMinTime: '09:00:00',
-                slotMaxTime: '16:00:00',
-                slotDuration: '00:50:00',
-                slotLabelInterval: '00:50:00',
-                slotLabelFormat: { hour: 'numeric', minute: '2-digit', omitZeroMinute: false, meridiem: 'short' },
-                allDaySlot: false,
-                editable: false, 
-                droppable: true,
+                slotMinTime: '09:00:00', slotMaxTime: '16:00:00', slotDuration: '00:50:00',
+                slotLabelInterval: '00:50:00', slotLabelFormat: { hour: 'numeric', minute: '2-digit', omitZeroMinute: false, meridiem: 'short' },
+                allDaySlot: false, editable: false, droppable: true,
                 eventClick: handleEventClick,
                 drop: handleExternalDrop,
                 dayCellDidMount: (arg) => {
@@ -957,29 +936,36 @@
                     }
                 },
                 /**
-                 * NEW: Hides events that fall on a designated holiday.
+                 * FIXED: Checks every event as it's rendered. If it's on a holiday, it's hidden.
+                 * If the professor is absent and it's not covered, it gets a red 'uncovered' style.
                  */
                 eventDidMount: (arg) => {
                     const dateStr = getYYYYMMDD(arg.event.start);
+                    
                     if (db.holidays[dateStr]) {
                         arg.el.style.visibility = 'hidden';
+                        return;
+                    }
+                    
+                    const staffAttendance = db.staffAttendance[dateStr] || {};
+                    const originalProf = arg.event.extendedProps.prof;
+                    const isAbsent = staffAttendance[originalProf] === 'Absent';
+                    const isAlreadyCovered = !!arg.event.extendedProps.originalProf;
+
+                    if (isAbsent && !isAlreadyCovered) {
+                        arg.el.classList.add('uncovered');
                     }
                 },
                 businessHours: [ { daysOfWeek: [ 1, 2, 3, 4, 5 ], startTime: '09:00', endTime: '16:00' } ],
                 events: (fetchInfo, successCallback, failureCallback) => {
                     const scheduleId = document.getElementById('schedule-selector').value;
                     const schedule = db.schedules[scheduleId];
-                    if (!schedule) {
-                        failureCallback('Schedule not found');
-                        return;
-                    }
+                    if (!schedule) { failureCallback('Schedule not found'); return; }
                     
-                    let finalEvents = Object.values(schedule.events).map(e => ({...e})); 
-                    Object.values(schedule.overrides).forEach(override => finalEvents.push(override));
-
+                    let finalEvents = [...Object.values(schedule.events), ...Object.values(schedule.overrides)];
                     const breakEvents = [
-                        { title: 'Short Break', startTime: '10:40', endTime: '10:55', display: 'block', backgroundColor: '#a1a1aa', classNames: ['break-event'], daysOfWeek: [1,2,3,4,5] },
-                        { title: 'Lunch Break', startTime: '12:35', endTime: '13:30', display: 'block', backgroundColor: '#a1a1aa', classNames: ['break-event'], daysOfWeek: [1,2,3,4,5] }
+                        { title: 'Short Break', startTime: '10:40', endTime: '10:55', display: 'background', backgroundColor: '#a1a1aa', classNames: ['break-event'], daysOfWeek: [1,2,3,4,5] },
+                        { title: 'Lunch Break', startTime: '12:35', endTime: '13:30', display: 'background', backgroundColor: '#a1a1aa', classNames: ['break-event'], daysOfWeek: [1,2,3,4,5] }
                     ];
                     finalEvents.push(...breakEvents);
 
@@ -994,12 +980,8 @@
                     successCallback(filteredEvents);
                 },
                  eventContent: (arg) => {
-                    if (arg.event.classNames.includes('break-event')) {
-                        return { html: `<div style="text-align:center; font-weight: bold; color: #4b5563;">${arg.event.title}</div>`};
-                    }
-
-                    const todayStr = getYYYYMMDD(arg.event.start);
-                    const staffAttendance = db.staffAttendance[todayStr] || {};
+                    const dateStr = getYYYYMMDD(arg.event.start);
+                    const staffAttendance = db.staffAttendance[dateStr] || {};
                     const originalProf = arg.event.extendedProps.originalProf || arg.event.extendedProps.prof;
                     let title = arg.event.title;
 
@@ -1021,15 +1003,10 @@
             if (!db.schedules[scheduleId]) { showToast("Schedule not found!", "error"); return; }
             document.getElementById('schedule-selector').value = scheduleId;
             document.getElementById('schedule-view').classList.remove('hidden');
-            if(calendar) {
-                calendar.gotoDate('2025-10-01');
-                calendar.refetchEvents();
-            }
+            if(calendar) { calendar.gotoDate('2025-10-01'); calendar.refetchEvents(); }
         }
         
-        function renderCalendar() {
-            if (calendar) { calendar.refetchEvents(); }
-        }
+        function renderCalendar() { if (calendar) { calendar.refetchEvents(); } }
 
         function populateScheduleSelector() {
             const selector = document.getElementById('schedule-selector');
@@ -1043,7 +1020,7 @@
         }
         
         function handleEventClick(info) {
-             if (info.event.classNames.includes('break-event')) return;
+            if (info.event.display === 'background') return;
             const scheduleId = document.getElementById('schedule-selector').value;
             const eventData = db.schedules[scheduleId].overrides[info.event.id] || db.schedules[scheduleId].events[info.event.id] || info.event.extendedProps;
             const modal = document.getElementById('class-details-modal');
@@ -1052,9 +1029,7 @@
             const currentProf = info.event.extendedProps.prof;
             const originalProf = info.event.extendedProps.originalProf || currentProf;
             modal.querySelector('#class-modal-prof').textContent = `Prof. ${currentProf}`;
-            if(info.event.extendedProps.originalProf) {
-                modal.querySelector('#class-modal-prof').textContent += ` (Covering for ${info.event.extendedProps.originalProf})`;
-            }
+            if(info.event.extendedProps.originalProf) modal.querySelector('#class-modal-prof').textContent += ` (Covering for ${info.event.extendedProps.originalProf})`;
             modal.querySelector('#class-modal-room').textContent = `Room: ${eventData.room}`;
             modal.querySelector('#class-modal-credits').textContent = `${eventData.credits} Credits`;
             const notesContent = modal.querySelector('#class-modal-notes-content');
@@ -1150,7 +1125,7 @@
             hideModal('class-details-modal');
             renderCalendar();
             updateNotifications();
-            renderStaffDashboard(); // Refresh dashboard to show new debt
+            renderStaffDashboard();
             showToast(`You are now covering this class for ${originalProf}.`, 'success');
         }
 
@@ -1158,10 +1133,8 @@
             if (!currentUser || (currentUser.role !== 'staff' && currentUser.role !== 'admin')) return;
             const totalNotifications = db.alerts.length;
             const badge = document.getElementById('notification-badge');
-            if (totalNotifications > 0) {
-                badge.textContent = totalNotifications;
-                badge.classList.remove('hidden');
-            } else { badge.classList.add('hidden'); }
+            if (totalNotifications > 0) { badge.textContent = totalNotifications; badge.classList.remove('hidden'); } 
+            else { badge.classList.add('hidden'); }
         }
         
         function openAlertsModal() {
@@ -1207,22 +1180,22 @@
             const now = today.getTime();
             const allEvents = calendar.getEvents();
             const eventsToday = allEvents.filter(e => e.start.toDateString() === today.toDateString()).sort((a,b) => a.start - b.start);
-            if (query.includes("hello") || query.includes("hi")) { return `Hello, ${currentUser.fullName}! How can I help you with your schedule today?`; }
+            if (query.includes("hello") || query.includes("hi")) { return `Hello, ${currentUser.fullName}! How can I help you today?`; }
             if (query.includes("what's next") || query.includes("next class")) {
-                const nextClass = eventsToday.find(e => e.start.getTime() > now && !e.classNames.includes('break-event'));
-                return nextClass ? `Your next class is ${nextClass.title} with ${nextClass.extendedProps.prof} at ${nextClass.start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}.` : "You have no more classes scheduled for today.";
+                const nextClass = eventsToday.find(e => e.start.getTime() > now && e.display !== 'background');
+                return nextClass ? `Your next class is ${nextClass.title} at ${nextClass.start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}.` : "You have no more classes today.";
             }
             if (query.includes("my attendance")) {
                  if (currentUser.role === 'student') {
                     const myAttendance = db.studentAttendance[currentUser.id] || {};
-                    const totalClasses = Object.keys(myAttendance).length;
-                    const attendedClasses = Object.values(myAttendance).filter(s => s === 'Present').length;
-                    const percentage = totalClasses > 0 ? ((attendedClasses / totalClasses) * 100).toFixed(1) : 100;
-                    return `Your current attendance is ${percentage}%. You've attended ${attendedClasses} out of ${totalClasses} recorded classes.`;
+                    const total = Object.keys(myAttendance).length;
+                    const attended = Object.values(myAttendance).filter(s => s === 'Present').length;
+                    const pct = total > 0 ? ((attended / total) * 100).toFixed(1) : 100;
+                    return `Your attendance is ${pct}%. You've attended ${attended} of ${total} classes.`;
                 }
-                return "Attendance data is available for students.";
+                return "Attendance data is for students.";
             }
-            return "I'm not sure how to answer that. You can ask me about your next class or your attendance.";
+            return "I can tell you about your next class or your attendance.";
         }
         
         function handleAddSubject() { showToast("This feature is disabled. Please use Admin tools to generate a full schedule.", 'info'); }
@@ -1251,15 +1224,9 @@
 
         function downloadScheduleICS() { showToast("Download temporarily disabled.", "info"); }
 
-        /**
-         * UPDATED SCHEDULE GENERATOR
-         * Fills the entire 35-slot weekly schedule by using an expanded curriculum definition.
-         */
         function generateNewSchedule(scheduleId, fromAdmin) {
             if(fromAdmin) showToast('Generating new schedule with all rules...', 'info');
 
-            // EXPANDED DATA: More classes defined to fill the entire week (35 slots total).
-            // This is sample data and can be customized as needed.
             const subjectDefinitions = [
                 { baseTitle: 'IoT', integrated: true, prof: 'Karthikeyan', theoryRoom: '101', labRoom: 'CS Lab', credits: 4, theoryCount: 2, labCount: 1 }, // 4 slots
                 { baseTitle: 'Power Systems', prof: 'Anamika', theoryRoom: '102', credits: 3, theoryCount: 4 }, // 4 slots
@@ -1271,14 +1238,10 @@
                 { baseTitle: 'Communication Skills', prof: 'Harine', theoryRoom: '202', credits: 2, theoryCount: 4 }, // 4 slots
                 { baseTitle: 'Library', prof: 'Kiruthik', theoryRoom: 'Library', credits: 1, theoryCount: 1 }, // 1 slot
                 { baseTitle: 'Mentoring', prof: 'Yokesh', theoryRoom: '201', credits: 1, theoryCount: 2 }, // 2 slots
-                // TOTAL: 4+4+4+4+4+4+4+4+1+2 = 35 slots
             ];
 
-            // Assign default colors if not specified
             const colors = ['#6d28d9', '#1d4ed8', '#c026d3', '#047857', '#ca8a04', '#be123c', '#15803d', '#f97316', '#475569', '#64748b'];
-            subjectDefinitions.forEach((def, i) => {
-                def.backgroundColor = colors[i % colors.length];
-            });
+            subjectDefinitions.forEach((def, i) => { def.backgroundColor = colors[i % colors.length]; });
 
             let labClasses = [];
             let theoryClasses = [];
@@ -1290,19 +1253,12 @@
             });
             
             [labClasses, theoryClasses].forEach(arr => {
-                for (let i = arr.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [arr[i], arr[j]] = [arr[j], arr[i]];
-                }
+                for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; }
             });
 
             const timeSlots = [ '09:00', '09:50', '10:55', '11:45', '13:30', '14:20', '15:10' ];
             let availableSlots = [];
-            for (let day = 1; day <= 5; day++) { // Monday to Friday
-                timeSlots.forEach(time => {
-                    availableSlots.push({ day, time });
-                });
-            }
+            for (let day = 1; day <= 5; day++) { timeSlots.forEach(time => { availableSlots.push({ day, time }); }); }
             
             const newEvents = {};
             const isConflict = (classInfo, day, time, duration = 50) => {
@@ -1317,15 +1273,13 @@
 
             labClasses.forEach(labInfo => {
                 for (let i = 0; i < availableSlots.length - 1; i++) {
-                    const slot1 = availableSlots[i];
-                    const slot2 = availableSlots[i+1];
+                    const slot1 = availableSlots[i], slot2 = availableSlots[i+1];
                     const slot1End = new Date(new Date(`1970-01-01T${slot1.time}:00`).getTime() + 50 * 60000).toTimeString().slice(0,5);
                     const areConsecutive = slot1.day === slot2.day && slot1End === slot2.time;
                     if (areConsecutive && !isConflict(labInfo, slot1.day, slot1.time, 100)) {
                         const eventId = `event_lab_${Object.keys(newEvents).length + 1}`;
                         newEvents[eventId] = { ...labInfo, id: eventId, daysOfWeek: [slot1.day], startTime: slot1.time, endTime: new Date(new Date(`1970-01-01T${slot2.time}:00`).getTime() + 50 * 60000).toTimeString().slice(0,5) };
-                        availableSlots.splice(i, 2);
-                        break;
+                        availableSlots.splice(i, 2); break;
                     }
                 }
             });
@@ -1336,8 +1290,7 @@
                     if (!isConflict(theoryInfo, slot.day, slot.time)) {
                          const eventId = `event_theory_${Object.keys(newEvents).length + 1}`;
                          newEvents[eventId] = { ...theoryInfo, id: eventId, daysOfWeek: [slot.day], startTime: slot.time, endTime: new Date(new Date(`1970-01-01T${slot.time}:00`).getTime() + 50 * 60000).toTimeString().slice(0,5) };
-                         availableSlots.splice(i, 1);
-                         break;
+                         availableSlots.splice(i, 1); break;
                     }
                 }
             });
@@ -1351,7 +1304,6 @@
                 renderStaffDashboard();
                 loadSchedule(scheduleId);
             }
-            
             return newEvents;
         }
 
