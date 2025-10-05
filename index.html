@@ -454,10 +454,9 @@
                     populateScheduleSelector();
                     loadSchedule(currentUser.scheduleId);
                 } else if (currentUser.role === 'admin') {
-                    // FIXED: Admin can now see the admin dashboard AND the schedule view.
                     document.getElementById('admin-dashboard').classList.remove('hidden');
                     document.getElementById('schedule-view').classList.remove('hidden');
-                    document.getElementById('staff-schedule-tools').classList.add('hidden'); // No tools for admin
+                    document.getElementById('staff-schedule-tools').classList.add('hidden');
                     document.getElementById('main-schedule-area').classList.remove('lg:col-span-3');
                     document.getElementById('main-schedule-area').classList.add('lg:col-span-4');
                     renderAdminDashboard();
@@ -1094,27 +1093,60 @@
         
         function handleEventClick(info) {
             if (info.event.display === 'background') return;
+
             const scheduleId = document.getElementById('schedule-selector').value;
             const eventData = db.schedules[scheduleId].overrides[info.event.id] || db.schedules[scheduleId].events[info.event.id] || info.event.extendedProps;
             const modal = document.getElementById('class-details-modal');
             modal.querySelector('#class-modal-title').textContent = info.event.title;
             modal.querySelector('#class-modal-time').textContent = `${info.event.start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${info.event.end.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+            
             const currentProf = info.event.extendedProps.prof;
             const originalProf = info.event.extendedProps.originalProf || currentProf;
+            
             modal.querySelector('#class-modal-prof').textContent = `Prof. ${currentProf}`;
             if(info.event.extendedProps.originalProf) modal.querySelector('#class-modal-prof').textContent += ` (Covering for ${info.event.extendedProps.originalProf})`;
             modal.querySelector('#class-modal-room').textContent = `Room: ${eventData.room}`;
             modal.querySelector('#class-modal-credits').textContent = `${eventData.credits} Credits`;
+            
             const notesContent = modal.querySelector('#class-modal-notes-content');
             const actionContainer = document.getElementById('action-container');
-            actionContainer.innerHTML = '';
             const isMyClass = currentProf === currentUser.fullName;
             const isUncovered = info.event.title.includes('UNCOVERED');
+
             notesContent.innerHTML = `<textarea id="notes-textarea" class="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" rows="3" ${!isMyClass ? 'readonly' : ''}>${eventData.notes || ''}</textarea>`;
+            actionContainer.innerHTML = ''; 
+            
             if (currentUser.role === 'staff') {
-                if(isMyClass){
-                    // Buttons for saving notes and marking attendance...
-                } else if(isUncovered) {
+                if (isMyClass) {
+                    const saveNotesBtn = document.createElement('button');
+                    saveNotesBtn.innerHTML = `<i data-lucide="save"></i> Save Notes`;
+                    saveNotesBtn.className = 'w-full text-center bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-lg flex items-center justify-center gap-2 transition';
+                    saveNotesBtn.onclick = () => {
+                        const eventToUpdate = db.schedules[scheduleId].overrides[info.event.id] || db.schedules[scheduleId].events[info.event.id];
+                        if (eventToUpdate) {
+                            eventToUpdate.notes = document.getElementById('notes-textarea').value;
+                            saveDatabase();
+                            showToast('Notes saved!', 'success');
+                            hideModal('class-details-modal');
+                        }
+                    };
+                    actionContainer.appendChild(saveNotesBtn);
+
+                    const markAttendanceBtn = document.createElement('button');
+                    markAttendanceBtn.innerHTML = `<i data-lucide="user-check"></i> Mark Student Attendance`;
+                    markAttendanceBtn.className = 'w-full text-center bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 rounded-lg flex items-center justify-center gap-2 transition';
+                    markAttendanceBtn.onclick = () => {
+                        hideModal('class-details-modal');
+                        openStudentAttendanceModal(info.event.id);
+                    };
+                    actionContainer.appendChild(markAttendanceBtn);
+
+                } else if (isUncovered) {
+                    const helpText = document.createElement('p');
+                    helpText.className = 'text-sm text-amber-600 dark:text-amber-400 p-3 bg-amber-50 dark:bg-amber-900/50 rounded-lg';
+                    helpText.innerHTML = "This class is available. By covering it, you will create a <strong>class debt</strong> which must be repaid by the original professor.";
+                    actionContainer.appendChild(helpText);
+
                     const coverClassBtn = document.createElement('button');
                     coverClassBtn.innerHTML = `<i data-lucide="user-plus"></i> Cover This Class (FCFS)`;
                     coverClassBtn.className = 'w-full text-center bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 rounded-lg flex items-center justify-center gap-2 transition';
@@ -1294,17 +1326,16 @@
         function generateNewSchedule(scheduleId, fromAdmin) {
             if(fromAdmin) showToast('Generating new schedule...', 'info');
 
-            // Workload is now balanced. Each staff has 4 or 5 classes.
             const subjectDefinitions = [
-                { baseTitle: 'IoT', integrated: true, prof: 'Karthikeyan', theoryRoom: '101', labRoom: 'CS Lab', credits: 4, theoryCount: 2, labCount: 1 }, // 4 slots
-                { baseTitle: 'Power Systems', prof: 'Anamika', theoryRoom: '102', credits: 3, theoryCount: 4 }, // 4 slots
-                { baseTitle: 'Elec. Hybrid Vehicle', prof: 'Balaji', theoryRoom: '103', credits: 3, theoryCount: 4 }, // 4 slots
-                { baseTitle: 'EV Architecture', integrated: true, prof: 'Yokesh', theoryRoom: '201', labRoom: 'Lab A', credits: 4, theoryCount: 3, labCount: 1 }, // 5 slots
-                { baseTitle: 'Ethics', prof: 'Kiruthik', theoryRoom: '202', credits: 2, theoryCount: 4 }, // 4 slots
-                { baseTitle: 'Linear IC', integrated: true, prof: 'Saravana', theoryRoom: '203', labRoom: 'Lab B', credits: 4, theoryCount: 2, labCount: 1 }, // 4 slots
-                { baseTitle: 'Advanced E-Vehicles', prof: 'Kanishq', theoryRoom: '103', credits: 3, theoryCount: 4 }, // 4 slots
-                { baseTitle: 'Communication Skills', prof: 'Harine', theoryRoom: '202', credits: 2, theoryCount: 5 }, // 5 slots
-                { baseTitle: 'Library', prof: 'Anamika', theoryRoom: 'Library', credits: 1, theoryCount: 1 }, // 1 slot -> Anamika: 5 total
+                { baseTitle: 'IoT', integrated: true, prof: 'Karthikeyan', theoryRoom: '101', labRoom: 'CS Lab', credits: 4, theoryCount: 2, labCount: 1 },
+                { baseTitle: 'Power Systems', prof: 'Anamika', theoryRoom: '102', credits: 3, theoryCount: 4 },
+                { baseTitle: 'Elec. Hybrid Vehicle', prof: 'Balaji', theoryRoom: '103', credits: 3, theoryCount: 4 },
+                { baseTitle: 'EV Architecture', integrated: true, prof: 'Yokesh', theoryRoom: '201', labRoom: 'Lab A', credits: 4, theoryCount: 3, labCount: 1 },
+                { baseTitle: 'Ethics', prof: 'Kiruthik', theoryRoom: '202', credits: 2, theoryCount: 4 },
+                { baseTitle: 'Linear IC', integrated: true, prof: 'Saravana', theoryRoom: '203', labRoom: 'Lab B', credits: 4, theoryCount: 2, labCount: 1 },
+                { baseTitle: 'Advanced E-Vehicles', prof: 'Kanishq', theoryRoom: '103', credits: 3, theoryCount: 4 },
+                { baseTitle: 'Communication Skills', prof: 'Harine', theoryRoom: '202', credits: 2, theoryCount: 5 },
+                { baseTitle: 'Library', prof: 'Anamika', theoryRoom: 'Library', credits: 1, theoryCount: 1 },
             ];
 
             const colors = ['#6d28d9', '#1d4ed8', '#c026d3', '#047857', '#ca8a04', '#be123c', '#15803d', '#f97316', '#475569'];
@@ -1352,8 +1383,10 @@
                         if (event.daysOfWeek.includes(slot1.day) && event.title.includes('(Lab)')) {
                             const existingStartMins = timeToMinutes(event.startTime);
                             const existingEndMins = timeToMinutes(event.endTime);
-                            if (existingEndMins < proposedStartMins && proposedStartMins - existingEndMins < 60) { isAdjacentToAnotherLab = true; break; }
-                            if (existingStartMins > proposedEndMins && existingStartMins - proposedEndMins < 60) { isAdjacentToAnotherLab = true; break; }
+                            if (Math.abs(proposedStartMins - existingEndMins) < 60 || Math.abs(existingStartMins - proposedEndMins) < 60) {
+                                isAdjacentToAnotherLab = true;
+                                break;
+                            }
                         }
                     }
 
