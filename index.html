@@ -384,10 +384,6 @@
             checkLoginState();
         });
         
-        /**
-         * FIXED: A simpler, more robust function to get the YYYY-MM-DD string
-         * that avoids timezone issues within the browser.
-         */
         function getYYYYMMDD(d) {
             const date = new Date(d);
             const year = date.getFullYear();
@@ -578,8 +574,13 @@
             initializeAppUI(false);
         }
 
+        /**
+         * NEW: Admin dashboard now includes a tool to manage future absences.
+         */
         function renderAdminDashboard() {
             const dash = document.getElementById('admin-dashboard');
+
+            // --- Generate Holiday List ---
             const holidayListHtml = Object.entries(db.holidays).map(([date, name]) => 
                 `<div class="flex justify-between items-center p-2 bg-slate-100 dark:bg-gray-700 rounded-md">
                     <span>${date}: <strong>${name}</strong></span>
@@ -587,26 +588,42 @@
                 </div>`
             ).join('');
 
-            dash.innerHTML = `<h2 class="text-3xl font-bold mb-6 font-poppins">Admin Controls</h2>
+            // --- Generate Staff Dropdown Options ---
+            const staffOptions = Object.values(db.users)
+                .filter(u => u.role === 'staff')
+                .map(s => `<option value="${s.fullName}">${s.fullName}</option>`)
+                .join('');
+            
+            // --- Generate List of Scheduled Absences ---
+            let scheduledAbsencesHtml = '';
+            const today = new Date();
+            today.setHours(0,0,0,0); // For date comparison
+            Object.entries(db.staffAttendance).forEach(([dateStr, attendance]) => {
+                const date = new Date(dateStr);
+                if (date >= today) {
+                    Object.entries(attendance).forEach(([staffName, status]) => {
+                        if (status === 'Absent') {
+                            scheduledAbsencesHtml += `<div class="flex justify-between items-center p-2 bg-slate-100 dark:bg-gray-700 rounded-md">
+                                <span><strong>${staffName}</strong> on ${dateStr}</span>
+                                <button data-date="${dateStr}" data-staff="${staffName}" class="remove-absence-btn text-red-500 hover:text-red-700"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                            </div>`;
+                        }
+                    });
+                }
+            });
+
+
+            // --- Main HTML Structure ---
+            dash.innerHTML = `
+                <h2 class="text-3xl font-bold mb-6 font-poppins">Admin Controls</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="bg-white dark:bg-gray-800/50 p-6 rounded-xl shadow-md">
                         <h3 class="font-bold text-lg mb-4">Master Schedule Generation</h3>
-                        <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">This will generate a new, conflict-free weekly repeating timetable for the selected class.</p>
-                        <button id="generate-schedule-btn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition flex items-center justify-center gap-2">
-                            <i data-lucide="shuffle"></i> Generate New Schedule
-                        </button>
+                        <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">Regenerates the weekly timetable for the entire class. This will overwrite the current schedule.</p>
+                        <button id="generate-schedule-btn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition flex items-center justify-center gap-2"><i data-lucide="shuffle"></i> Generate New Schedule</button>
                     </div>
+
                     <div class="bg-white dark:bg-gray-800/50 p-6 rounded-xl shadow-md">
-                        <h3 class="font-bold text-lg mb-4">Holiday Management</h3>
-                        <div class="flex items-center gap-4 mb-4">
-                             <input type="date" id="holiday-date" class="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
-                             <input type="text" id="holiday-name" placeholder="Holiday Name" class="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
-                             <button id="add-holiday-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition">Add</button>
-                        </div>
-                        <h4 class="font-semibold text-sm mb-2">Upcoming Holidays</h4>
-                        <div id="holiday-list" class="space-y-2 max-h-48 overflow-y-auto">${holidayListHtml || '<p class="text-slate-500 text-sm">No holidays scheduled.</p>'}</div>
-                    </div>
-                     <div class="md:col-span-2 bg-white dark:bg-gray-800/50 p-6 rounded-xl shadow-md">
                         <h3 class="font-bold text-lg mb-4">Staff Attendance Cutoff</h3>
                         <div class="flex items-center gap-4">
                             <div>
@@ -620,39 +637,51 @@
                             <button id="save-cutoff-btn" class="self-end bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition">Save</button>
                         </div>
                     </div>
+
+                    <div class="md:col-span-2 bg-white dark:bg-gray-800/50 p-6 rounded-xl shadow-md">
+                         <h3 class="font-bold text-lg mb-4">Manage Future Staff Absences</h3>
+                         <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
+                            <select id="absence-staff-selector" class="sm:col-span-2 p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"><option value="">Select Staff...</option>${staffOptions}</select>
+                            <input type="date" id="absence-start-date" class="p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
+                             <button id="add-absence-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition">Add Absence</button>
+                         </div>
+                         <h4 class="font-semibold text-sm mb-2">Scheduled Absences</h4>
+                         <div id="scheduled-absences-list" class="space-y-2 max-h-48 overflow-y-auto">${scheduledAbsencesHtml || '<p class="text-slate-500 text-sm">No future absences scheduled.</p>'}</div>
+                    </div>
+
+                    <div class="md:col-span-2 bg-white dark:bg-gray-800/50 p-6 rounded-xl shadow-md">
+                        <h3 class="font-bold text-lg mb-4">Holiday Management</h3>
+                        <div class="flex items-center gap-4 mb-4">
+                             <input type="date" id="holiday-date" class="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
+                             <input type="text" id="holiday-name" placeholder="Holiday Name" class="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
+                             <button id="add-holiday-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition">Add</button>
+                        </div>
+                        <h4 class="font-semibold text-sm mb-2">Upcoming Holidays</h4>
+                        <div id="holiday-list" class="space-y-2 max-h-48 overflow-y-auto">${holidayListHtml || '<p class="text-slate-500 text-sm">No holidays scheduled.</p>'}</div>
+                    </div>
                 </div>`;
             lucide.createIcons();
             
+            // --- Attach Event Listeners ---
             document.getElementById('generate-schedule-btn').onclick = () => {
-                showConfirmModal('Are you sure you want to generate a new schedule for this class? The current one will be overwritten.', () => generateNewSchedule('grade-10-a', true));
+                showConfirmModal('Are you sure you want to generate a new schedule? The current one will be overwritten.', () => generateNewSchedule('grade-10-a', true));
             };
             document.getElementById('save-cutoff-btn').onclick = () => {
-                const hours = parseInt(document.getElementById('cutoff-hours').value);
-                const minutes = parseInt(document.getElementById('cutoff-minutes').value);
-                if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
-                    showToast('Please enter a valid time.', 'error');
-                    return;
-                }
-                db.attendanceCutoff.hours = hours;
-                db.attendanceCutoff.minutes = minutes;
+                const hours = parseInt(document.getElementById('cutoff-hours').value), minutes = parseInt(document.getElementById('cutoff-minutes').value);
+                if (isNaN(hours) || isNaN(minutes) || hours<0||hours>23||minutes<0||minutes>59) { showToast('Please enter a valid time.', 'error'); return; }
+                db.attendanceCutoff = { hours, minutes };
                 saveDatabase();
                 showToast(`Cutoff time updated to ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`, 'success');
             };
-
             document.getElementById('add-holiday-btn').onclick = () => {
-                const date = document.getElementById('holiday-date').value;
-                const name = document.getElementById('holiday-name').value.trim();
-                if (!date || !name) {
-                    showToast('Please provide both a date and a name for the holiday.', 'error');
-                    return;
-                }
+                const date = document.getElementById('holiday-date').value, name = document.getElementById('holiday-name').value.trim();
+                if (!date || !name) { showToast('Please provide both a date and a name for the holiday.', 'error'); return; }
                 db.holidays[date] = name;
                 saveDatabase();
                 showToast(`Holiday "${name}" added on ${date}.`, 'success');
                 renderAdminDashboard();
                 renderCalendar();
             };
-
             document.querySelectorAll('.remove-holiday-btn').forEach(btn => {
                 btn.onclick = (e) => {
                     const date = e.currentTarget.dataset.date;
@@ -665,6 +694,65 @@
                     });
                 }
             });
+            document.getElementById('add-absence-btn').onclick = handleAddAbsence;
+            document.querySelectorAll('.remove-absence-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    const { date, staff } = e.currentTarget.dataset;
+                    showConfirmModal(`Are you sure you want to remove ${staff}'s absence on ${date}?`, () => {
+                        handleRemoveAbsence(date, staff);
+                    });
+                }
+            });
+        }
+
+        /**
+         * NEW: Handles the logic for adding a future absence from the admin panel.
+         */
+        function handleAddAbsence() {
+            const staffName = document.getElementById('absence-staff-selector').value;
+            const startDateStr = document.getElementById('absence-start-date').value;
+
+            if (!staffName || !startDateStr) {
+                showToast('Please select a staff member and a start date.', 'error');
+                return;
+            }
+            
+            const date = new Date(startDateStr + 'T00:00:00'); // Use T00 to avoid timezone shifts
+            const dateStr = getYYYYMMDD(date);
+
+            if (!db.staffAttendance[dateStr]) {
+                db.staffAttendance[dateStr] = {};
+            }
+            db.staffAttendance[dateStr][staffName] = 'Absent';
+            
+            // Alert staff about the future uncovered classes
+            db.alerts.push({ 
+                id: `alert_${Date.now()}`, 
+                message: `${staffName} has been marked absent for ${dateStr}. Their classes will be available to cover.`, 
+                date: new Date().toISOString() 
+            });
+
+            saveDatabase();
+            updateNotifications();
+            showToast(`Absence for ${staffName} on ${dateStr} has been scheduled.`, 'success');
+            renderAdminDashboard();
+            renderCalendar();
+        }
+
+        /**
+         * NEW: Handles the logic for removing a scheduled absence.
+         */
+        function handleRemoveAbsence(date, staffName) {
+            if (db.staffAttendance[date] && db.staffAttendance[date][staffName]) {
+                delete db.staffAttendance[date][staffName];
+                if (Object.keys(db.staffAttendance[date]).length === 0) {
+                    delete db.staffAttendance[date];
+                }
+                saveDatabase();
+                showToast(`Absence for ${staffName} on ${date} removed.`, 'info');
+                renderAdminDashboard();
+                renderCalendar();
+            }
         }
         
         function renderStaffDashboard() {
@@ -935,23 +1023,16 @@
                         arg.el.dataset.holidayName = db.holidays[dateStr];
                     }
                 },
-                /**
-                 * FIXED: Checks every event as it's rendered. If it's on a holiday, it's hidden.
-                 * If the professor is absent and it's not covered, it gets a red 'uncovered' style.
-                 */
                 eventDidMount: (arg) => {
                     const dateStr = getYYYYMMDD(arg.event.start);
-                    
                     if (db.holidays[dateStr]) {
                         arg.el.style.visibility = 'hidden';
                         return;
                     }
-                    
                     const staffAttendance = db.staffAttendance[dateStr] || {};
                     const originalProf = arg.event.extendedProps.prof;
                     const isAbsent = staffAttendance[originalProf] === 'Absent';
                     const isAlreadyCovered = !!arg.event.extendedProps.originalProf;
-
                     if (isAbsent && !isAlreadyCovered) {
                         arg.el.classList.add('uncovered');
                     }
@@ -964,22 +1045,23 @@
                     
                     let finalEvents = [...Object.values(schedule.events), ...Object.values(schedule.overrides)];
                     const breakEvents = [
-                        { title: 'Short Break', startTime: '10:40', endTime: '10:55', display: 'background', backgroundColor: '#a1a1aa', classNames: ['break-event'], daysOfWeek: [1,2,3,4,5] },
-                        { title: 'Lunch Break', startTime: '12:35', endTime: '13:30', display: 'background', backgroundColor: '#a1a1aa', classNames: ['break-event'], daysOfWeek: [1,2,3,4,5] }
+                        { title: 'Short Break', startTime: '10:40', endTime: '10:55', display: 'background' },
+                        { title: 'Lunch Break', startTime: '12:35', endTime: '13:30', display: 'background' }
                     ];
-                    finalEvents.push(...breakEvents);
+                    finalEvents.push(...breakEvents.map(b => ({...b, daysOfWeek: [1,2,3,4,5]})));
 
                     const staffView = document.getElementById('staff-view-selector').value;
                     let filteredEvents = finalEvents;
                     if (currentUser && currentUser.role === 'staff' && staffView !== 'full-class') {
                         filteredEvents = finalEvents.filter(e => {
-                            if (e.classNames?.includes('break-event')) return true;
+                            if (e.display === 'background') return true;
                             return e.prof === staffView || e.originalProf === staffView;
                         });
                     }
                     successCallback(filteredEvents);
                 },
                  eventContent: (arg) => {
+                    if (arg.event.display === 'background') return false; // Hide background event titles
                     const dateStr = getYYYYMMDD(arg.event.start);
                     const staffAttendance = db.staffAttendance[dateStr] || {};
                     const originalProf = arg.event.extendedProps.originalProf || arg.event.extendedProps.prof;
@@ -1243,12 +1325,11 @@
             const colors = ['#6d28d9', '#1d4ed8', '#c026d3', '#047857', '#ca8a04', '#be123c', '#15803d', '#f97316', '#475569', '#64748b'];
             subjectDefinitions.forEach((def, i) => { def.backgroundColor = colors[i % colors.length]; });
 
-            let labClasses = [];
-            let theoryClasses = [];
+            let labClasses = [], theoryClasses = [];
             subjectDefinitions.forEach(def => {
-                for (let i = 0; i < def.theoryCount; i++) { theoryClasses.push({ title: `${def.baseTitle}`, prof: def.prof, room: def.theoryRoom, credits: def.credits, backgroundColor: def.backgroundColor }); }
+                for (let i=0; i<def.theoryCount; i++) { theoryClasses.push({ title: `${def.baseTitle}`, prof: def.prof, room: def.theoryRoom, credits: def.credits, backgroundColor: def.backgroundColor }); }
                 if (def.integrated) {
-                    for (let i = 0; i < def.labCount; i++) { labClasses.push({ title: `${def.baseTitle} (Lab)`, prof: def.prof, room: def.labRoom, credits: def.credits, backgroundColor: def.backgroundColor }); }
+                    for (let i=0; i<def.labCount; i++) { labClasses.push({ title: `${def.baseTitle} (Lab)`, prof: def.prof, room: def.labRoom, credits: def.credits, backgroundColor: def.backgroundColor }); }
                 }
             });
             
