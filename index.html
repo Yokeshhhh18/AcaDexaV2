@@ -298,16 +298,22 @@
             </div>
         </div>
         <div id="notifications-modal" class="modal fixed inset-0 bg-black bg-opacity-60 z-[80] flex items-center justify-center p-4">
-            <div class="modal-content bg-white dark:bg-gray-800 p-6 rounded-lg shadow-2xl max-w-lg w-full relative">
+            <div class="modal-content bg-white dark:bg-gray-800 p-6 rounded-lg shadow-2xl max-w-lg w-full relative h-[80vh] flex flex-col">
                 <button class="close-modal-btn absolute top-4 right-4 text-slate-500 hover:text-indigo-500 transition"><i data-lucide="x"></i></button>
                 <h3 class="text-2xl font-bold mb-4 font-poppins">Notifications & Debts</h3>
-                <div class="border-b dark:border-gray-700 pb-2 mb-2">
-                    <h4 class="font-bold flex items-center gap-2 mb-2"><i data-lucide="arrow-left-right" class="text-indigo-500"></i>Pending Class Debts</h4>
-                    <div id="class-debt-list" class="text-sm space-y-2 max-h-48 overflow-y-auto"></div>
-                </div>
-                <div>
-                    <h4 class="font-bold flex items-center gap-2 mb-2"><i data-lucide="alert-circle" class="text-amber-500"></i>System Alerts</h4>
-                    <div id="alert-list" class="text-sm max-h-48 overflow-y-auto"></div>
+                <div class="flex-grow overflow-y-auto space-y-4 pr-2">
+                    <div id="debts-owed-to-me-container">
+                        <h4 class="font-bold flex items-center gap-2 mb-2"><i data-lucide="trending-up" class="text-green-500"></i>Debts Owed To You</h4>
+                        <div id="debts-owed-to-me-list" class="text-sm space-y-2"></div>
+                    </div>
+                    <div id="debts-you-owe-container" class="border-t dark:border-gray-700 pt-4">
+                        <h4 class="font-bold flex items-center gap-2 mb-2"><i data-lucide="trending-down" class="text-red-500"></i>Debts You Owe</h4>
+                        <div id="debts-you-owe-list" class="text-sm space-y-2"></div>
+                    </div>
+                    <div class="border-t dark:border-gray-700 pt-4">
+                        <h4 class="font-bold flex items-center gap-2 mb-2"><i data-lucide="alert-circle" class="text-amber-500"></i>System Alerts</h4>
+                        <div id="alert-list" class="text-sm space-y-2"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -517,14 +523,17 @@
                 if (e.target.closest('.close-modal-btn')) {
                     hideModal(e.target.closest('.modal').id);
                 }
-                 if (e.target.closest('.repay-debt-btn')) {
-                    const debtId = e.target.closest('.repay-debt-btn').dataset.id;
-                    repayDebt(debtId);
-                }
                 if (e.target.closest('.cover-class-btn')) {
                     const eventId = e.target.closest('.cover-class-btn').dataset.eventid;
                     showConfirmModal(`Are you sure you want to cover this class for ${e.target.closest('.cover-class-btn').dataset.originalprof}? A debt will be created.`, () => {
-                         claimUncoveredClass(eventId);
+                        claimUncoveredClass(eventId);
+                    });
+                }
+                // NEW: Event listener for marking a debt as repaid
+                if (e.target.closest('.mark-repaid-btn')) {
+                    const debtId = e.target.closest('.mark-repaid-btn').dataset.id;
+                    showConfirmModal('Are you sure this debt has been fulfilled and should be marked as repaid? This cannot be undone.', () => {
+                       markDebtAsRepaid(debtId);
                     });
                 }
             });
@@ -819,32 +828,40 @@
                 
                 const todayStr = getYYYYMMDD(new Date());
                 if (!db.staffAttendance[todayStr]) db.staffAttendance[todayStr] = {};
-                db.staffAttendance[todayStr][currentUser.fullName] = status;
                 
-                if (!isSuccess) {
-                    handleAbsence(currentUser.fullName);
-                } else {
+                if (isSuccess) {
+                    db.staffAttendance[todayStr][currentUser.fullName] = 'Present';
                     saveDatabase();
                     showToast(`Welcome, ${currentUser.fullName}! You are marked present.`, 'success');
+                } else {
+                    handleAbsence(currentUser.fullName);
                 }
                 renderAttendanceDashboard(todayStr);
                 renderCalendar();
             }, 1500);
         }
         
-        function handleAbsence(staffName, auto = false) {
+        /**
+         * FIX: Handles staff absence, now creates a system-wide alert for all staff.
+         */
+        function handleAbsence(staffName) {
             const todayStr = getYYYYMMDD(new Date());
             if (!db.staffAttendance[todayStr]) db.staffAttendance[todayStr] = {};
-            if (db.staffAttendance[todayStr][staffName] === 'Absent') return; // Already absent
+            
+            // Do nothing if already processed to prevent duplicate alerts
+            if (db.staffAttendance[todayStr][staffName] === 'Absent') return;
 
             db.staffAttendance[todayStr][staffName] = 'Absent';
             
-            // BUG FIX: Generate system alert on absence
-            db.alerts.push({ 
-                id: `alert_${Date.now()}`, 
-                message: `${staffName} has been marked absent for today. Their classes are available to cover.`, 
-                date: new Date().toISOString() 
-            });
+            // Create a persistent system alert for all other staff members
+            const alertExists = db.alerts.some(alert => alert.message.includes(`${staffName} has been marked absent`));
+            if (!alertExists) {
+                db.alerts.push({ 
+                    id: `alert_${Date.now()}`, 
+                    message: `${staffName} has been marked absent for today. Their classes are available to cover.`, 
+                    date: new Date().toISOString() 
+                });
+            }
 
             showToast(`${staffName} is absent. Their classes are now available for others to cover.`, "info");
             updateNotifications();
@@ -900,7 +917,7 @@
                     let finalEvents = Object.values(schedule.events).map(e => ({...e})); 
                     Object.values(schedule.overrides).forEach(override => finalEvents.push(override));
 
-                    // FEATURE: Add visible lunch and break events
+                    // Add visible lunch and break events
                     const breakEvents = [
                         { title: 'Short Break', startTime: '10:40', endTime: '10:55', display: 'block', backgroundColor: '#a1a1aa', classNames: ['break-event'], daysOfWeek: [1,2,3,4,5] },
                         { title: 'Lunch Break', startTime: '12:35', endTime: '13:30', display: 'block', backgroundColor: '#a1a1aa', classNames: ['break-event'], daysOfWeek: [1,2,3,4,5] }
@@ -938,7 +955,7 @@
                     let eventEl = document.createElement('div');
                     eventEl.innerHTML = title;
                     return { domNodes: [eventEl] }
-                 }
+                }
             });
             calendar.render();
         }
@@ -1095,6 +1112,7 @@
             if(schedule.overrides[overrideId]){
                 showToast("This class has already been covered by someone else.", "error");
                 hideModal('class-details-modal');
+                renderCalendar(); // Refresh view in case it's stale
                 return;
             }
 
@@ -1130,7 +1148,7 @@
         function updateNotifications() {
             if (!currentUser || (currentUser.role !== 'staff' && currentUser.role !== 'admin')) return;
             const myDebts = db.classDebts.filter(d => (d.debtor === currentUser.fullName || d.creditor === currentUser.fullName) && d.status === 'Unpaid');
-            // BUG FIX: Include alerts in notification count
+            // Notification count includes pending debts and unread alerts
             const totalNotifications = myDebts.length + db.alerts.length;
             const badge = document.getElementById('notification-badge');
             
@@ -1141,36 +1159,72 @@
                 badge.classList.add('hidden');
             }
         }
-
+        
+        /**
+         * NEW: Renders the redesigned notifications modal with separate debt sections.
+         */
         function openNotifications() {
-            const debtList = document.getElementById('class-debt-list');
+            const debtsOwedToMeList = document.getElementById('debts-owed-to-me-list');
+            const debtsYouOweList = document.getElementById('debts-you-owe-list');
             const alertList = document.getElementById('alert-list');
-            const myDebts = db.classDebts.filter(d => (currentUser && (d.debtor === currentUser.fullName || d.creditor === currentUser.fullName)) && d.status === 'Unpaid');
-            
-            if (myDebts.length === 0) {
-                debtList.innerHTML = '<p class="text-slate-500">No pending class debts.</p>';
-            } else {
-                debtList.innerHTML = myDebts.map(debt => {
-                    const iOwe = debt.debtor === currentUser.fullName;
-                    return `<div class="p-3 bg-slate-100 dark:bg-gray-700 rounded-md"><div class="flex justify-between items-start"><div><p class="font-semibold">You ${iOwe ? 'owe' : 'are owed by'} ${iOwe ? debt.creditor : debt.debtor} one class.</p><p class="text-xs text-slate-500">For: ${debt.classInfo.title} on ${new Date(debt.classInfo.start).toLocaleDateString()}</p></div>${iOwe ? `<button data-id="${debt.id}" class="repay-debt-btn bg-indigo-600 text-white text-xs font-bold py-1 px-3 rounded-md hover:bg-indigo-700">Repay</button>` : ''}</div></div>`;
-                }).join('');
-            }
 
-            alertList.innerHTML = db.alerts.length === 0 ? '<p class="text-slate-500">No system alerts.</p>' : db.alerts.slice().reverse().map(alert => `<div class="p-3 bg-slate-100 dark:bg-gray-700 rounded-md"><p>${alert.message}</p><p class="text-xs text-slate-500 mt-1">${new Date(alert.date).toLocaleString()}</p></div>`).join('');
+            const pendingDebts = db.classDebts.filter(d => d.status === 'Unpaid');
+            const debtsOwedToMe = pendingDebts.filter(d => d.creditor === currentUser.fullName);
+            const debtsYouOwe = pendingDebts.filter(d => d.debtor === currentUser.fullName);
+
+            debtsOwedToMeList.innerHTML = debtsOwedToMe.length === 0 
+                ? '<p class="text-slate-500">No outstanding debts are owed to you.</p>'
+                : debtsOwedToMe.map(debt => `
+                    <div class="p-3 bg-slate-100 dark:bg-gray-700 rounded-md">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="font-semibold">${debt.debtor} owes you one class.</p>
+                                <p class="text-xs text-slate-500">For: ${debt.classInfo.title} on ${new Date(debt.classInfo.start).toLocaleDateString()}</p>
+                            </div>
+                            <button data-id="${debt.id}" class="mark-repaid-btn bg-green-600 text-white text-xs font-bold py-1 px-3 rounded-md hover:bg-green-700">Mark Repaid</button>
+                        </div>
+                    </div>`).join('');
+
+            debtsYouOweList.innerHTML = debtsYouOwe.length === 0 
+                ? '<p class="text-slate-500">You do not owe any classes.</p>'
+                : debtsYouOwe.map(debt => `
+                    <div class="p-3 bg-slate-100 dark:bg-gray-700 rounded-md">
+                        <p class="font-semibold">You owe ${debt.creditor} one class.</p>
+                        <p class="text-xs text-slate-500">For: ${debt.classInfo.title} on ${new Date(debt.classInfo.start).toLocaleDateString()}</p>
+                        <p class="text-xs text-indigo-500 mt-1">Please coordinate with them to cover one of their future classes.</p>
+                    </div>`).join('');
             
-            // Clear alerts after viewing them
+            alertList.innerHTML = db.alerts.length === 0 
+                ? '<p class="text-slate-500">No new system alerts.</p>' 
+                : db.alerts.slice().reverse().map(alert => `
+                    <div class="p-3 bg-slate-100 dark:bg-gray-700 rounded-md">
+                        <p>${alert.message}</p>
+                        <p class="text-xs text-slate-500 mt-1">${new Date(alert.date).toLocaleString()}</p>
+                    </div>`).join('');
+            
+            // Clear alerts after viewing them, but keep debts until they are paid
             db.alerts = [];
-            updateNotifications();
             saveDatabase();
+            updateNotifications();
 
             showModal('notifications-modal');
         }
 
-        function repayDebt(debtId) {
-            showToast("To repay a debt, find a class of the creditor and coordinate with them manually for now.", "info", 5000);
+        /**
+         * NEW: Marks a debt as paid.
+         */
+        function markDebtAsRepaid(debtId) {
+            const debt = db.classDebts.find(d => d.id === debtId);
+            if (debt) {
+                debt.status = 'Paid';
+                saveDatabase();
+                showToast('Debt has been successfully marked as repaid!', 'success');
+                // Refresh the modal to show the change
+                openNotifications();
+            } else {
+                showToast('Error: Could not find the specified debt.', 'error');
+            }
         }
-        
-        function confirmRepayment(debtId, originalEventId) { /* Simplified */ }
         
         function handleChatSubmit(e) {
             e.preventDefault();
@@ -1252,18 +1306,18 @@
         }
 
         function downloadScheduleICS() {
-            // This function would need updates to handle the new event structure, simplified for now.
             showToast("Download temporarily disabled.", "info");
         }
 
         /**
-        * REBUILT SCHEDULE GENERATOR
-        * This new version handles all your specific rules:
-        * 1. Separates Labs (2 hours) and Theory (1 hour) classes.
-        * 2. Prioritizes placing the 2-hour lab blocks first.
-        * 3. Ensures Wednesday's last hour is always free.
-        * 4. Uses a robust conflict checker for professors and rooms.
-        */
+         * SCHEDULE GENERATOR
+         * This function handles all scheduling rules:
+         * - Creates a full Mon-Fri schedule.
+         * - Defines 7 periods per day around breaks.
+         * - Prioritizes placing 2-hour labs first.
+         * - Ensures Wednesday's last hour is always free.
+         * - Workload (number of classes per staff) is determined by the definitions below.
+         */
         function generateNewSchedule(scheduleId, fromAdmin) {
             if(fromAdmin) showToast('Generating new schedule with all rules...', 'info');
 
@@ -1287,6 +1341,7 @@
                 }
             });
             
+            // Randomize class order to make each generation unique
             [labClasses, theoryClasses].forEach(arr => {
                 for (let i = arr.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
@@ -1298,7 +1353,7 @@
             let availableSlots = [];
             for (let day = 1; day <= 5; day++) { // Monday to Friday
                 timeSlots.forEach(time => {
-                    // FEATURE: Wednesday last hour is free
+                    // RULE: Wednesday last hour is free
                     if (day === 3 && time === '15:10') return; 
                     availableSlots.push({ day, time });
                 });
@@ -1315,7 +1370,7 @@
                 return false;
             };
 
-            // Place 2-hour labs first
+            // PRIORITY 1: Place 2-hour labs first
             labClasses.forEach(labInfo => {
                 for (let i = 0; i < availableSlots.length - 1; i++) {
                     const slot1 = availableSlots[i];
@@ -1326,14 +1381,14 @@
 
                     if (areConsecutive && !isConflict(labInfo, slot1.day, slot1.time, 100)) {
                         const eventId = `event_lab_${Object.keys(newEvents).length + 1}`;
-                        newEvents[eventId] = { ...labInfo, id: eventId, daysOfWeek: [slot1.day], startTime: slot1.time, endTime: slot2.time };
+                        newEvents[eventId] = { ...labInfo, id: eventId, daysOfWeek: [slot1.day], startTime: slot1.time, endTime: new Date(new Date(`1970-01-01T${slot2.time}:00`).getTime() + 50 * 60000).toTimeString().slice(0,5) };
                         availableSlots.splice(i, 2); // Remove both used slots
                         break;
                     }
                 }
             });
 
-            // Place 1-hour theory classes in remaining slots
+            // PRIORITY 2: Place 1-hour theory classes in remaining slots
             theoryClasses.forEach(theoryInfo => {
                 for (let i = 0; i < availableSlots.length; i++) {
                     const slot = availableSlots[i];
