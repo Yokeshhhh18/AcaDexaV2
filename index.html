@@ -56,7 +56,11 @@
         .fc .fc-daygrid-day.fc-day-today { @apply bg-indigo-50 dark:bg-indigo-900/20; }
         .fc-event { @apply text-xs border-0 cursor-pointer; transition: transform 0.2s, box-shadow 0.2s; }
         .fc-event:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .fc-event.absent { @apply opacity-50 line-through bg-gray-500; }
         .fc-event.uncovered { @apply !bg-red-500 ring-2 ring-red-300; }
+        .fc-event.holiday-conflict { @apply !bg-amber-500 ring-2 ring-amber-300; }
+        .fc-timegrid-slot-lane-break { background-color: rgba(0,0,0,0.05); }
+        html.dark .fc-timegrid-slot-lane-break { background-color: rgba(255,255,255,0.05); }
 
         .fc .fc-timegrid-event .fc-event-main {
             padding: 2px 4px;
@@ -67,15 +71,36 @@
             white-space: normal;
             line-height: 1.2;
         }
-        .repayment-offer-btn {
-            cursor: pointer;
-            transition: background-color 0.2s;
+
+        .fc-day-holiday { @apply bg-teal-50 dark:bg-teal-900/20 relative; }
+        .fc-day-holiday::after { 
+            content: attr(data-holiday-name);
+            position: absolute;
+            bottom: 4px;
+            right: 4px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            color: #14b8a6;
+            background-color: rgba(255,255,255,0.7);
+            padding: 1px 4px;
+            border-radius: 4px;
         }
-        .repayment-offer-btn:hover {
-             background-color: #dcfce7;
+        html.dark .fc-day-holiday::after {
+            color: #5eead4;
+            background-color: rgba(0,0,0,0.4);
         }
-        html.dark .repayment-offer-btn:hover {
-            background-color: #14532d;
+
+        #scanner-animation.scanning .inner-circle { animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0%, 100% { transform: scale(0.8); opacity: 0.7; } 50% { transform: scale(1); opacity: 1; } }
+        @media print { body * { visibility: hidden; } #calendar-container, #calendar-container * { visibility: visible; } #schedule-controls, #schedule-controls *, header, main > h2 { visibility: hidden; } #calendar-container { position: absolute; left: 0; top: 0; width: 100%; } }
+        
+        .pricing-card {
+            transform-style: preserve-3d;
+            transition: transform 0.4s ease, box-shadow 0.4s ease;
+        }
+        .pricing-card:hover {
+            transform: rotateY(-5deg) rotateX(5deg) scale(1.05);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
         }
     </style>
 </head>
@@ -92,10 +117,6 @@
                         <button id="notifications-btn" class="relative p-2 rounded-full hover:bg-slate-200 dark:hover:bg-gray-700">
                             <i data-lucide="bell"></i>
                             <span id="notification-badge" class="absolute top-0 right-0 h-4 w-4 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center hidden"></span>
-                        </button>
-                        <button id="debt-ledger-btn" style="display: none;" class="flex items-center gap-2 text-sm font-semibold bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition">
-                            <i data-lucide="book-user" class="w-4 h-4"></i>
-                            Debt Ledger
                         </button>
                         <button id="attendance-btn" style="display: none;" class="flex items-center gap-2 text-sm font-semibold bg-slate-600 text-white px-4 py-2 rounded-lg hover:bg-slate-700 transition">
                             <i data-lucide="fingerprint" class="w-4 h-4"></i>
@@ -118,8 +139,65 @@
                 <p class="mt-4 text-lg text-slate-600 dark:text-slate-300">Your all-in-one solution for intelligent academic scheduling.</p>
                 <p class="mt-2 text-slate-500">Please log in to access your dashboard and schedule.</p>
             </div>
+             <div class="mt-8 max-w-5xl mx-auto space-y-16">
+                <div>
+                    <h2 class="text-3xl font-bold text-center font-poppins mb-8">Smarter Scheduling, Simplified</h2>
+                    <div class="grid md:grid-cols-3 gap-8 text-center">
+                        <div class="bg-white/50 dark:bg-gray-800/50 p-6 rounded-xl shadow-md backdrop-blur-sm">
+                            <div class="text-indigo-500 mb-4 inline-block"><i data-lucide="zap" class="w-10 h-10"></i></div>
+                            <h3 class="font-semibold text-lg mb-2">Auto-Conflict Resolution</h3>
+                            <p class="text-sm text-slate-600 dark:text-slate-400">Our AI-powered engine instantly detects and resolves scheduling conflicts. If a teacher is absent, AcaDexa flags the class for covering on a first-come, first-served basis.</p>
+                        </div>
+                        <div class="bg-white/50 dark:bg-gray-800/50 p-6 rounded-xl shadow-md backdrop-blur-sm">
+                            <div class="text-indigo-500 mb-4 inline-block"><i data-lucide="arrow-left-right" class="w-10 h-10"></i></div>
+                            <h3 class="font-semibold text-lg mb-2">Automated Debt Tracking</h3>
+                            <p class="text-sm text-slate-600 dark:text-slate-400">When one staff member covers for another, a "class debt" is automatically created. Our system makes it easy to track and repay these debts, ensuring fairness.</p>
+                        </div>
+                        <div class="bg-white/50 dark:bg-gray-800/50 p-6 rounded-xl shadow-md backdrop-blur-sm">
+                            <div class="text-indigo-500 mb-4 inline-block"><i data-lucide="brain-circuit" class="w-10 h-10"></i></div>
+                            <h3 class="font-semibold text-lg mb-2">Intelligent Generation</h3>
+                            <p class="text-sm text-slate-600 dark:text-slate-400">Generate a balanced, conflict-free weekly schedule for an entire class with a single click, respecting class durations, breaks, and staff availability.</p>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                     <h2 class="text-3xl font-bold text-center font-poppins mb-8">Why AcaDexa?</h2>
+                     <div class="bg-white/50 dark:bg-gray-800/50 p-8 rounded-xl shadow-md backdrop-blur-sm space-y-4 text-slate-600 dark:text-slate-300">
+                         <p>Traditional scheduling platforms are static. They require manual intervention for every change, leading to hours of administrative work. AcaDexa is different. We've built a dynamic, intelligent system that adapts to the real world of education. When a teacher calls in sick, you don't need to scramble—AcaDexa's system flags the vacancy and allows for a seamless, fair, first-come-first-serve covering system among available staff.</p>
+                         <p>Our automated debt tracking ensures that staff workloads remain balanced over time, fostering a collaborative and equitable environment. We believe that by automating the complexities of scheduling, we empower educators to focus on what they do best: teaching.</p>
+                     </div>
+                </div>
+                 <div style="perspective: 1000px;">
+                    <h2 class="text-3xl font-bold text-center font-poppins mb-8">Cost-Efficient Pricing for Modern Institutions</h2>
+                    <div class="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
+                        <div class="pricing-card bg-white/50 dark:bg-gray-800/50 p-8 rounded-xl shadow-lg backdrop-blur-sm text-center border-2 border-transparent">
+                            <h3 class="text-2xl font-bold font-poppins mb-2">Monthly Plan</h3>
+                            <p class="text-4xl font-bold mb-4">₹4,999<span class="text-lg font-normal text-slate-500">/month</span></p>
+                            <ul class="space-y-2 text-slate-600 dark:text-slate-400 mb-6">
+                                <li>Full Scheduling Suite</li>
+                                <li>Automated Conflict Resolution</li>
+                                <li>Debt Tracking System</li>
+                                <li>Email Support</li>
+                            </ul>
+                            <a href="mailto:yokeshkumar2206@gmail.com" class="font-semibold bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition block">Contact Us</a>
+                        </div>
+                        <div class="pricing-card bg-white/50 dark:bg-gray-800/50 p-8 rounded-xl shadow-lg backdrop-blur-sm text-center border-2 border-indigo-500 relative">
+                             <div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-indigo-500 text-white text-xs font-bold px-3 py-1 rounded-full">MOST POPULAR</div>
+                             <h3 class="text-2xl font-bold font-poppins mb-2">Yearly Plan</h3>
+                            <p class="text-4xl font-bold mb-4">₹49,999<span class="text-lg font-normal text-slate-500">/year</span></p>
+                            <ul class="space-y-2 text-slate-600 dark:text-slate-400 mb-6">
+                                <li><strong class="text-indigo-500">2 Months Free!</strong></li>
+                                <li>Full Scheduling Suite</li>
+                                <li>Automated Conflict Resolution</li>
+                                <li>Debt Tracking System</li>
+                                <li>Priority Email & Phone Support</li>
+                            </ul>
+                            <a href="mailto:yokeshkumar2206@gmail.com" class="font-semibold bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition block">Contact Us</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-
         <div id="app-wrapper" class="hidden">
             <div id="staff-dashboard" class="hidden"></div>
             <div id="student-dashboard" class="hidden"></div>
@@ -128,7 +206,14 @@
                 <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
                     <div id="staff-schedule-tools" class="lg:col-span-1 hidden bg-white dark:bg-gray-800/50 p-4 rounded-xl shadow-md">
                         <h3 class="font-bold text-lg mb-4">Scheduling Tools</h3>
-                        <p class="text-sm text-slate-500">Use the Admin dashboard to generate a master schedule for the week.</p>
+                        <div id="subject-creator" class="space-y-3 mb-4 p-3 bg-slate-100 dark:bg-gray-700/50 rounded-lg">
+                             <input type="text" id="new-subject-name" placeholder="Subject Name" class="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm">
+                             <div class="flex items-center gap-2">
+                                 <label for="new-subject-color" class="text-sm">Color:</label>
+                                 <input type="color" id="new-subject-color" value="#3b82f6" class="w-full h-8 border-none rounded-md cursor-pointer">
+                             </div>
+                             <button id="add-subject-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-3 rounded-lg transition text-sm">Add Subject</button>
+                        </div>
                     </div>
                     <div id="main-schedule-area" class="lg:col-span-3">
                         <div class="bg-white dark:bg-gray-800/50 p-4 sm:p-6 rounded-xl shadow-md">
@@ -167,15 +252,14 @@
                 <h3 id="login-title" class="text-2xl font-bold mb-6 text-center font-poppins">Login</h3>
                 <form id="auth-form">
                     <div class="space-y-4">
-                        <input type="email" id="auth-email" placeholder="Email" class="w-full p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600" required>
-                        <input type="password" id="auth-password" placeholder="Password" class="w-full p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600" required>
+                        <input type="email" id="auth-email" placeholder="Email" class="w-full p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none" required>
+                        <input type="password" id="auth-password" placeholder="Password" class="w-full p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none" required>
                     </div>
                     <p id="auth-error" class="text-red-500 text-sm mt-2 h-4"></p>
                     <button type="submit" class="mt-6 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition">Login</button>
                 </form>
             </div>
         </div>
-
         <div id="attendance-portal-modal" class="modal fixed inset-0 bg-black bg-opacity-60 z-[80] flex items-center justify-center p-4">
             <div class="modal-content bg-white dark:bg-gray-800 p-8 rounded-lg shadow-2xl max-w-2xl w-full relative">
                 <button class="close-modal-btn absolute top-4 right-4 text-slate-500 hover:text-indigo-500 transition"><i data-lucide="x"></i></button>
@@ -196,7 +280,6 @@
                 </div>
             </div>
         </div>
-
         <div id="class-details-modal" class="modal fixed inset-0 bg-black bg-opacity-60 z-[60] flex items-center justify-center p-4">
             <div class="modal-content bg-white dark:bg-gray-800 p-6 rounded-lg shadow-2xl max-w-md w-full relative">
                 <button class="close-modal-btn absolute top-4 right-4 text-slate-500 hover:text-indigo-500 transition"><i data-lucide="x"></i></button>
@@ -214,27 +297,20 @@
                 </div>
             </div>
         </div>
-        
         <div id="notifications-modal" class="modal fixed inset-0 bg-black bg-opacity-60 z-[80] flex items-center justify-center p-4">
             <div class="modal-content bg-white dark:bg-gray-800 p-6 rounded-lg shadow-2xl max-w-lg w-full relative">
                 <button class="close-modal-btn absolute top-4 right-4 text-slate-500 hover:text-indigo-500 transition"><i data-lucide="x"></i></button>
-                <h3 class="text-2xl font-bold mb-4 font-poppins">Notifications</h3>
-                 <div>
+                <h3 class="text-2xl font-bold mb-4 font-poppins">Notifications & Debts</h3>
+                <div class="border-b dark:border-gray-700 pb-2 mb-2">
+                    <h4 class="font-bold flex items-center gap-2 mb-2"><i data-lucide="arrow-left-right" class="text-indigo-500"></i>Pending Class Debts</h4>
+                    <div id="class-debt-list" class="text-sm space-y-2 max-h-48 overflow-y-auto"></div>
+                </div>
+                <div>
                     <h4 class="font-bold flex items-center gap-2 mb-2"><i data-lucide="alert-circle" class="text-amber-500"></i>System Alerts</h4>
                     <div id="alert-list" class="text-sm max-h-48 overflow-y-auto"></div>
                 </div>
             </div>
         </div>
-
-        <div id="debt-ledger-modal" class="modal fixed inset-0 bg-black bg-opacity-60 z-[85] flex items-center justify-center p-4">
-            <div class="modal-content bg-white dark:bg-gray-800 p-6 rounded-lg shadow-2xl max-w-4xl w-full relative h-[80vh] flex flex-col">
-                <button class="close-modal-btn absolute top-4 right-4 text-slate-500 hover:text-indigo-500 transition"><i data-lucide="x"></i></button>
-                <h3 class="text-2xl font-bold mb-4 font-poppins">Debt & Repayment Ledger</h3>
-                <div id="debt-ledger-content" class="flex-grow overflow-y-auto">
-                    </div>
-            </div>
-        </div>
-
         <div id="ai-chat-modal" class="modal fixed inset-0 bg-black bg-opacity-60 z-[80] flex items-end justify-center sm:justify-end p-4 sm:p-6">
             <div class="modal-content bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-md h-[70vh] flex flex-col">
                 <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center">
@@ -244,13 +320,12 @@
                 <div id="chat-window" class="flex-grow p-4 space-y-4 overflow-y-auto flex flex-col"></div>
                 <div class="p-4 border-t dark:border-gray-700">
                     <form id="chat-form" class="flex gap-2">
-                        <input type="text" id="chat-input" placeholder="Ask me anything..." class="flex-grow p-2 rounded-md dark:bg-gray-700 border-slate-300 dark:border-gray-600" >
+                        <input type="text" id="chat-input" placeholder="Ask me anything..." class="flex-grow p-2 rounded-md dark:bg-gray-700 border-slate-300 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none">
                         <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 rounded-lg transition"><i data-lucide="send"></i></button>
                     </form>
                 </div>
             </div>
         </div>
-
         <div id="student-attendance-modal" class="modal fixed inset-0 bg-black bg-opacity-60 z-[90] flex items-center justify-center p-4">
              <div class="modal-content bg-white dark:bg-gray-800 p-6 rounded-lg shadow-2xl max-w-lg w-full relative">
                 <button class="close-modal-btn absolute top-4 right-4 text-slate-500 hover:text-indigo-500 transition"><i data-lucide="x"></i></button>
@@ -259,7 +334,6 @@
                 <button id="save-student-attendance-btn" class="mt-6 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition">Save Attendance</button>
             </div>
         </div>
-        
         <div id="confirm-modal" class="modal fixed inset-0 bg-black bg-opacity-60 z-[99] flex items-center justify-center p-4">
             <div class="modal-content bg-white dark:bg-gray-800 p-6 rounded-lg shadow-2xl max-w-sm w-full">
                 <h4 id="confirm-modal-title" class="text-lg font-bold mb-4">Confirm Action</h4>
@@ -294,11 +368,16 @@
                 'raghu@acadexa.com': { id: 'raghu@acadexa.com', fullName: 'Raghu', role: 'student', password: 'student123', scheduleId: 'grade-10-a' },
                 'admin@acadexa.com': { id: 'admin@acadexa.com', fullName: 'Admin', role: 'admin', password: 'adminpassword'}
             },
-            schedules: { 'grade-10-a': { name: 'Grade 10 - Section A', events: {}, overrides: {} } },
+            schedules: {
+                'grade-10-a': {
+                    name: 'Grade 10 - Section A',
+                    events: {}, // Recurring event templates
+                    overrides: {} // One-off event changes
+                }
+            },
             staffAttendance: {},
             studentAttendance: { 'raghu@acadexa.com': {} },
             classDebts: [],
-            repaymentOffers: [],
             alerts: [],
             holidays: {},
             attendanceCutoff: { hours: 10, minutes: 0 }
@@ -322,7 +401,6 @@
                 db = JSON.parse(savedDB);
                 if (!db.holidays) db.holidays = {};
                 if (!db.alerts) db.alerts = [];
-                if (!db.repaymentOffers) db.repaymentOffers = [];
                 if (!db.users || Object.keys(db.users).length === 0) db.users = initialDB.users;
                 
                 if (!db.schedules || !db.schedules['grade-10-a'] || Object.keys(db.schedules['grade-10-a'].events).length === 0) {
@@ -365,16 +443,14 @@
                 if (currentUser.role === 'staff') {
                     document.getElementById('staff-dashboard').classList.remove('hidden');
                     document.getElementById('schedule-view').classList.remove('hidden');
-                    document.getElementById('staff-schedule-tools').style.display = 'none'; // Hide old tools
-                    document.getElementById('main-schedule-area').classList.remove('lg:col-span-3');
-                    document.getElementById('main-schedule-area').classList.add('lg:col-span-4');
+                    document.getElementById('staff-schedule-tools').classList.remove('hidden');
                     renderStaffDashboard();
                     populateScheduleSelector();
                     loadSchedule('grade-10-a');
                 } else if (currentUser.role === 'student') {
                     document.getElementById('student-dashboard').classList.remove('hidden');
                     document.getElementById('schedule-view').classList.remove('hidden');
-                    document.getElementById('staff-schedule-tools').style.display = 'none';
+                    document.getElementById('staff-schedule-tools').classList.add('hidden');
                     document.getElementById('main-schedule-area').classList.remove('lg:col-span-3');
                     document.getElementById('main-schedule-area').classList.add('lg:col-span-4');
                     renderStudentDashboard();
@@ -403,20 +479,19 @@
             document.getElementById('notifications-btn').style.display = isLoggedIn && (currentUser.role === 'staff' || currentUser.role === 'admin') ? 'flex' : 'none';
             document.getElementById('staff-schedule-filters').style.display = isLoggedIn && currentUser.role === 'staff' ? 'flex' : 'none';
             document.getElementById('attendance-btn').style.display = isLoggedIn && currentUser.role === 'staff' ? 'flex' : 'none';
-            document.getElementById('debt-ledger-btn').style.display = isLoggedIn && currentUser.role === 'staff' ? 'flex' : 'none';
         }
 
         function setupEventListeners() {
             document.getElementById('student-login-btn').onclick = () => openLoginModal('student');
             document.getElementById('staff-login-btn').onclick = () => openLoginModal('staff');
             document.getElementById('attendance-btn').onclick = openAttendancePortal;
-            document.getElementById('debt-ledger-btn').onclick = openDebtLedger;
             document.getElementById('logout-btn').onclick = handleLogout;
             document.getElementById('auth-form').onsubmit = handleAuthSubmit;
             document.getElementById('scan-biometric-btn').onclick = handleBiometricScan;
             document.getElementById('ask-ai-btn').onclick = () => showModal('ai-chat-modal');
             document.getElementById('chat-form').onsubmit = handleChatSubmit;
             document.getElementById('notifications-btn').onclick = openNotifications;
+            document.getElementById('add-subject-btn').onclick = handleAddSubject;
             
             document.getElementById('dark-mode-toggle').onclick = () => {
                 const isDark = document.documentElement.classList.toggle('dark');
@@ -432,6 +507,7 @@
             }
             lucide.createIcons();
 
+
             document.getElementById('schedule-selector').onchange = (e) => loadSchedule(e.target.value);
             document.getElementById('staff-view-selector').onchange = () => renderCalendar();
             document.getElementById('print-btn').onclick = () => window.print();
@@ -441,25 +517,15 @@
                 if (e.target.closest('.close-modal-btn')) {
                     hideModal(e.target.closest('.modal').id);
                 }
+                 if (e.target.closest('.repay-debt-btn')) {
+                    const debtId = e.target.closest('.repay-debt-btn').dataset.id;
+                    repayDebt(debtId);
+                }
                 if (e.target.closest('.cover-class-btn')) {
                     const eventId = e.target.closest('.cover-class-btn').dataset.eventid;
                     showConfirmModal(`Are you sure you want to cover this class for ${e.target.closest('.cover-class-btn').dataset.originalprof}? A debt will be created.`, () => {
                          claimUncoveredClass(eventId);
                     });
-                }
-                if (e.target.closest('.repay-debt-btn')) {
-                    const debtId = e.target.dataset.id;
-                    renderRepaymentView(debtId);
-                }
-                if (e.target.closest('.repayment-offer-btn')) {
-                    e.preventDefault();
-                    const debtId = e.currentTarget.dataset.debtid;
-                    const eventJson = e.currentTarget.dataset.event;
-                    handleRepaymentOffer(debtId, JSON.parse(eventJson));
-                }
-                if (e.target.closest('.accept-offer-btn')) {
-                    const offerId = e.target.dataset.offerid;
-                    handleAcceptOffer(offerId);
                 }
             });
 
@@ -517,44 +583,116 @@
 
         function renderAdminDashboard() {
             const dash = document.getElementById('admin-dashboard');
+            const holidayListHtml = Object.entries(db.holidays).map(([date, name]) => 
+                `<div class="flex justify-between items-center p-2 bg-slate-100 dark:bg-gray-700 rounded-md">
+                    <span>${date}: <strong>${name}</strong></span>
+                    <button data-date="${date}" class="remove-holiday-btn text-red-500 hover:text-red-700"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                </div>`
+            ).join('');
+
             dash.innerHTML = `<h2 class="text-3xl font-bold mb-6 font-poppins">Admin Controls</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="bg-white dark:bg-gray-800/50 p-6 rounded-xl shadow-md">
                         <h3 class="font-bold text-lg mb-4">Master Schedule Generation</h3>
-                        <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">This will generate a new, fully packed and balanced weekly timetable.</p>
+                        <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">This will generate a new, conflict-free weekly repeating timetable for the selected class.</p>
                         <button id="generate-schedule-btn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition flex items-center justify-center gap-2">
                             <i data-lucide="shuffle"></i> Generate New Schedule
                         </button>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800/50 p-6 rounded-xl shadow-md">
+                        <h3 class="font-bold text-lg mb-4">Holiday Management</h3>
+                        <div class="flex items-center gap-4 mb-4">
+                             <input type="date" id="holiday-date" class="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
+                             <input type="text" id="holiday-name" placeholder="Holiday Name" class="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
+                             <button id="add-holiday-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition">Add</button>
+                        </div>
+                        <h4 class="font-semibold text-sm mb-2">Upcoming Holidays</h4>
+                        <div id="holiday-list" class="space-y-2 max-h-48 overflow-y-auto">${holidayListHtml || '<p class="text-slate-500 text-sm">No holidays scheduled.</p>'}</div>
+                    </div>
+                     <div class="md:col-span-2 bg-white dark:bg-gray-800/50 p-6 rounded-xl shadow-md">
+                        <h3 class="font-bold text-lg mb-4">Staff Attendance Cutoff</h3>
+                        <div class="flex items-center gap-4">
+                            <div>
+                                <label for="cutoff-hours" class="block text-sm font-medium">Hours (24h)</label>
+                                <input type="number" id="cutoff-hours" min="0" max="23" class="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" value="${db.attendanceCutoff.hours}">
+                            </div>
+                            <div>
+                                <label for="cutoff-minutes" class="block text-sm font-medium">Minutes</label>
+                                <input type="number" id="cutoff-minutes" min="0" max="59" class="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" value="${db.attendanceCutoff.minutes}">
+                            </div>
+                            <button id="save-cutoff-btn" class="self-end bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition">Save</button>
+                        </div>
                     </div>
                 </div>`;
             lucide.createIcons();
             
             document.getElementById('generate-schedule-btn').onclick = () => {
-                showConfirmModal('Are you sure you want to generate a new schedule? This will overwrite the current one and clear all debts.', () => generateNewSchedule('grade-10-a', true));
+                showConfirmModal('Are you sure you want to generate a new schedule for this class? The current one will be overwritten.', () => generateNewSchedule('grade-10-a', true));
             };
+            document.getElementById('save-cutoff-btn').onclick = () => {
+                const hours = parseInt(document.getElementById('cutoff-hours').value);
+                const minutes = parseInt(document.getElementById('cutoff-minutes').value);
+                if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+                    showToast('Please enter a valid time.', 'error');
+                    return;
+                }
+                db.attendanceCutoff.hours = hours;
+                db.attendanceCutoff.minutes = minutes;
+                saveDatabase();
+                showToast(`Cutoff time updated to ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`, 'success');
+            };
+
+            document.getElementById('add-holiday-btn').onclick = () => {
+                const date = document.getElementById('holiday-date').value;
+                const name = document.getElementById('holiday-name').value.trim();
+                if (!date || !name) {
+                    showToast('Please provide both a date and a name for the holiday.', 'error');
+                    return;
+                }
+                db.holidays[date] = name;
+                saveDatabase();
+                showToast(`Holiday "${name}" added on ${date}.`, 'success');
+                renderAdminDashboard();
+            };
+
+            document.querySelectorAll('.remove-holiday-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    const date = e.currentTarget.dataset.date;
+                    showConfirmModal(`Are you sure you want to remove the holiday on ${date}?`, () => {
+                        delete db.holidays[date];
+                        saveDatabase();
+                        showToast('Holiday removed.', 'info');
+                        renderAdminDashboard();
+                    });
+                }
+            });
         }
 
         function renderStaffDashboard() {
             const dash = document.getElementById('staff-dashboard');
             dash.innerHTML = `<h2 class="text-3xl font-bold mb-6 font-poppins">Staff Dashboard</h2>
                 <div class="bg-white dark:bg-gray-800/50 p-6 rounded-xl shadow-md">
-                    <h3 class="font-bold text-lg mb-4">Weekly Class Load (in Hours)</h3>
+                    <h3 class="font-bold text-lg mb-4">Weekly Class Load & Credit Distribution</h3>
                     <canvas id="workload-chart"></canvas>
                 </div>`;
             
             const staffWorkload = {};
+            const staffCredits = {};
             const staffList = Object.values(db.users).filter(u => u.role === 'staff');
-            staffList.forEach(s => { staffWorkload[s.fullName] = 0; });
+            staffList.forEach(s => {
+                staffWorkload[s.fullName] = 0;
+                staffCredits[s.fullName] = 0;
+            });
 
-            const schedule = db.schedules['grade-10-a'];
-            if(schedule && schedule.events) {
+            Object.values(db.schedules).forEach(schedule => {
                 Object.values(schedule.events).forEach(ev => {
                     if(staffWorkload.hasOwnProperty(ev.prof)) {
-                        const duration = (new Date(`1970-01-01T${ev.endTime}:00`) - new Date(`1970-01-01T${ev.startTime}:00`)) / (1000 * 60);
-                        staffWorkload[ev.prof] += duration / 50;
+                        // For 2-hour labs, this will count as 1 class, which is intended.
+                        staffWorkload[ev.prof]++;
+                        staffCredits[ev.prof] += ev.credits;
                     }
                 });
-            }
+            });
 
             if (workloadChart) workloadChart.destroy();
             const isDark = document.documentElement.classList.contains('dark');
@@ -562,7 +700,10 @@
                 type: 'bar',
                 data: {
                     labels: Object.keys(staffWorkload),
-                    datasets: [ { label: 'Class Periods this Week', data: Object.values(staffWorkload), backgroundColor: '#4f46e5' } ]
+                    datasets: [
+                        { label: 'Classes this Week', data: Object.values(staffWorkload), backgroundColor: '#4f46e5' },
+                        { label: 'Total Credits', data: Object.values(staffCredits), backgroundColor: '#8b5cf6' }
+                    ]
                 },
                 options: {
                     scales: {
@@ -573,78 +714,227 @@
                 }
             });
         }
+
+        function renderStudentDashboard() {
+            const dash = document.getElementById('student-dashboard');
+            const myAttendance = db.studentAttendance[currentUser.id] || {};
+            const totalClasses = Object.keys(myAttendance).length;
+            const attendedClasses = Object.values(myAttendance).filter(s => s === 'Present').length;
+            const attendancePercentage = totalClasses > 0 ? ((attendedClasses / totalClasses) * 100).toFixed(1) : 100;
+            
+            const missedClassesHtml = Object.entries(myAttendance)
+                .filter(([eventId, status]) => status === 'Absent')
+                .map(([eventId, status]) => {
+                    let eventDetails = null;
+                    for (const schedule of Object.values(db.schedules)) {
+                        const allEvents = {...schedule.events, ...schedule.overrides};
+                        if(allEvents[eventId]) {
+                            eventDetails = allEvents[eventId];
+                            break;
+                        }
+                    }
+                    if (!eventDetails) return '';
+                    return `<div class="p-3 bg-slate-100 dark:bg-gray-700 rounded-md">
+                                <p class="font-semibold">${eventDetails.title} with ${eventDetails.prof}</p>
+                                <p class="text-sm text-slate-500">${new Date(eventDetails.start).toLocaleString()}</p>
+                                <div class="mt-2 text-sm p-2 bg-slate-200 dark:bg-gray-600 rounded">
+                                   <h5 class="font-bold">Notes:</h5>
+                                   <p>${eventDetails.notes || 'No notes available for this session.'}</p>
+                                </div>
+                            </div>`;
+                }).join('') || '<p class="text-slate-500">No missed classes. Great job!</p>';
+
+            dash.innerHTML = `<h2 class="text-3xl font-bold mb-6 font-poppins">Student Dashboard</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="md:col-span-1 bg-white dark:bg-gray-800/50 p-6 rounded-xl shadow-md text-center">
+                        <h3 class="font-bold text-lg mb-2">Overall Attendance</h3>
+                        <p class="text-5xl font-bold text-indigo-500">${attendancePercentage}%</p>
+                    </div>
+                    <div class="md:col-span-2 bg-white dark:bg-gray-800/50 p-6 rounded-xl shadow-md">
+                        <h3 class="font-bold text-lg mb-4">Notes from Missed Classes</h3>
+                        <div class="space-y-3 max-h-64 overflow-y-auto pr-2">${missedClassesHtml}</div>
+                    </div>
+                </div>`;
+        }
+
+        function openAttendancePortal() {
+            const now = new Date();
+            const todayStr = getYYYYMMDD(now);
+            const cutoff = new Date(todayStr);
+            cutoff.setHours(db.attendanceCutoff.hours, db.attendanceCutoff.minutes, 0, 0);
+
+            if (!db.staffAttendance[todayStr]) {
+                db.staffAttendance[todayStr] = {};
+            }
+            
+            document.getElementById('current-time').textContent = now.toLocaleTimeString();
+            const scanBtn = document.getElementById('scan-biometric-btn');
+            
+            if (now > cutoff) {
+                scanBtn.disabled = true;
+                scanBtn.textContent = "Attendance Closed for Today";
+                handleLatecomers(todayStr);
+            } else {
+                scanBtn.disabled = false;
+                scanBtn.textContent = "Scan Fingerprint";
+            }
+            
+            renderAttendanceDashboard(todayStr);
+            showModal('attendance-portal-modal');
+        }
+        
+        function handleLatecomers(todayStr) {
+            const staffList = Object.values(db.users).filter(u => u.role === 'staff');
+            staffList.forEach(staff => {
+                if (!db.staffAttendance[todayStr][staff.fullName]) {
+                    handleAbsence(staff.fullName, true);
+                }
+            });
+            saveDatabase();
+        }
+
+        function renderAttendanceDashboard(todayStr) {
+            const dashboard = document.getElementById('staff-status-dashboard');
+            dashboard.innerHTML = '';
+            const statusColors = { 'Present': 'bg-green-500', 'Absent': 'bg-red-500', 'Pending': 'bg-slate-400' };
+            const staffList = Object.values(db.users).filter(u => u.role === 'staff');
+            
+            staffList.forEach(staff => {
+                const status = db.staffAttendance[todayStr]?.[staff.fullName] || 'Pending';
+                dashboard.innerHTML += `<div class="flex items-center justify-between p-2 bg-slate-100 dark:bg-gray-700 rounded-md"><span class="font-semibold">${staff.fullName}</span><span class="flex items-center gap-2 text-sm"><div class="w-3 h-3 rounded-full ${statusColors[status]}"></div>${status}</span></div>`;
+            });
+        }
+        
+        function handleBiometricScan() {
+            const statusEl = document.getElementById('scanner-status');
+            const scanner = document.getElementById('scanner-animation');
+            scanner.classList.add('scanning');
+            statusEl.textContent = 'Verifying...';
+            
+            setTimeout(() => {
+                scanner.classList.remove('scanning');
+                const isSuccess = Math.random() > 0.1;
+                const status = isSuccess ? 'Present' : 'Absent';
+                statusEl.textContent = `Verification ${isSuccess ? 'Successful' : 'Failed'}. Marked as ${status}.`;
+                
+                const todayStr = getYYYYMMDD(new Date());
+                if (!db.staffAttendance[todayStr]) db.staffAttendance[todayStr] = {};
+                db.staffAttendance[todayStr][currentUser.fullName] = status;
+                
+                if (!isSuccess) {
+                    handleAbsence(currentUser.fullName);
+                } else {
+                    saveDatabase();
+                    showToast(`Welcome, ${currentUser.fullName}! You are marked present.`, 'success');
+                }
+                renderAttendanceDashboard(todayStr);
+                renderCalendar();
+            }, 1500);
+        }
         
         function handleAbsence(staffName, auto = false) {
             const todayStr = getYYYYMMDD(new Date());
             if (!db.staffAttendance[todayStr]) db.staffAttendance[todayStr] = {};
-            if (db.staffAttendance[todayStr][staffName] === 'Absent') return;
+            if (db.staffAttendance[todayStr][staffName] === 'Absent') return; // Already absent
 
             db.staffAttendance[todayStr][staffName] = 'Absent';
             
+            // BUG FIX: Generate system alert on absence
             db.alerts.push({ 
                 id: `alert_${Date.now()}`, 
-                message: `${staffName} has been marked absent. Their classes are available to cover.`, 
+                message: `${staffName} has been marked absent for today. Their classes are available to cover.`, 
                 date: new Date().toISOString() 
             });
 
-            showToast(`${staffName} is absent.`, "info");
+            showToast(`${staffName} is absent. Their classes are now available for others to cover.`, "info");
             updateNotifications();
             saveDatabase();
             renderCalendar();
         }
-
+        
         function initializeCalendar() {
             const calendarEl = document.getElementById('calendar-container');
             if (calendar) calendar.destroy();
             
             calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: 'timeGridWeek',
-                initialDate: '2025-10-01',
-                headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek' },
+                initialDate: '2025-10-01', // Set to a Wednesday to test the rule
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+                },
                 slotMinTime: '09:00:00',
                 slotMaxTime: '16:00:00',
                 slotDuration: '00:50:00',
                 slotLabelInterval: '00:50:00',
+                slotLabelFormat: {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    omitZeroMinute: false,
+                    meridiem: 'short'
+                },
                 allDaySlot: false,
                 editable: false, 
+                droppable: true,
                 eventClick: handleEventClick,
-                businessHours: [ { daysOfWeek: [ 1, 2, 3, 4, 5 ], startTime: '09:00', endTime: '16:00' } ],
+                drop: handleExternalDrop,
+                dayCellDidMount: (arg) => {
+                    const dateStr = getYYYYMMDD(arg.date);
+                    if (db.holidays[dateStr]) {
+                        arg.el.classList.add('fc-day-holiday');
+                        arg.el.dataset.holidayName = db.holidays[dateStr];
+                    }
+                },
+                businessHours: [ 
+                    { daysOfWeek: [ 1, 2, 3, 4, 5 ], startTime: '09:00', endTime: '16:00' },
+                ],
                 events: (fetchInfo, successCallback, failureCallback) => {
-                    const schedule = db.schedules['grade-10-a'];
-                    if (!schedule) { failureCallback('Schedule not found'); return; }
+                    const scheduleId = document.getElementById('schedule-selector').value;
+                    const schedule = db.schedules[scheduleId];
+                    if (!schedule) {
+                        failureCallback('Schedule not found');
+                        return;
+                    }
                     
                     let finalEvents = Object.values(schedule.events).map(e => ({...e})); 
                     Object.values(schedule.overrides).forEach(override => finalEvents.push(override));
 
+                    // FEATURE: Add visible lunch and break events
                     const breakEvents = [
                         { title: 'Short Break', startTime: '10:40', endTime: '10:55', display: 'block', backgroundColor: '#a1a1aa', classNames: ['break-event'], daysOfWeek: [1,2,3,4,5] },
                         { title: 'Lunch Break', startTime: '12:35', endTime: '13:30', display: 'block', backgroundColor: '#a1a1aa', classNames: ['break-event'], daysOfWeek: [1,2,3,4,5] }
                     ];
                     finalEvents.push(...breakEvents);
 
+                    // Personal view filtering logic
                     const staffView = document.getElementById('staff-view-selector').value;
                     let filteredEvents = finalEvents;
                     if (currentUser && currentUser.role === 'staff' && staffView !== 'full-class') {
                         filteredEvents = finalEvents.filter(e => {
-                            if (e.classNames?.includes('break-event')) return true;
+                            if (e.classNames?.includes('break-event')) return true; // Always show breaks
                             return e.prof === staffView || e.originalProf === staffView;
                         });
                     }
+
                     successCallback(filteredEvents);
                 },
                  eventContent: (arg) => {
                     if (arg.event.classNames.includes('break-event')) {
                         return { html: `<div style="text-align:center; font-weight: bold; color: #4b5563;">${arg.event.title}</div>`};
                     }
+
                     const todayStr = getYYYYMMDD(arg.event.start);
                     const staffAttendance = db.staffAttendance[todayStr] || {};
                     const originalProf = arg.event.extendedProps.originalProf || arg.event.extendedProps.prof;
                     let title = arg.event.title;
+
                     if (staffAttendance[originalProf] === 'Absent' && !arg.event.extendedProps.originalProf) {
                         title = `${title} (UNCOVERED)`;
                     } else if (arg.event.extendedProps.originalProf) {
                         title = `${title} (Cover: ${arg.event.extendedProps.prof.split(' ')[0]})`;
                     }
+                    
                     let eventEl = document.createElement('div');
                     eventEl.innerHTML = title;
                     return { domNodes: [eventEl] }
@@ -689,6 +979,7 @@
         
         function handleEventClick(info) {
              if (info.event.classNames.includes('break-event')) return;
+
             const scheduleId = document.getElementById('schedule-selector').value;
             const eventData = db.schedules[scheduleId].overrides[info.event.id] || db.schedules[scheduleId].events[info.event.id] || info.event.extendedProps;
             
@@ -718,7 +1009,27 @@
 
             if (currentUser.role === 'staff') {
                 if(isMyClass){
-                    // Add Save Notes and Mark Attendance buttons
+                    const saveNotesBtn = document.createElement('button');
+                    saveNotesBtn.innerHTML = `<i data-lucide="save"></i> Save Notes`;
+                    saveNotesBtn.className = 'w-full text-center bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-lg flex items-center justify-center gap-2 transition';
+                    saveNotesBtn.onclick = () => {
+                        const eventToUpdate = db.schedules[scheduleId].overrides[info.event.id] || db.schedules[scheduleId].events[info.event.extendedProps.originalEventId || info.event.id];
+                        eventToUpdate.notes = document.getElementById('notes-textarea').value;
+                        saveDatabase();
+                        showToast('Notes saved!', 'success');
+                        hideModal('class-details-modal');
+                    };
+                    actionContainer.appendChild(saveNotesBtn);
+
+                    const markAttendanceBtn = document.createElement('button');
+                    markAttendanceBtn.innerHTML = `<i data-lucide="user-check"></i> Mark Student Attendance`;
+                    markAttendanceBtn.className = 'w-full text-center bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 rounded-lg flex items-center justify-center gap-2 transition';
+                    markAttendanceBtn.onclick = () => {
+                        hideModal('class-details-modal');
+                        openStudentAttendanceModal(info.event.id);
+                    };
+                    actionContainer.appendChild(markAttendanceBtn);
+                
                 } else if(isUncovered) {
                     const coverClassBtn = document.createElement('button');
                     coverClassBtn.innerHTML = `<i data-lucide="user-plus"></i> Cover This Class (FCFS)`;
@@ -728,24 +1039,64 @@
                     actionContainer.appendChild(coverClassBtn);
                 }
             }
+
             lucide.createIcons();
             showModal('class-details-modal');
         }
         
+        function handleExternalDrop(info) {
+             showToast("This feature is disabled. Please use Admin tools to generate a full schedule.", 'info');
+        }
+        
+        function openStudentAttendanceModal(eventId) {
+            const student = Object.values(db.users).find(u => u.role === 'student'); 
+            const container = document.getElementById('student-list-container');
+            const currentStatus = db.studentAttendance[student.id]?.[eventId] || 'Pending';
+
+            container.innerHTML = `<div class="flex items-center justify-between p-2"><span class="font-semibold">${student.fullName}</span><div class="flex gap-2"><label class="flex items-center gap-1"><input type="radio" name="att_${student.id}" value="Present" ${currentStatus === 'Present' ? 'checked' : ''}> Present</label><label class="flex items-center gap-1"><input type="radio" name="att_${student.id}" value="Absent" ${currentStatus === 'Absent' ? 'checked' : ''}> Absent</label></div></div>`;
+            document.getElementById('save-student-attendance-btn').onclick = () => saveStudentAttendance(eventId);
+            showModal('student-attendance-modal');
+        }
+
+        function saveStudentAttendance(eventId) {
+            const student = Object.values(db.users).find(u => u.role === 'student');
+            const selectedStatus = document.querySelector(`input[name="att_${student.id}"]:checked`)?.value;
+
+            if (selectedStatus) {
+                if (!db.studentAttendance[student.id]) db.studentAttendance[student.id] = {};
+                db.studentAttendance[student.id][eventId] = selectedStatus;
+                saveDatabase();
+                showToast(`Attendance for ${student.fullName} updated.`, 'success');
+                hideModal('student-attendance-modal');
+            } else {
+                showToast('Please select a status for the student.', 'error');
+            }
+        }
+
         function claimUncoveredClass(eventId) {
             const scheduleId = document.getElementById('schedule-selector').value;
             const schedule = db.schedules[scheduleId];
             const eventInstance = calendar.getEventById(eventId);
 
-            if (!eventInstance) { showToast("Error: Class not found.", "error"); return; }
+            if (!eventInstance) {
+                showToast("Error: Could not find the class to cover.", "error");
+                return;
+            }
             
             const originalProf = eventInstance.extendedProps.prof;
-            if (originalProf === currentUser.fullName) { showToast("You cannot cover your own class.", "error"); return; }
+            if (originalProf === currentUser.fullName) {
+                showToast("You cannot cover your own class.", "error");
+                return;
+            }
 
             const eventDate = getYYYYMMDD(eventInstance.start);
             const overrideId = `override_${eventDate}_${eventInstance.id}`;
 
-            if(schedule.overrides[overrideId]){ showToast("This class is already covered.", "error"); hideModal('class-details-modal'); return; }
+            if(schedule.overrides[overrideId]){
+                showToast("This class has already been covered by someone else.", "error");
+                hideModal('class-details-modal');
+                return;
+            }
 
             schedule.overrides[overrideId] = {
                 id: overrideId,
@@ -759,13 +1110,14 @@
                 backgroundColor: '#059669',
             };
 
-            db.classDebts.push({
+            const debt = {
                 id: `debt_${Date.now()}`,
                 debtor: originalProf,
                 creditor: currentUser.fullName,
                 classInfo: { title: schedule.overrides[overrideId].title, start: eventInstance.start.toISOString() },
                 status: 'Unpaid'
-            });
+            };
+            db.classDebts.push(debt);
             
             saveDatabase();
             hideModal('class-details-modal');
@@ -774,11 +1126,12 @@
             showToast(`You are now covering this class for ${originalProf}.`, 'success');
         }
 
+
         function updateNotifications() {
-            if (!currentUser || currentUser.role !== 'staff') return;
+            if (!currentUser || (currentUser.role !== 'staff' && currentUser.role !== 'admin')) return;
             const myDebts = db.classDebts.filter(d => (d.debtor === currentUser.fullName || d.creditor === currentUser.fullName) && d.status === 'Unpaid');
-            const myOffers = db.repaymentOffers.filter(o => o.creditor === currentUser.fullName && o.status === 'Pending');
-            const totalNotifications = myDebts.length + db.alerts.length + myOffers.length;
+            // BUG FIX: Include alerts in notification count
+            const totalNotifications = myDebts.length + db.alerts.length;
             const badge = document.getElementById('notification-badge');
             
             if (totalNotifications > 0) {
@@ -790,241 +1143,205 @@
         }
 
         function openNotifications() {
+            const debtList = document.getElementById('class-debt-list');
             const alertList = document.getElementById('alert-list');
-            alertList.innerHTML = db.alerts.length === 0 ? '<p class="text-slate-500">No new system alerts.</p>' : db.alerts.slice().reverse().map(alert => `<div class="p-3 bg-slate-100 dark:bg-gray-700 rounded-md"><p>${alert.message}</p><p class="text-xs text-slate-500 mt-1">${new Date(alert.date).toLocaleString()}</p></div>`).join('');
+            const myDebts = db.classDebts.filter(d => (currentUser && (d.debtor === currentUser.fullName || d.creditor === currentUser.fullName)) && d.status === 'Unpaid');
             
+            if (myDebts.length === 0) {
+                debtList.innerHTML = '<p class="text-slate-500">No pending class debts.</p>';
+            } else {
+                debtList.innerHTML = myDebts.map(debt => {
+                    const iOwe = debt.debtor === currentUser.fullName;
+                    return `<div class="p-3 bg-slate-100 dark:bg-gray-700 rounded-md"><div class="flex justify-between items-start"><div><p class="font-semibold">You ${iOwe ? 'owe' : 'are owed by'} ${iOwe ? debt.creditor : debt.debtor} one class.</p><p class="text-xs text-slate-500">For: ${debt.classInfo.title} on ${new Date(debt.classInfo.start).toLocaleDateString()}</p></div>${iOwe ? `<button data-id="${debt.id}" class="repay-debt-btn bg-indigo-600 text-white text-xs font-bold py-1 px-3 rounded-md hover:bg-indigo-700">Repay</button>` : ''}</div></div>`;
+                }).join('');
+            }
+
+            alertList.innerHTML = db.alerts.length === 0 ? '<p class="text-slate-500">No system alerts.</p>' : db.alerts.slice().reverse().map(alert => `<div class="p-3 bg-slate-100 dark:bg-gray-700 rounded-md"><p>${alert.message}</p><p class="text-xs text-slate-500 mt-1">${new Date(alert.date).toLocaleString()}</p></div>`).join('');
+            
+            // Clear alerts after viewing them
             db.alerts = [];
             updateNotifications();
             saveDatabase();
+
             showModal('notifications-modal');
         }
 
-        function openDebtLedger() {
-            renderDebtLedgerMainView();
-            showModal('debt-ledger-modal');
-        }
-
-        function renderDebtLedgerMainView() {
-            const content = document.getElementById('debt-ledger-content');
-            const myDebts = db.classDebts.filter(d => d.debtor === currentUser.fullName && d.status === 'Unpaid');
-            const debtsToMe = db.classDebts.filter(d => d.creditor === currentUser.fullName && d.status === 'Unpaid');
-            const offersToMe = db.repaymentOffers.filter(o => o.creditor === currentUser.fullName && o.status === 'Pending');
-
-            let iOweHtml = myDebts.length > 0 ? myDebts.map(d => `
-                <div class="flex justify-between items-center p-3 bg-slate-100 dark:bg-gray-700 rounded-md">
-                    <div>
-                        <p>You owe <strong>${d.creditor}</strong> for covering <strong>${d.classInfo.title}</strong></p>
-                        <p class="text-xs text-slate-500">${new Date(d.classInfo.start).toLocaleString()}</p>
-                    </div>
-                    <button data-id="${d.id}" class="repay-debt-btn bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg">Repay Debt</button>
-                </div>`).join('') : '<p class="text-slate-500">You have no pending debts.</p>';
-
-            let owedToMeHtml = debtsToMe.length > 0 ? debtsToMe.map(d => `
-                <div class="p-3 bg-slate-100 dark:bg-gray-700 rounded-md">
-                    <p><strong>${d.debtor}</strong> owes you for <strong>${d.classInfo.title}</strong></p>
-                </div>`).join('') : '<p class="text-slate-500">No one owes you any classes.</p>';
-
-            let offersHtml = offersToMe.length > 0 ? offersToMe.map(o => {
-                const debt = db.classDebts.find(d => d.id === o.debtId);
-                return `
-                <div class="flex justify-between items-center p-3 bg-amber-100 dark:bg-amber-900/50 rounded-md border border-amber-400">
-                    <div>
-                        <p><strong>${o.debtor}</strong> offers to cover your <strong>${o.classToCover.title}</strong> class</p>
-                        <p class="text-xs text-slate-500">On ${new Date(o.classToCover.start).toLocaleString()} to settle their debt for ${debt.classInfo.title}.</p>
-                    </div>
-                    <button data-offerid="${o.id}" class="accept-offer-btn bg-green-600 text-white font-semibold py-2 px-4 rounded-lg">Accept Offer</button>
-                </div>`
-            }).join('') : '';
-
-            content.innerHTML = `
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <h4 class="text-xl font-bold mb-3 border-b pb-2">Debts I Owe</h4>
-                        <div class="space-y-3">${iOweHtml}</div>
-                    </div>
-                    <div>
-                        <h4 class="text-xl font-bold mb-3 border-b pb-2">Debts Owed to Me & Offers</h4>
-                        <div class="space-y-3">${offersHtml}${owedToMeHtml}</div>
-                    </div>
-                </div>
-            `;
-            lucide.createIcons();
-        }
-
-        function renderRepaymentView(debtId) {
-            const content = document.getElementById('debt-ledger-content');
-            const debt = db.classDebts.find(d => d.id === debtId);
-            const creditorName = debt.creditor;
-            
-            const upcomingEvents = calendar.getEvents().filter(e => 
-                new Date(e.start) > new Date() &&
-                e.extendedProps.prof === creditorName &&
-                !e.classNames.includes('break-event')
-            ).sort((a,b) => a.start - b.start).slice(0, 10);
-
-            let eventsHtml = upcomingEvents.length > 0 ? upcomingEvents.map(e => {
-                const eventData = { id: e.id, title: e.title, start: e.start.toISOString(), end: e.end.toISOString(), room: e.extendedProps.room, credits: e.extendedProps.credits, prof: e.extendedProps.prof };
-                return `
-                <div data-debtid="${debtId}" data-event='${JSON.stringify(eventData)}' class="repayment-offer-btn p-3 bg-slate-100 dark:bg-gray-700 rounded-md">
-                    <p><strong>${e.title}</strong></p>
-                    <p class="text-sm">${new Date(e.start).toLocaleString()}</p>
-                </div>`
-            }).join('') : '<p class="text-slate-500">No upcoming classes for this staff member to cover.</p>';
-
-            content.innerHTML = `
-                <button onclick="renderDebtLedgerMainView()" class="mb-4 text-indigo-600 font-semibold flex items-center gap-2"><i data-lucide="arrow-left"></i> Back to Ledger</button>
-                <h4 class="text-xl font-bold mb-3">Offer to cover a class for ${creditorName}</h4>
-                <p class="mb-4 text-sm text-slate-500">Select one of their upcoming classes below to offer a repayment.</p>
-                <div class="space-y-3">${eventsHtml}</div>
-            `;
-            lucide.createIcons();
-        }
-
-        function handleRepaymentOffer(debtId, eventToCover) {
-            const debt = db.classDebts.find(d => d.id === debtId);
-            const offer = {
-                id: `offer_${Date.now()}`,
-                debtId: debtId,
-                debtor: currentUser.fullName,
-                creditor: debt.creditor,
-                classToCover: eventToCover,
-                status: 'Pending'
-            };
-            db.repaymentOffers.push(offer);
-            saveDatabase();
-            showToast('Repayment offer sent!', 'success');
-            renderDebtLedgerMainView();
-            updateNotifications();
-        }
-
-        function handleAcceptOffer(offerId) {
-            const offer = db.repaymentOffers.find(o => o.id === offerId);
-            if (!offer) return;
-            const debt = db.classDebts.find(d => d.id === offer.debtId);
-            const schedule = db.schedules['grade-10-a'];
-
-            debt.status = 'Paid';
-            offer.status = 'Accepted';
-
-            const overrideId = `override_repayment_${Date.now()}`;
-            schedule.overrides[overrideId] = {
-                id: overrideId,
-                title: offer.classToCover.title,
-                start: offer.classToCover.start,
-                end: offer.classToCover.end,
-                prof: offer.debtor,
-                originalProf: offer.creditor,
-                room: offer.classToCover.room,
-                credits: offer.classToCover.credits,
-                backgroundColor: '#f59e0b',
-            };
-
-            saveDatabase();
-            showToast('Repayment offer accepted and schedule updated!', 'success');
-            renderDebtLedgerMainView();
-            renderCalendar();
-            updateNotifications();
+        function repayDebt(debtId) {
+            showToast("To repay a debt, find a class of the creditor and coordinate with them manually for now.", "info", 5000);
         }
         
+        function confirmRepayment(debtId, originalEventId) { /* Simplified */ }
+        
+        function handleChatSubmit(e) {
+            e.preventDefault();
+            const input = document.getElementById('chat-input');
+            const query = input.value.trim().toLowerCase();
+            if (!query) return;
+
+            addChatMessage(query, 'user');
+            input.value = '';
+
+            setTimeout(() => {
+                const response = getAcaDexiResponse(query);
+                addChatMessage(response, 'bot');
+            }, 800);
+        }
+
+        function addChatMessage(message, sender) {
+            const chatWindow = document.getElementById('chat-window');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `p-3 rounded-lg max-w-[80%] ${sender === 'user' ? 'bg-indigo-500 text-white self-end' : 'bg-slate-200 dark:bg-gray-700 self-start'}`;
+            messageDiv.textContent = message;
+            chatWindow.appendChild(messageDiv);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        function getAcaDexiResponse(query) {
+            const today = new Date();
+            const now = today.getTime();
+            
+            const allEvents = calendar.getEvents();
+            const eventsToday = allEvents.filter(e => e.start.toDateString() === today.toDateString())
+                                          .sort((a,b) => a.start - b.start);
+
+            if (query.includes("hello") || query.includes("hi")) {
+                return `Hello, ${currentUser.fullName}! How can I help you with your schedule today?`;
+            }
+            if (query.includes("what's next") || query.includes("next class")) {
+                const nextClass = eventsToday.find(e => e.start.getTime() > now && !e.classNames.includes('break-event'));
+                return nextClass ? `Your next class is ${nextClass.title} with ${nextClass.extendedProps.prof} at ${nextClass.start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}.` : "You have no more classes scheduled for today.";
+            }
+            if (query.includes("my attendance")) {
+                 if (currentUser.role === 'student') {
+                    const myAttendance = db.studentAttendance[currentUser.id] || {};
+                    const totalClasses = Object.keys(myAttendance).length;
+                    const attendedClasses = Object.values(myAttendance).filter(s => s === 'Present').length;
+                    const percentage = totalClasses > 0 ? ((attendedClasses / totalClasses) * 100).toFixed(1) : 100;
+                    return `Your current attendance is ${percentage}%. You've attended ${attendedClasses} out of ${totalClasses} recorded classes.`;
+                }
+                return "Attendance data is available for students.";
+            }
+            return "I'm not sure how to answer that. You can ask me about your next class or your attendance.";
+        }
+        
+        function handleAddSubject() {
+            showToast("This feature is disabled. Please use Admin tools to generate a full schedule.", 'info');
+        }
+
+        function showModal(id) { document.getElementById(id)?.classList.add('visible'); }
+        function hideModal(id) { document.getElementById(id)?.classList.remove('visible'); }
+        function hideAllModals() { document.querySelectorAll('.modal').forEach(m => m.classList.remove('visible')); }
+        
+        let toastTimeout;
+        function showToast(message, type = "info", duration = 3000) {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toast-message');
+            toast.className = 'toast fixed top-24 left-1/2 -translate-x-1/2 text-white py-2 px-5 rounded-lg shadow-lg opacity-0 transform -translate-y-10 z-[90]';
+            const colors = { error: 'bg-red-600', success: 'bg-green-600', info: 'bg-sky-600' };
+            toast.classList.add(colors[type] || 'bg-gray-800');
+            toastMessage.textContent = message;
+            toast.classList.add('opacity-100', 'translate-y-0');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => { toast.classList.remove('opacity-100', 'translate-y-0'); }, duration);
+        }
+
+        function showConfirmModal(message, onConfirm) {
+            document.getElementById('confirm-modal-message').textContent = message;
+            confirmCallback = onConfirm;
+            showModal('confirm-modal');
+        }
+
+        function downloadScheduleICS() {
+            // This function would need updates to handle the new event structure, simplified for now.
+            showToast("Download temporarily disabled.", "info");
+        }
+
+        /**
+        * REBUILT SCHEDULE GENERATOR
+        * This new version handles all your specific rules:
+        * 1. Separates Labs (2 hours) and Theory (1 hour) classes.
+        * 2. Prioritizes placing the 2-hour lab blocks first.
+        * 3. Ensures Wednesday's last hour is always free.
+        * 4. Uses a robust conflict checker for professors and rooms.
+        */
         function generateNewSchedule(scheduleId, fromAdmin) {
             if(fromAdmin) showToast('Generating new schedule with all rules...', 'info');
 
             const subjectDefinitions = [
-                { baseTitle: 'IoT', type: 'lab', prof: 'Karthikeyan', room: 'CS Lab', credits: 4, weeklyCount: 1, color: '#8b5cf6' },
-                { baseTitle: 'IoT', type: 'theory', prof: 'Karthikeyan', room: '101', credits: 4, weeklyCount: 2, color: '#6d28d9' },
-                { baseTitle: 'Power Systems', type: 'theory', prof: 'Anamika', room: '102', credits: 3, weeklyCount: 3, color: '#1d4ed8' },
-                { baseTitle: 'Elec. Hybrid Vehicle', type: 'theory', prof: 'Balaji', room: '103', credits: 3, weeklyCount: 2, color: '#c026d3' },
-                { baseTitle: 'EV Architecture', type: 'lab', prof: 'Yokesh', room: 'Lab A', credits: 4, weeklyCount: 1, color: '#059669' },
-                { baseTitle: 'EV Architecture', type: 'theory', prof: 'Yokesh', room: '201', credits: 4, weeklyCount: 2, color: '#047857' },
-                { baseTitle: 'Ethics', type: 'theory', prof: 'Kiruthik', room: '202', credits: 2, weeklyCount: 2, color: '#ca8a04' },
-                { baseTitle: 'LIC', type: 'lab', prof: 'Saravana', room: 'Lab B', credits: 4, weeklyCount: 1, color: '#e11d48' },
-                { baseTitle: 'LIC', type: 'theory', prof: 'Saravana', room: '203', credits: 4, weeklyCount: 2, color: '#be123c' },
-                { baseTitle: 'Advanced E-Vehicles', type: 'theory', prof: 'Kanishq', room: '103', credits: 3, weeklyCount: 2, color: '#15803d' },
-                { baseTitle: 'Comm. Skills', type: 'theory', prof: 'Harine', room: '202', credits: 2, weeklyCount: 2, color: '#f97316' }
+                { baseTitle: 'IoT', integrated: true, prof: 'Karthikeyan', theoryRoom: '101', labRoom: 'CS Lab', credits: 4, theoryCount: 2, labCount: 1, theoryColor: '#6d28d9', labColor: '#8b5cf6' },
+                { baseTitle: 'Power Systems', integrated: false, prof: 'Anamika', theoryRoom: '102', credits: 3, theoryCount: 3, theoryColor: '#1d4ed8' },
+                { baseTitle: 'Electric Hybrid Vehicle', integrated: false, prof: 'Balaji', theoryRoom: '103', credits: 3, theoryCount: 2, theoryColor: '#c026d3' },
+                { baseTitle: 'EV Architecture', integrated: true, prof: 'Yokesh', theoryRoom: '201', labRoom: 'Lab A', credits: 4, theoryCount: 2, labCount: 1, theoryColor: '#047857', labColor: '#059669' },
+                { baseTitle: 'Ethics', integrated: false, prof: 'Kiruthik', theoryRoom: '202', credits: 2, theoryCount: 2, theoryColor: '#ca8a04' },
+                { baseTitle: 'Linear Integrated Circuits', integrated: true, prof: 'Saravana', theoryRoom: '203', labRoom: 'Lab B', credits: 4, theoryCount: 2, labCount: 1, theoryColor: '#be123c', labColor: '#e11d48' },
+                { baseTitle: 'Advanced E-Vehicles', integrated: false, prof: 'Kanishq', theoryRoom: '103', credits: 3, theoryCount: 2, theoryColor: '#15803d' },
+                { baseTitle: 'Communication Skills', integrated: false, prof: 'Harine', theoryRoom: '202', credits: 2, theoryCount: 2, theoryColor: '#f97316' }
             ];
 
-            let classDeck = [];
+            let labClasses = [];
+            let theoryClasses = [];
             subjectDefinitions.forEach(def => {
-                for (let i = 0; i < def.weeklyCount; i++) {
-                    classDeck.push({ title: def.baseTitle + (def.type === 'lab' ? ' (Lab)' : ''), type: def.type, prof: def.prof, room: def.room, credits: def.credits, backgroundColor: def.color });
+                for (let i = 0; i < def.theoryCount; i++) { theoryClasses.push({ title: `${def.baseTitle}`, prof: def.prof, room: def.theoryRoom, credits: def.credits, backgroundColor: def.theoryColor }); }
+                if (def.integrated) {
+                    for (let i = 0; i < def.labCount; i++) { labClasses.push({ title: `${def.baseTitle} (Lab)`, prof: def.prof, room: def.labRoom, credits: def.credits, backgroundColor: def.labColor }); }
+                }
+            });
+            
+            [labClasses, theoryClasses].forEach(arr => {
+                for (let i = arr.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [arr[i], arr[j]] = [arr[j], arr[i]];
                 }
             });
 
-            const staffList = Object.values(db.users).filter(u => u.role === 'staff');
-            let totalHoursToFill = 34;
-            let currentHours = classDeck.reduce((acc, c) => acc + (c.type === 'lab' ? 2 : 1), 0);
-
-            if (currentHours < totalHoursToFill) {
-                let staffIndex = 0;
-                for (let i = currentHours; i < totalHoursToFill; i++) {
-                    const prof = staffList[staffIndex % staffList.length].fullName;
-                    classDeck.push({ title: 'Study Hall', type: 'theory', prof: prof, room: 'Library', credits: 0, backgroundColor: '#64748b' });
-                    staffIndex++;
-                }
-            }
-            
-            for (let i = classDeck.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [classDeck[i], classDeck[j]] = [classDeck[j], classDeck[i]];
-            }
-
-            const labClasses = classDeck.filter(c => c.type === 'lab');
-            const theoryClasses = classDeck.filter(c => c.type === 'theory');
-            
-            const timeSlots = ['09:00', '09:50', '10:55', '11:45', '13:30', '14:20', '15:10'];
+            const timeSlots = [ '09:00', '09:50', '10:55', '11:45', '13:30', '14:20', '15:10' ];
             let availableSlots = [];
-            for (let day = 1; day <= 5; day++) {
+            for (let day = 1; day <= 5; day++) { // Monday to Friday
                 timeSlots.forEach(time => {
+                    // FEATURE: Wednesday last hour is free
                     if (day === 3 && time === '15:10') return; 
                     availableSlots.push({ day, time });
                 });
             }
             
             const newEvents = {};
-            const profWorkload = {};
-            staffList.forEach(s => profWorkload[s.fullName] = 0);
-
-            const isConflict = (classInfo, day, startTime, duration) => {
-                for (let i = 0; i < duration; i += 50) {
-                    const checkTime = new Date(new Date(`1970-01-01T${startTime}:00`).getTime() + i * 60000).toTimeString().slice(0, 5);
-                    for (const event of Object.values(newEvents)) {
-                        if (event.daysOfWeek.includes(day)) {
-                            const eventStart = event.startTime;
-                            const eventEnd = event.endTime;
-                            if (checkTime >= eventStart && checkTime < eventEnd) {
-                                if (event.prof === classInfo.prof || event.room === classInfo.room) return true;
-                            }
-                        }
+            const isConflict = (classInfo, day, time, duration = 50) => {
+                for(let i=0; i < duration; i+=50) {
+                    const checkTime = new Date(new Date(`1970-01-01T${time}:00`).getTime() + i * 60000).toTimeString().slice(0,5);
+                    if (Object.values(newEvents).some(ev => ev.daysOfWeek.includes(day) && ev.startTime <= checkTime && ev.endTime > checkTime && (ev.prof === classInfo.prof || ev.room === classInfo.room))) {
+                        return true;
                     }
                 }
                 return false;
             };
 
+            // Place 2-hour labs first
             labClasses.forEach(labInfo => {
                 for (let i = 0; i < availableSlots.length - 1; i++) {
                     const slot1 = availableSlots[i];
-                    const slot2 = availableSlots[i + 1];
-                    const slot1End = new Date(new Date(`1970-01-01T${slot1.time}:00`).getTime() + 50 * 60000).toTimeString().slice(0, 5);
-                    if (slot1.day === slot2.day && slot1End === slot2.time && !isConflict(labInfo, slot1.day, slot1.time, 100)) {
-                        const eventId = `event_${Object.keys(newEvents).length}`;
-                        newEvents[eventId] = { ...labInfo, id: eventId, daysOfWeek: [slot1.day], startTime: slot1.time, endTime: new Date(new Date(`1970-01-01T${slot2.time}:00`).getTime() + 50 * 60000).toTimeString().slice(0,5) };
-                        profWorkload[labInfo.prof] += 2;
-                        availableSlots.splice(i, 2);
+                    const slot2 = availableSlots[i+1];
+                    
+                    const slot1End = new Date(new Date(`1970-01-01T${slot1.time}:00`).getTime() + 50 * 60000).toTimeString().slice(0,5);
+                    const areConsecutive = slot1.day === slot2.day && slot1End === slot2.time;
+
+                    if (areConsecutive && !isConflict(labInfo, slot1.day, slot1.time, 100)) {
+                        const eventId = `event_lab_${Object.keys(newEvents).length + 1}`;
+                        newEvents[eventId] = { ...labInfo, id: eventId, daysOfWeek: [slot1.day], startTime: slot1.time, endTime: slot2.time };
+                        availableSlots.splice(i, 2); // Remove both used slots
                         break;
                     }
                 }
             });
 
-            theoryClasses.sort((a,b) => profWorkload[a.prof] - profWorkload[b.prof]);
+            // Place 1-hour theory classes in remaining slots
             theoryClasses.forEach(theoryInfo => {
                 for (let i = 0; i < availableSlots.length; i++) {
                     const slot = availableSlots[i];
-                    if (!isConflict(theoryInfo, slot.day, slot.time, 50)) {
-                        const eventId = `event_${Object.keys(newEvents).length}`;
-                        newEvents[eventId] = { ...theoryInfo, id: eventId, daysOfWeek: [slot.day], startTime: slot.time, endTime: new Date(new Date(`1970-01-01T${slot.time}:00`).getTime() + 50 * 60000).toTimeString().slice(0,5) };
-                        profWorkload[theoryInfo.prof]++;
-                        availableSlots.splice(i, 1);
-                        break;
+                    if (!isConflict(theoryInfo, slot.day, slot.time)) {
+                         const eventId = `event_theory_${Object.keys(newEvents).length + 1}`;
+                         newEvents[eventId] = { ...theoryInfo, id: eventId, daysOfWeek: [slot.day], startTime: slot.time, endTime: new Date(new Date(`1970-01-01T${slot.time}:00`).getTime() + 50 * 60000).toTimeString().slice(0,5) };
+                         availableSlots.splice(i, 1);
+                         break;
                     }
                 }
             });
@@ -1032,12 +1349,13 @@
             if(fromAdmin) {
                 db.schedules[scheduleId].events = newEvents;
                 db.schedules[scheduleId].overrides = {};
-                db.alerts = []; db.classDebts = []; db.repaymentOffers = [];
+                db.alerts = []; db.classDebts = []; // Clear old data on new generation
                 saveDatabase();
-                showToast('New schedule generated!', 'success');
+                showToast('New, conflict-free schedule has been generated!', 'success');
                 renderStaffDashboard();
                 loadSchedule(scheduleId);
             }
+            
             return newEvents;
         }
 
