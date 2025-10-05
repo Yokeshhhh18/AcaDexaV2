@@ -638,9 +638,9 @@
                     <div class="md:col-span-2 bg-white dark:bg-gray-800/50 p-6 rounded-xl shadow-md">
                          <h3 class="font-bold text-lg mb-4">Manage Future Staff Absences</h3>
                          <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
-                            <select id="absence-staff-selector" class="sm:col-span-2 p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"><option value="">Select Staff...</option>${staffOptions}</select>
-                            <input type="date" id="absence-start-date" class="p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
-                             <button id="add-absence-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition">Add Absence</button>
+                             <select id="absence-staff-selector" class="sm:col-span-2 p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"><option value="">Select Staff...</option>${staffOptions}</select>
+                             <input type="date" id="absence-start-date" class="p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
+                              <button id="add-absence-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition">Add Absence</button>
                          </div>
                          <h4 class="font-semibold text-sm mb-2">Scheduled Absences</h4>
                          <div id="scheduled-absences-list" class="space-y-2 max-h-48 overflow-y-auto">${scheduledAbsencesHtml || '<p class="text-slate-500 text-sm">No future absences scheduled.</p>'}</div>
@@ -1051,22 +1051,22 @@
                     successCallback(filteredEvents);
                 },
                  eventContent: (arg) => {
-                    if (arg.event.display === 'background') return false;
-                    const dateStr = getYYYYMMDD(arg.event.start);
-                    const staffAttendance = db.staffAttendance[dateStr] || {};
-                    const originalProf = arg.event.extendedProps.originalProf || arg.event.extendedProps.prof;
-                    let title = arg.event.title;
+                     if (arg.event.display === 'background') return false;
+                     const dateStr = getYYYYMMDD(arg.event.start);
+                     const staffAttendance = db.staffAttendance[dateStr] || {};
+                     const originalProf = arg.event.extendedProps.originalProf || arg.event.extendedProps.prof;
+                     let title = arg.event.title;
 
-                    if (staffAttendance[originalProf] === 'Absent' && !arg.event.extendedProps.originalProf) {
-                        title = `${title} (UNCOVERED)`;
-                    } else if (arg.event.extendedProps.originalProf) {
-                        title = `${title} (Cover: ${arg.event.extendedProps.prof.split(' ')[0]})`;
-                    }
-                    
-                    let eventEl = document.createElement('div');
-                    eventEl.innerHTML = title;
-                    return { domNodes: [eventEl] }
-                }
+                     if (staffAttendance[originalProf] === 'Absent' && !arg.event.extendedProps.originalProf) {
+                         title = `${title} (UNCOVERED)`;
+                     } else if (arg.event.extendedProps.originalProf) {
+                         title = `${title} (Cover: ${arg.event.extendedProps.prof.split(' ')[0]})`;
+                     }
+                     
+                     let eventEl = document.createElement('div');
+                     eventEl.innerHTML = title;
+                     return { domNodes: [eventEl] }
+                 }
             });
             calendar.render();
         }
@@ -1092,7 +1092,12 @@
         }
         
         /**
-         * RECTIFIED: This function's logic is rewritten to correctly show the right buttons for the right user at the right time.
+         * BUG FIX: The original function checked `info.event.title` for "(UNCOVERED)".
+         * This was incorrect because the title modification in `eventContent` is only visual
+         * and does not change the underlying event data object.
+         *
+         * The fix is to recalculate the "uncovered" status directly from the database
+         * (staffAttendance) within this function, ensuring an accurate state check.
          */
         function handleEventClick(info) {
             if (info.event.display === 'background') return;
@@ -1114,7 +1119,14 @@
             const notesContent = modal.querySelector('#class-modal-notes-content');
             const actionContainer = document.getElementById('action-container');
             const isMyClass = currentProf === currentUser.fullName;
-            const isUncovered = info.event.title.includes('UNCOVERED');
+
+            // --- FIXED LOGIC START ---
+            const dateStr = getYYYYMMDD(info.event.start);
+            const staffAttendance = db.staffAttendance[dateStr] || {};
+            const isProfAbsent = staffAttendance[originalProf] === 'Absent';
+            const isAlreadyCovered = !!info.event.extendedProps.originalProf;
+            const isUncovered = isProfAbsent && !isAlreadyCovered;
+            // --- FIXED LOGIC END ---
 
             notesContent.innerHTML = `<textarea id="notes-textarea" class="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" rows="3" ${!isMyClass ? 'readonly' : ''}>${eventData.notes || ''}</textarea>`;
             
@@ -1288,12 +1300,12 @@
             }
             if (query.includes("my attendance")) {
                  if (currentUser.role === 'student') {
-                    const myAttendance = db.studentAttendance[currentUser.id] || {};
-                    const total = Object.keys(myAttendance).length;
-                    const attended = Object.values(myAttendance).filter(s => s === 'Present').length;
-                    const pct = total > 0 ? ((attended / total) * 100).toFixed(1) : 100;
-                    return `Your attendance is ${pct}%. You've attended ${attended} of ${total} classes.`;
-                }
+                     const myAttendance = db.studentAttendance[currentUser.id] || {};
+                     const total = Object.keys(myAttendance).length;
+                     const attended = Object.values(myAttendance).filter(s => s === 'Present').length;
+                     const pct = total > 0 ? ((attended / total) * 100).toFixed(1) : 100;
+                     return `Your attendance is ${pct}%. You've attended ${attended} of ${total} classes.`;
+                 }
                 return "Attendance data is for students.";
             }
             return "I can tell you about your next class or your attendance.";
