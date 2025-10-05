@@ -514,12 +514,6 @@
                 if (e.target.closest('.close-modal-btn')) {
                     hideModal(e.target.closest('.modal').id);
                 }
-                if (e.target.closest('.cover-class-btn')) {
-                    const eventId = e.target.closest('.cover-class-btn').dataset.eventid;
-                    showConfirmModal(`Are you sure you want to cover this class for ${e.target.closest('.cover-class-btn').dataset.originalprof}? A debt will be created.`, () => {
-                        claimUncoveredClass(eventId);
-                    });
-                }
             });
 
             document.getElementById('confirm-modal-confirm').onclick = () => {
@@ -574,32 +568,24 @@
             initializeAppUI(false);
         }
 
-        /**
-         * NEW: Admin dashboard now includes a tool to manage future absences.
-         */
         function renderAdminDashboard() {
             const dash = document.getElementById('admin-dashboard');
-
-            // --- Generate Holiday List ---
             const holidayListHtml = Object.entries(db.holidays).map(([date, name]) => 
                 `<div class="flex justify-between items-center p-2 bg-slate-100 dark:bg-gray-700 rounded-md">
                     <span>${date}: <strong>${name}</strong></span>
                     <button data-date="${date}" class="remove-holiday-btn text-red-500 hover:text-red-700"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                 </div>`
             ).join('');
-
-            // --- Generate Staff Dropdown Options ---
             const staffOptions = Object.values(db.users)
                 .filter(u => u.role === 'staff')
                 .map(s => `<option value="${s.fullName}">${s.fullName}</option>`)
                 .join('');
             
-            // --- Generate List of Scheduled Absences ---
             let scheduledAbsencesHtml = '';
             const today = new Date();
-            today.setHours(0,0,0,0); // For date comparison
+            today.setHours(0,0,0,0);
             Object.entries(db.staffAttendance).forEach(([dateStr, attendance]) => {
-                const date = new Date(dateStr);
+                const date = new Date(dateStr + "T00:00:00"); // Ensure correct date parsing
                 if (date >= today) {
                     Object.entries(attendance).forEach(([staffName, status]) => {
                         if (status === 'Absent') {
@@ -613,7 +599,6 @@
             });
 
 
-            // --- Main HTML Structure ---
             dash.innerHTML = `
                 <h2 class="text-3xl font-bold mb-6 font-poppins">Admin Controls</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -662,7 +647,6 @@
                 </div>`;
             lucide.createIcons();
             
-            // --- Attach Event Listeners ---
             document.getElementById('generate-schedule-btn').onclick = () => {
                 showConfirmModal('Are you sure you want to generate a new schedule? The current one will be overwritten.', () => generateNewSchedule('grade-10-a', true));
             };
@@ -705,9 +689,6 @@
             });
         }
 
-        /**
-         * NEW: Handles the logic for adding a future absence from the admin panel.
-         */
         function handleAddAbsence() {
             const staffName = document.getElementById('absence-staff-selector').value;
             const startDateStr = document.getElementById('absence-start-date').value;
@@ -717,7 +698,7 @@
                 return;
             }
             
-            const date = new Date(startDateStr + 'T00:00:00'); // Use T00 to avoid timezone shifts
+            const date = new Date(startDateStr + 'T00:00:00');
             const dateStr = getYYYYMMDD(date);
 
             if (!db.staffAttendance[dateStr]) {
@@ -725,7 +706,6 @@
             }
             db.staffAttendance[dateStr][staffName] = 'Absent';
             
-            // Alert staff about the future uncovered classes
             db.alerts.push({ 
                 id: `alert_${Date.now()}`, 
                 message: `${staffName} has been marked absent for ${dateStr}. Their classes will be available to cover.`, 
@@ -739,9 +719,6 @@
             renderCalendar();
         }
 
-        /**
-         * NEW: Handles the logic for removing a scheduled absence.
-         */
         function handleRemoveAbsence(date, staffName) {
             if (db.staffAttendance[date] && db.staffAttendance[date][staffName]) {
                 delete db.staffAttendance[date][staffName];
@@ -1061,7 +1038,7 @@
                     successCallback(filteredEvents);
                 },
                  eventContent: (arg) => {
-                    if (arg.event.display === 'background') return false; // Hide background event titles
+                    if (arg.event.display === 'background') return false;
                     const dateStr = getYYYYMMDD(arg.event.start);
                     const staffAttendance = db.staffAttendance[dateStr] || {};
                     const originalProf = arg.event.extendedProps.originalProf || arg.event.extendedProps.prof;
@@ -1101,6 +1078,9 @@
             }
         }
         
+        /**
+         * UPDATED: Now uses a confirmation modal for claiming classes to make the process clearer.
+         */
         function handleEventClick(info) {
             if (info.event.display === 'background') return;
             const scheduleId = document.getElementById('schedule-selector').value;
@@ -1144,9 +1124,14 @@
                 } else if(isUncovered) {
                     const coverClassBtn = document.createElement('button');
                     coverClassBtn.innerHTML = `<i data-lucide="user-plus"></i> Cover This Class (FCFS)`;
-                    coverClassBtn.className = 'w-full text-center bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 rounded-lg flex items-center justify-center gap-2 transition cover-class-btn';
-                    coverClassBtn.dataset.eventid = info.event.id;
-                    coverClassBtn.dataset.originalprof = originalProf;
+                    coverClassBtn.className = 'w-full text-center bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 rounded-lg flex items-center justify-center gap-2 transition';
+                    coverClassBtn.onclick = () => {
+                        hideModal('class-details-modal');
+                        showConfirmModal(
+                            `Are you sure you want to cover this class? A 'class debt' will be created, meaning ${originalProf} will owe you one class in the future.`, 
+                            () => claimUncoveredClass(info.event.id)
+                        );
+                    };
                     actionContainer.appendChild(coverClassBtn);
                 }
             }
@@ -1306,20 +1291,23 @@
 
         function downloadScheduleICS() { showToast("Download temporarily disabled.", "info"); }
 
+        /**
+         * UPDATED: Now includes logic to prevent back-to-back lab sessions.
+         */
         function generateNewSchedule(scheduleId, fromAdmin) {
-            if(fromAdmin) showToast('Generating new schedule with all rules...', 'info');
+            if(fromAdmin) showToast('Generating new schedule...', 'info');
 
             const subjectDefinitions = [
-                { baseTitle: 'IoT', integrated: true, prof: 'Karthikeyan', theoryRoom: '101', labRoom: 'CS Lab', credits: 4, theoryCount: 2, labCount: 1 }, // 4 slots
-                { baseTitle: 'Power Systems', prof: 'Anamika', theoryRoom: '102', credits: 3, theoryCount: 4 }, // 4 slots
-                { baseTitle: 'Elec. Hybrid Vehicle', prof: 'Balaji', theoryRoom: '103', credits: 3, theoryCount: 4 }, // 4 slots
-                { baseTitle: 'EV Architecture', integrated: true, prof: 'Yokesh', theoryRoom: '201', labRoom: 'Lab A', credits: 4, theoryCount: 2, labCount: 1 }, // 4 slots
-                { baseTitle: 'Ethics', prof: 'Kiruthik', theoryRoom: '202', credits: 2, theoryCount: 4 }, // 4 slots
-                { baseTitle: 'Linear IC', integrated: true, prof: 'Saravana', theoryRoom: '203', labRoom: 'Lab B', credits: 4, theoryCount: 2, labCount: 1 }, // 4 slots
-                { baseTitle: 'Advanced E-Vehicles', prof: 'Kanishq', theoryRoom: '103', credits: 3, theoryCount: 4 }, // 4 slots
-                { baseTitle: 'Communication Skills', prof: 'Harine', theoryRoom: '202', credits: 2, theoryCount: 4 }, // 4 slots
-                { baseTitle: 'Library', prof: 'Kiruthik', theoryRoom: 'Library', credits: 1, theoryCount: 1 }, // 1 slot
-                { baseTitle: 'Mentoring', prof: 'Yokesh', theoryRoom: '201', credits: 1, theoryCount: 2 }, // 2 slots
+                { baseTitle: 'IoT', integrated: true, prof: 'Karthikeyan', theoryRoom: '101', labRoom: 'CS Lab', credits: 4, theoryCount: 2, labCount: 1 },
+                { baseTitle: 'Power Systems', prof: 'Anamika', theoryRoom: '102', credits: 3, theoryCount: 4 },
+                { baseTitle: 'Elec. Hybrid Vehicle', prof: 'Balaji', theoryRoom: '103', credits: 3, theoryCount: 4 },
+                { baseTitle: 'EV Architecture', integrated: true, prof: 'Yokesh', theoryRoom: '201', labRoom: 'Lab A', credits: 4, theoryCount: 2, labCount: 1 },
+                { baseTitle: 'Ethics', prof: 'Kiruthik', theoryRoom: '202', credits: 2, theoryCount: 4 },
+                { baseTitle: 'Linear IC', integrated: true, prof: 'Saravana', theoryRoom: '203', labRoom: 'Lab B', credits: 4, theoryCount: 2, labCount: 1 },
+                { baseTitle: 'Advanced E-Vehicles', prof: 'Kanishq', theoryRoom: '103', credits: 3, theoryCount: 4 },
+                { baseTitle: 'Communication Skills', prof: 'Harine', theoryRoom: '202', credits: 2, theoryCount: 4 },
+                { baseTitle: 'Library', prof: 'Kiruthik', theoryRoom: 'Library', credits: 1, theoryCount: 1 },
+                { baseTitle: 'Mentoring', prof: 'Yokesh', theoryRoom: '201', credits: 1, theoryCount: 2 },
             ];
 
             const colors = ['#6d28d9', '#1d4ed8', '#c026d3', '#047857', '#ca8a04', '#be123c', '#15803d', '#f97316', '#475569', '#64748b'];
@@ -1357,10 +1345,28 @@
                     const slot1 = availableSlots[i], slot2 = availableSlots[i+1];
                     const slot1End = new Date(new Date(`1970-01-01T${slot1.time}:00`).getTime() + 50 * 60000).toTimeString().slice(0,5);
                     const areConsecutive = slot1.day === slot2.day && slot1End === slot2.time;
-                    if (areConsecutive && !isConflict(labInfo, slot1.day, slot1.time, 100)) {
+                    if (!areConsecutive) continue;
+
+                    const proposedStartTime = slot1.time;
+                    const proposedEndTime = new Date(new Date(`1970-01-01T${slot2.time}:00`).getTime() + 50 * 60000).toTimeString().slice(0,5);
+
+                    // NEW RULE: Check if placing this lab would make it adjacent to another lab.
+                    let isAdjacentToAnotherLab = false;
+                    for (const event of Object.values(newEvents)) {
+                        if (event.daysOfWeek.includes(slot1.day) && event.title.includes('(Lab)')) {
+                            if (event.endTime === proposedStartTime || event.startTime === proposedEndTime) {
+                                isAdjacentToAnotherLab = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!isConflict(labInfo, slot1.day, slot1.time, 100) && !isAdjacentToAnotherLab) {
                         const eventId = `event_lab_${Object.keys(newEvents).length + 1}`;
-                        newEvents[eventId] = { ...labInfo, id: eventId, daysOfWeek: [slot1.day], startTime: slot1.time, endTime: new Date(new Date(`1970-01-01T${slot2.time}:00`).getTime() + 50 * 60000).toTimeString().slice(0,5) };
-                        availableSlots.splice(i, 2); break;
+                        newEvents[eventId] = { ...labInfo, id: eventId, daysOfWeek: [slot1.day], startTime: proposedStartTime, endTime: proposedEndTime };
+                        availableSlots.splice(i, 2); 
+                        i--; // Adjust index after removal
+                        break;
                     }
                 }
             });
