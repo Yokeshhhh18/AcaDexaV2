@@ -92,7 +92,7 @@
 
         #scanner-animation.scanning .inner-circle { animation: pulse 1.5s infinite; }
         @keyframes pulse { 0%, 100% { transform: scale(0.8); opacity: 0.7; } 50% { transform: scale(1); opacity: 1; } }
-        @media print { body * { visibility: hidden; } #calendar-container, #calendar-container * { visibility: visible; } #schedule-controls, #schedule-controls *, header, main > h2 { visibility: hidden; } #calendar-container { position: absolute; left: 0; top: 0; width: 100%; } }
+        @media print { body * { visibility: hidden; } #calendar-container, #calendar-container * { visibility: visible; } #schedule-controls, #schedule-controls *, header, main > h2, #staff-dashboard { visibility: hidden; } #calendar-container { position: absolute; left: 0; top: 0; width: 100%; } }
         
         .pricing-card {
             transform-style: preserve-3d;
@@ -114,7 +114,7 @@
                     <button id="staff-login-btn" class="text-sm font-semibold bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">Staff Login</button>
                 </div>
                 <div id="user-info-container" style="display: none;" class="flex items-center gap-4">
-                        <button id="notifications-btn" class="relative p-2 rounded-full hover:bg-slate-200 dark:hover:bg-gray-700">
+                        <button id="alerts-btn" class="relative p-2 rounded-full hover:bg-slate-200 dark:hover:bg-gray-700">
                             <i data-lucide="bell"></i>
                             <span id="notification-badge" class="absolute top-0 right-0 h-4 w-4 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center hidden"></span>
                         </button>
@@ -297,24 +297,11 @@
                 </div>
             </div>
         </div>
-        <div id="notifications-modal" class="modal fixed inset-0 bg-black bg-opacity-60 z-[80] flex items-center justify-center p-4">
-            <div class="modal-content bg-white dark:bg-gray-800 p-6 rounded-lg shadow-2xl max-w-lg w-full relative h-[80vh] flex flex-col">
+        <div id="alerts-modal" class="modal fixed inset-0 bg-black bg-opacity-60 z-[80] flex items-center justify-center p-4">
+            <div class="modal-content bg-white dark:bg-gray-800 p-6 rounded-lg shadow-2xl max-w-lg w-full relative">
                 <button class="close-modal-btn absolute top-4 right-4 text-slate-500 hover:text-indigo-500 transition"><i data-lucide="x"></i></button>
-                <h3 class="text-2xl font-bold mb-4 font-poppins">Notifications & Debts</h3>
-                <div class="flex-grow overflow-y-auto space-y-4 pr-2">
-                    <div id="debts-owed-to-me-container">
-                        <h4 class="font-bold flex items-center gap-2 mb-2"><i data-lucide="trending-up" class="text-green-500"></i>Debts Owed To You</h4>
-                        <div id="debts-owed-to-me-list" class="text-sm space-y-2"></div>
-                    </div>
-                    <div id="debts-you-owe-container" class="border-t dark:border-gray-700 pt-4">
-                        <h4 class="font-bold flex items-center gap-2 mb-2"><i data-lucide="trending-down" class="text-red-500"></i>Debts You Owe</h4>
-                        <div id="debts-you-owe-list" class="text-sm space-y-2"></div>
-                    </div>
-                    <div class="border-t dark:border-gray-700 pt-4">
-                        <h4 class="font-bold flex items-center gap-2 mb-2"><i data-lucide="alert-circle" class="text-amber-500"></i>System Alerts</h4>
-                        <div id="alert-list" class="text-sm space-y-2"></div>
-                    </div>
-                </div>
+                <h3 class="text-2xl font-bold mb-4 font-poppins">System Alerts</h3>
+                <div id="alert-list" class="text-sm max-h-96 overflow-y-auto"></div>
             </div>
         </div>
         <div id="ai-chat-modal" class="modal fixed inset-0 bg-black bg-opacity-60 z-[80] flex items-end justify-center sm:justify-end p-4 sm:p-6">
@@ -398,7 +385,9 @@
         });
         
         function getYYYYMMDD(d) {
-            return d.toISOString().split('T')[0];
+            const date = new Date(d);
+            date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+            return date.toISOString().split('T')[0];
         }
 
         function loadDatabase() {
@@ -482,7 +471,7 @@
                 document.getElementById('username-display').textContent = `${currentUser.fullName}`;
             }
             document.getElementById('ask-ai-btn').style.display = isLoggedIn ? 'flex' : 'none';
-            document.getElementById('notifications-btn').style.display = isLoggedIn && (currentUser.role === 'staff' || currentUser.role === 'admin') ? 'flex' : 'none';
+            document.getElementById('alerts-btn').style.display = isLoggedIn && (currentUser.role === 'staff' || currentUser.role === 'admin') ? 'flex' : 'none';
             document.getElementById('staff-schedule-filters').style.display = isLoggedIn && currentUser.role === 'staff' ? 'flex' : 'none';
             document.getElementById('attendance-btn').style.display = isLoggedIn && currentUser.role === 'staff' ? 'flex' : 'none';
         }
@@ -496,7 +485,7 @@
             document.getElementById('scan-biometric-btn').onclick = handleBiometricScan;
             document.getElementById('ask-ai-btn').onclick = () => showModal('ai-chat-modal');
             document.getElementById('chat-form').onsubmit = handleChatSubmit;
-            document.getElementById('notifications-btn').onclick = openNotifications;
+            document.getElementById('alerts-btn').onclick = openAlertsModal;
             document.getElementById('add-subject-btn').onclick = handleAddSubject;
             
             document.getElementById('dark-mode-toggle').onclick = () => {
@@ -527,13 +516,6 @@
                     const eventId = e.target.closest('.cover-class-btn').dataset.eventid;
                     showConfirmModal(`Are you sure you want to cover this class for ${e.target.closest('.cover-class-btn').dataset.originalprof}? A debt will be created.`, () => {
                         claimUncoveredClass(eventId);
-                    });
-                }
-                // NEW: Event listener for marking a debt as repaid
-                if (e.target.closest('.mark-repaid-btn')) {
-                    const debtId = e.target.closest('.mark-repaid-btn').dataset.id;
-                    showConfirmModal('Are you sure this debt has been fulfilled and should be marked as repaid? This cannot be undone.', () => {
-                       markDebtAsRepaid(debtId);
                     });
                 }
             });
@@ -662,6 +644,7 @@
                 saveDatabase();
                 showToast(`Holiday "${name}" added on ${date}.`, 'success');
                 renderAdminDashboard();
+                renderCalendar(); // Refresh calendar to apply holiday blanking
             };
 
             document.querySelectorAll('.remove-holiday-btn').forEach(btn => {
@@ -672,33 +655,44 @@
                         saveDatabase();
                         showToast('Holiday removed.', 'info');
                         renderAdminDashboard();
+                        renderCalendar(); // Refresh calendar to apply holiday blanking
                     });
                 }
             });
         }
-
+        
+        /**
+         * NEW: Renders the entire staff dashboard, including workload chart and the new debt section.
+         */
         function renderStaffDashboard() {
             const dash = document.getElementById('staff-dashboard');
-            dash.innerHTML = `<h2 class="text-3xl font-bold mb-6 font-poppins">Staff Dashboard</h2>
-                <div class="bg-white dark:bg-gray-800/50 p-6 rounded-xl shadow-md">
-                    <h3 class="font-bold text-lg mb-4">Weekly Class Load & Credit Distribution</h3>
-                    <canvas id="workload-chart"></canvas>
+            dash.innerHTML = `
+                <h2 class="text-3xl font-bold mb-6 font-poppins">Staff Dashboard</h2>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white dark:bg-gray-800/50 p-6 rounded-xl shadow-md">
+                        <h3 class="font-bold text-lg mb-4">Weekly Class Load</h3>
+                        <canvas id="workload-chart"></canvas>
+                    </div>
+                    <div id="debt-management-section" class="bg-white dark:bg-gray-800/50 p-6 rounded-xl shadow-md">
+                        
+                    </div>
                 </div>`;
             
+            // Render Debt Management Section
+            renderDebtDashboard(document.getElementById('debt-management-section'));
+
             const staffWorkload = {};
-            const staffCredits = {};
             const staffList = Object.values(db.users).filter(u => u.role === 'staff');
-            staffList.forEach(s => {
-                staffWorkload[s.fullName] = 0;
-                staffCredits[s.fullName] = 0;
-            });
+            staffList.forEach(s => { staffWorkload[s.fullName] = 0; });
 
             Object.values(db.schedules).forEach(schedule => {
                 Object.values(schedule.events).forEach(ev => {
                     if(staffWorkload.hasOwnProperty(ev.prof)) {
-                        // For 2-hour labs, this will count as 1 class, which is intended.
-                        staffWorkload[ev.prof]++;
-                        staffCredits[ev.prof] += ev.credits;
+                        // Calculate hours, not just class count
+                        const startTime = new Date(`1970-01-01T${ev.startTime}:00`);
+                        const endTime = new Date(`1970-01-01T${ev.endTime}:00`);
+                        const durationHours = (endTime - startTime) / (1000 * 60 * 60);
+                        staffWorkload[ev.prof] += durationHours;
                     }
                 });
             });
@@ -710,8 +704,7 @@
                 data: {
                     labels: Object.keys(staffWorkload),
                     datasets: [
-                        { label: 'Classes this Week', data: Object.values(staffWorkload), backgroundColor: '#4f46e5' },
-                        { label: 'Total Credits', data: Object.values(staffCredits), backgroundColor: '#8b5cf6' }
+                        { label: 'Hours this Week', data: Object.values(staffWorkload), backgroundColor: '#4f46e5' }
                     ]
                 },
                 options: {
@@ -722,6 +715,77 @@
                     plugins: { legend: { labels: { color: isDark ? '#cbd5e1' : '#475569' } } }
                 }
             });
+        }
+
+        /**
+         * NEW: Renders the dedicated debt management dashboard component.
+         */
+        function renderDebtDashboard(container) {
+            container.innerHTML = `<h3 class="font-bold text-lg mb-4">Class Debt Management</h3>`;
+
+            const pendingDebts = db.classDebts.filter(d => d.status === 'Unpaid');
+            const debtsOwedToMe = pendingDebts.filter(d => d.creditor === currentUser.fullName);
+            const debtsYouOwe = pendingDebts.filter(d => d.debtor === currentUser.fullName);
+
+            const debtsOwedToMeHtml = debtsOwedToMe.length === 0 
+                ? '<p class="text-sm text-slate-500">No outstanding debts are owed to you.</p>'
+                : debtsOwedToMe.map(debt => `
+                    <div class="p-3 bg-slate-100 dark:bg-gray-700 rounded-md">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="font-semibold text-sm">${debt.debtor} owes you one class.</p>
+                                <p class="text-xs text-slate-500">For: ${debt.classInfo.title} on ${new Date(debt.classInfo.start).toLocaleDateString()}</p>
+                            </div>
+                            <button data-id="${debt.id}" class="mark-repaid-btn bg-green-600 text-white text-xs font-bold py-1 px-3 rounded-md hover:bg-green-700">Mark Repaid</button>
+                        </div>
+                    </div>`).join('');
+            
+            const debtsYouOweHtml = debtsYouOwe.length === 0
+                ? '<p class="text-sm text-slate-500">You do not owe any classes.</p>'
+                : debtsYouOwe.map(debt => `
+                    <div class="p-3 bg-slate-100 dark:bg-gray-700 rounded-md">
+                        <p class="font-semibold text-sm">You owe ${debt.creditor} one class.</p>
+                        <p class="text-xs text-slate-500">For: ${debt.classInfo.title} on ${new Date(debt.classInfo.start).toLocaleDateString()}</p>
+                    </div>`).join('');
+
+            container.innerHTML += `
+                <div class="space-y-4">
+                    <div>
+                        <h4 class="font-bold flex items-center gap-2 mb-2 text-sm"><i data-lucide="trending-up" class="text-green-500 w-4 h-4"></i>Debts Owed To You</h4>
+                        <div class="text-sm space-y-2 max-h-32 overflow-y-auto pr-2">${debtsOwedToMeHtml}</div>
+                    </div>
+                    <div class="border-t dark:border-gray-700 pt-4">
+                        <h4 class="font-bold flex items-center gap-2 mb-2 text-sm"><i data-lucide="trending-down" class="text-red-500 w-4 h-4"></i>Debts You Owe</h4>
+                        <div class="text-sm space-y-2 max-h-32 overflow-y-auto pr-2">${debtsYouOweHtml}</div>
+                    </div>
+                </div>
+            `;
+            lucide.createIcons();
+
+            // Add event listeners for the new buttons
+            container.querySelectorAll('.mark-repaid-btn').forEach(btn => {
+                btn.onclick = () => {
+                    const debtId = btn.dataset.id;
+                    showConfirmModal('Are you sure this debt has been fulfilled and should be marked as repaid? This cannot be undone.', () => {
+                       markDebtAsRepaid(debtId);
+                    });
+                };
+            });
+        }
+
+        /**
+         * NEW: Marks a debt as paid and refreshes the dashboard.
+         */
+        function markDebtAsRepaid(debtId) {
+            const debt = db.classDebts.find(d => d.id === debtId);
+            if (debt) {
+                debt.status = 'Paid';
+                saveDatabase();
+                showToast('Debt has been successfully marked as repaid!', 'success');
+                renderStaffDashboard(); // Refresh the dashboard to show the change
+            } else {
+                showToast('Error: Could not find the specified debt.', 'error');
+            }
         }
 
         function renderStudentDashboard() {
@@ -841,19 +905,13 @@
             }, 1500);
         }
         
-        /**
-         * FIX: Handles staff absence, now creates a system-wide alert for all staff.
-         */
         function handleAbsence(staffName) {
             const todayStr = getYYYYMMDD(new Date());
             if (!db.staffAttendance[todayStr]) db.staffAttendance[todayStr] = {};
-            
-            // Do nothing if already processed to prevent duplicate alerts
             if (db.staffAttendance[todayStr][staffName] === 'Absent') return;
 
             db.staffAttendance[todayStr][staffName] = 'Absent';
             
-            // Create a persistent system alert for all other staff members
             const alertExists = db.alerts.some(alert => alert.message.includes(`${staffName} has been marked absent`));
             if (!alertExists) {
                 db.alerts.push({ 
@@ -875,7 +933,7 @@
             
             calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: 'timeGridWeek',
-                initialDate: '2025-10-01', // Set to a Wednesday to test the rule
+                initialDate: '2025-10-01',
                 headerToolbar: {
                     left: 'prev,next today',
                     center: 'title',
@@ -885,12 +943,7 @@
                 slotMaxTime: '16:00:00',
                 slotDuration: '00:50:00',
                 slotLabelInterval: '00:50:00',
-                slotLabelFormat: {
-                    hour: 'numeric',
-                    minute: '2-digit',
-                    omitZeroMinute: false,
-                    meridiem: 'short'
-                },
+                slotLabelFormat: { hour: 'numeric', minute: '2-digit', omitZeroMinute: false, meridiem: 'short' },
                 allDaySlot: false,
                 editable: false, 
                 droppable: true,
@@ -903,9 +956,16 @@
                         arg.el.dataset.holidayName = db.holidays[dateStr];
                     }
                 },
-                businessHours: [ 
-                    { daysOfWeek: [ 1, 2, 3, 4, 5 ], startTime: '09:00', endTime: '16:00' },
-                ],
+                /**
+                 * NEW: Hides events that fall on a designated holiday.
+                 */
+                eventDidMount: (arg) => {
+                    const dateStr = getYYYYMMDD(arg.event.start);
+                    if (db.holidays[dateStr]) {
+                        arg.el.style.visibility = 'hidden';
+                    }
+                },
+                businessHours: [ { daysOfWeek: [ 1, 2, 3, 4, 5 ], startTime: '09:00', endTime: '16:00' } ],
                 events: (fetchInfo, successCallback, failureCallback) => {
                     const scheduleId = document.getElementById('schedule-selector').value;
                     const schedule = db.schedules[scheduleId];
@@ -917,23 +977,20 @@
                     let finalEvents = Object.values(schedule.events).map(e => ({...e})); 
                     Object.values(schedule.overrides).forEach(override => finalEvents.push(override));
 
-                    // Add visible lunch and break events
                     const breakEvents = [
                         { title: 'Short Break', startTime: '10:40', endTime: '10:55', display: 'block', backgroundColor: '#a1a1aa', classNames: ['break-event'], daysOfWeek: [1,2,3,4,5] },
                         { title: 'Lunch Break', startTime: '12:35', endTime: '13:30', display: 'block', backgroundColor: '#a1a1aa', classNames: ['break-event'], daysOfWeek: [1,2,3,4,5] }
                     ];
                     finalEvents.push(...breakEvents);
 
-                    // Personal view filtering logic
                     const staffView = document.getElementById('staff-view-selector').value;
                     let filteredEvents = finalEvents;
                     if (currentUser && currentUser.role === 'staff' && staffView !== 'full-class') {
                         filteredEvents = finalEvents.filter(e => {
-                            if (e.classNames?.includes('break-event')) return true; // Always show breaks
+                            if (e.classNames?.includes('break-event')) return true;
                             return e.prof === staffView || e.originalProf === staffView;
                         });
                     }
-
                     successCallback(filteredEvents);
                 },
                  eventContent: (arg) => {
@@ -961,10 +1018,7 @@
         }
 
         function loadSchedule(scheduleId) {
-            if (!db.schedules[scheduleId]) {
-                showToast("Schedule not found!", "error");
-                return;
-            }
+            if (!db.schedules[scheduleId]) { showToast("Schedule not found!", "error"); return; }
             document.getElementById('schedule-selector').value = scheduleId;
             document.getElementById('schedule-view').classList.remove('hidden');
             if(calendar) {
@@ -974,21 +1028,15 @@
         }
         
         function renderCalendar() {
-            if (calendar) {
-                calendar.refetchEvents();
-            }
+            if (calendar) { calendar.refetchEvents(); }
         }
 
         function populateScheduleSelector() {
             const selector = document.getElementById('schedule-selector');
-            selector.innerHTML = Object.entries(db.schedules)
-                .map(([id, data]) => `<option value="${id}">${data.name}</option>`).join('');
-            
+            selector.innerHTML = Object.entries(db.schedules).map(([id, data]) => `<option value="${id}">${data.name}</option>`).join('');
             if(currentUser?.role === 'staff') {
                 const staffSelector = document.getElementById('staff-view-selector');
-                const staffOptions = Object.values(db.users)
-                    .filter(u => u.role === 'staff')
-                    .map(s => `<option value="${s.fullName}">${s.fullName}</option>`).join('');
+                const staffOptions = Object.values(db.users).filter(u => u.role === 'staff').map(s => `<option value="${s.fullName}">${s.fullName}</option>`).join('');
                 staffSelector.innerHTML = `<option value="full-class">Full Class View</option>${staffOptions}`;
                 staffSelector.value = 'full-class';
             }
@@ -996,34 +1044,25 @@
         
         function handleEventClick(info) {
              if (info.event.classNames.includes('break-event')) return;
-
             const scheduleId = document.getElementById('schedule-selector').value;
             const eventData = db.schedules[scheduleId].overrides[info.event.id] || db.schedules[scheduleId].events[info.event.id] || info.event.extendedProps;
-            
             const modal = document.getElementById('class-details-modal');
             modal.querySelector('#class-modal-title').textContent = info.event.title;
             modal.querySelector('#class-modal-time').textContent = `${info.event.start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${info.event.end.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
-            
             const currentProf = info.event.extendedProps.prof;
             const originalProf = info.event.extendedProps.originalProf || currentProf;
-
             modal.querySelector('#class-modal-prof').textContent = `Prof. ${currentProf}`;
             if(info.event.extendedProps.originalProf) {
                 modal.querySelector('#class-modal-prof').textContent += ` (Covering for ${info.event.extendedProps.originalProf})`;
             }
-
             modal.querySelector('#class-modal-room').textContent = `Room: ${eventData.room}`;
             modal.querySelector('#class-modal-credits').textContent = `${eventData.credits} Credits`;
-            
             const notesContent = modal.querySelector('#class-modal-notes-content');
             const actionContainer = document.getElementById('action-container');
             actionContainer.innerHTML = '';
-
             const isMyClass = currentProf === currentUser.fullName;
             const isUncovered = info.event.title.includes('UNCOVERED');
-
             notesContent.innerHTML = `<textarea id="notes-textarea" class="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" rows="3" ${!isMyClass ? 'readonly' : ''}>${eventData.notes || ''}</textarea>`;
-
             if (currentUser.role === 'staff') {
                 if(isMyClass){
                     const saveNotesBtn = document.createElement('button');
@@ -1037,7 +1076,6 @@
                         hideModal('class-details-modal');
                     };
                     actionContainer.appendChild(saveNotesBtn);
-
                     const markAttendanceBtn = document.createElement('button');
                     markAttendanceBtn.innerHTML = `<i data-lucide="user-check"></i> Mark Student Attendance`;
                     markAttendanceBtn.className = 'w-full text-center bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 rounded-lg flex items-center justify-center gap-2 transition';
@@ -1046,7 +1084,6 @@
                         openStudentAttendanceModal(info.event.id);
                     };
                     actionContainer.appendChild(markAttendanceBtn);
-                
                 } else if(isUncovered) {
                     const coverClassBtn = document.createElement('button');
                     coverClassBtn.innerHTML = `<i data-lucide="user-plus"></i> Cover This Class (FCFS)`;
@@ -1056,20 +1093,16 @@
                     actionContainer.appendChild(coverClassBtn);
                 }
             }
-
             lucide.createIcons();
             showModal('class-details-modal');
         }
         
-        function handleExternalDrop(info) {
-             showToast("This feature is disabled. Please use Admin tools to generate a full schedule.", 'info');
-        }
+        function handleExternalDrop(info) { showToast("This feature is disabled. Please use Admin tools to generate a full schedule.", 'info'); }
         
         function openStudentAttendanceModal(eventId) {
             const student = Object.values(db.users).find(u => u.role === 'student'); 
             const container = document.getElementById('student-list-container');
             const currentStatus = db.studentAttendance[student.id]?.[eventId] || 'Pending';
-
             container.innerHTML = `<div class="flex items-center justify-between p-2"><span class="font-semibold">${student.fullName}</span><div class="flex gap-2"><label class="flex items-center gap-1"><input type="radio" name="att_${student.id}" value="Present" ${currentStatus === 'Present' ? 'checked' : ''}> Present</label><label class="flex items-center gap-1"><input type="radio" name="att_${student.id}" value="Absent" ${currentStatus === 'Absent' ? 'checked' : ''}> Absent</label></div></div>`;
             document.getElementById('save-student-attendance-btn').onclick = () => saveStudentAttendance(eventId);
             showModal('student-attendance-modal');
@@ -1078,122 +1111,61 @@
         function saveStudentAttendance(eventId) {
             const student = Object.values(db.users).find(u => u.role === 'student');
             const selectedStatus = document.querySelector(`input[name="att_${student.id}"]:checked`)?.value;
-
             if (selectedStatus) {
                 if (!db.studentAttendance[student.id]) db.studentAttendance[student.id] = {};
                 db.studentAttendance[student.id][eventId] = selectedStatus;
                 saveDatabase();
                 showToast(`Attendance for ${student.fullName} updated.`, 'success');
                 hideModal('student-attendance-modal');
-            } else {
-                showToast('Please select a status for the student.', 'error');
-            }
+            } else { showToast('Please select a status for the student.', 'error'); }
         }
 
         function claimUncoveredClass(eventId) {
             const scheduleId = document.getElementById('schedule-selector').value;
             const schedule = db.schedules[scheduleId];
             const eventInstance = calendar.getEventById(eventId);
-
-            if (!eventInstance) {
-                showToast("Error: Could not find the class to cover.", "error");
-                return;
-            }
-            
+            if (!eventInstance) { showToast("Error: Could not find the class to cover.", "error"); return; }
             const originalProf = eventInstance.extendedProps.prof;
-            if (originalProf === currentUser.fullName) {
-                showToast("You cannot cover your own class.", "error");
-                return;
-            }
-
+            if (originalProf === currentUser.fullName) { showToast("You cannot cover your own class.", "error"); return; }
             const eventDate = getYYYYMMDD(eventInstance.start);
             const overrideId = `override_${eventDate}_${eventInstance.id}`;
-
             if(schedule.overrides[overrideId]){
                 showToast("This class has already been covered by someone else.", "error");
                 hideModal('class-details-modal');
-                renderCalendar(); // Refresh view in case it's stale
+                renderCalendar();
                 return;
             }
-
             schedule.overrides[overrideId] = {
-                id: overrideId,
-                title: eventInstance.title.replace(' (UNCOVERED)', ''),
-                start: eventInstance.start.toISOString(),
-                end: eventInstance.end.toISOString(),
-                prof: currentUser.fullName,
-                originalProf: originalProf,
-                room: eventInstance.extendedProps.room,
-                credits: eventInstance.extendedProps.credits,
-                backgroundColor: '#059669',
+                id: overrideId, title: eventInstance.title.replace(' (UNCOVERED)', ''), start: eventInstance.start.toISOString(),
+                end: eventInstance.end.toISOString(), prof: currentUser.fullName, originalProf: originalProf,
+                room: eventInstance.extendedProps.room, credits: eventInstance.extendedProps.credits, backgroundColor: '#059669',
             };
-
             const debt = {
-                id: `debt_${Date.now()}`,
-                debtor: originalProf,
-                creditor: currentUser.fullName,
+                id: `debt_${Date.now()}`, debtor: originalProf, creditor: currentUser.fullName,
                 classInfo: { title: schedule.overrides[overrideId].title, start: eventInstance.start.toISOString() },
                 status: 'Unpaid'
             };
             db.classDebts.push(debt);
-            
             saveDatabase();
             hideModal('class-details-modal');
             renderCalendar();
             updateNotifications();
+            renderStaffDashboard(); // Refresh dashboard to show new debt
             showToast(`You are now covering this class for ${originalProf}.`, 'success');
         }
 
-
         function updateNotifications() {
             if (!currentUser || (currentUser.role !== 'staff' && currentUser.role !== 'admin')) return;
-            const myDebts = db.classDebts.filter(d => (d.debtor === currentUser.fullName || d.creditor === currentUser.fullName) && d.status === 'Unpaid');
-            // Notification count includes pending debts and unread alerts
-            const totalNotifications = myDebts.length + db.alerts.length;
+            const totalNotifications = db.alerts.length;
             const badge = document.getElementById('notification-badge');
-            
             if (totalNotifications > 0) {
                 badge.textContent = totalNotifications;
                 badge.classList.remove('hidden');
-            } else {
-                badge.classList.add('hidden');
-            }
+            } else { badge.classList.add('hidden'); }
         }
         
-        /**
-         * NEW: Renders the redesigned notifications modal with separate debt sections.
-         */
-        function openNotifications() {
-            const debtsOwedToMeList = document.getElementById('debts-owed-to-me-list');
-            const debtsYouOweList = document.getElementById('debts-you-owe-list');
+        function openAlertsModal() {
             const alertList = document.getElementById('alert-list');
-
-            const pendingDebts = db.classDebts.filter(d => d.status === 'Unpaid');
-            const debtsOwedToMe = pendingDebts.filter(d => d.creditor === currentUser.fullName);
-            const debtsYouOwe = pendingDebts.filter(d => d.debtor === currentUser.fullName);
-
-            debtsOwedToMeList.innerHTML = debtsOwedToMe.length === 0 
-                ? '<p class="text-slate-500">No outstanding debts are owed to you.</p>'
-                : debtsOwedToMe.map(debt => `
-                    <div class="p-3 bg-slate-100 dark:bg-gray-700 rounded-md">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <p class="font-semibold">${debt.debtor} owes you one class.</p>
-                                <p class="text-xs text-slate-500">For: ${debt.classInfo.title} on ${new Date(debt.classInfo.start).toLocaleDateString()}</p>
-                            </div>
-                            <button data-id="${debt.id}" class="mark-repaid-btn bg-green-600 text-white text-xs font-bold py-1 px-3 rounded-md hover:bg-green-700">Mark Repaid</button>
-                        </div>
-                    </div>`).join('');
-
-            debtsYouOweList.innerHTML = debtsYouOwe.length === 0 
-                ? '<p class="text-slate-500">You do not owe any classes.</p>'
-                : debtsYouOwe.map(debt => `
-                    <div class="p-3 bg-slate-100 dark:bg-gray-700 rounded-md">
-                        <p class="font-semibold">You owe ${debt.creditor} one class.</p>
-                        <p class="text-xs text-slate-500">For: ${debt.classInfo.title} on ${new Date(debt.classInfo.start).toLocaleDateString()}</p>
-                        <p class="text-xs text-indigo-500 mt-1">Please coordinate with them to cover one of their future classes.</p>
-                    </div>`).join('');
-            
             alertList.innerHTML = db.alerts.length === 0 
                 ? '<p class="text-slate-500">No new system alerts.</p>' 
                 : db.alerts.slice().reverse().map(alert => `
@@ -1202,28 +1174,10 @@
                         <p class="text-xs text-slate-500 mt-1">${new Date(alert.date).toLocaleString()}</p>
                     </div>`).join('');
             
-            // Clear alerts after viewing them, but keep debts until they are paid
             db.alerts = [];
             saveDatabase();
             updateNotifications();
-
-            showModal('notifications-modal');
-        }
-
-        /**
-         * NEW: Marks a debt as paid.
-         */
-        function markDebtAsRepaid(debtId) {
-            const debt = db.classDebts.find(d => d.id === debtId);
-            if (debt) {
-                debt.status = 'Paid';
-                saveDatabase();
-                showToast('Debt has been successfully marked as repaid!', 'success');
-                // Refresh the modal to show the change
-                openNotifications();
-            } else {
-                showToast('Error: Could not find the specified debt.', 'error');
-            }
+            showModal('alerts-modal');
         }
         
         function handleChatSubmit(e) {
@@ -1231,10 +1185,8 @@
             const input = document.getElementById('chat-input');
             const query = input.value.trim().toLowerCase();
             if (!query) return;
-
             addChatMessage(query, 'user');
             input.value = '';
-
             setTimeout(() => {
                 const response = getAcaDexiResponse(query);
                 addChatMessage(response, 'bot');
@@ -1253,14 +1205,9 @@
         function getAcaDexiResponse(query) {
             const today = new Date();
             const now = today.getTime();
-            
             const allEvents = calendar.getEvents();
-            const eventsToday = allEvents.filter(e => e.start.toDateString() === today.toDateString())
-                                          .sort((a,b) => a.start - b.start);
-
-            if (query.includes("hello") || query.includes("hi")) {
-                return `Hello, ${currentUser.fullName}! How can I help you with your schedule today?`;
-            }
+            const eventsToday = allEvents.filter(e => e.start.toDateString() === today.toDateString()).sort((a,b) => a.start - b.start);
+            if (query.includes("hello") || query.includes("hi")) { return `Hello, ${currentUser.fullName}! How can I help you with your schedule today?`; }
             if (query.includes("what's next") || query.includes("next class")) {
                 const nextClass = eventsToday.find(e => e.start.getTime() > now && !e.classNames.includes('break-event'));
                 return nextClass ? `Your next class is ${nextClass.title} with ${nextClass.extendedProps.prof} at ${nextClass.start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}.` : "You have no more classes scheduled for today.";
@@ -1278,10 +1225,7 @@
             return "I'm not sure how to answer that. You can ask me about your next class or your attendance.";
         }
         
-        function handleAddSubject() {
-            showToast("This feature is disabled. Please use Admin tools to generate a full schedule.", 'info');
-        }
-
+        function handleAddSubject() { showToast("This feature is disabled. Please use Admin tools to generate a full schedule.", 'info'); }
         function showModal(id) { document.getElementById(id)?.classList.add('visible'); }
         function hideModal(id) { document.getElementById(id)?.classList.remove('visible'); }
         function hideAllModals() { document.querySelectorAll('.modal').forEach(m => m.classList.remove('visible')); }
@@ -1305,43 +1249,46 @@
             showModal('confirm-modal');
         }
 
-        function downloadScheduleICS() {
-            showToast("Download temporarily disabled.", "info");
-        }
+        function downloadScheduleICS() { showToast("Download temporarily disabled.", "info"); }
 
         /**
-         * SCHEDULE GENERATOR
-         * This function handles all scheduling rules:
-         * - Creates a full Mon-Fri schedule.
-         * - Defines 7 periods per day around breaks.
-         * - Prioritizes placing 2-hour labs first.
-         * - Ensures Wednesday's last hour is always free.
-         * - Workload (number of classes per staff) is determined by the definitions below.
+         * UPDATED SCHEDULE GENERATOR
+         * Fills the entire 35-slot weekly schedule by using an expanded curriculum definition.
          */
         function generateNewSchedule(scheduleId, fromAdmin) {
             if(fromAdmin) showToast('Generating new schedule with all rules...', 'info');
 
+            // EXPANDED DATA: More classes defined to fill the entire week (35 slots total).
+            // This is sample data and can be customized as needed.
             const subjectDefinitions = [
-                { baseTitle: 'IoT', integrated: true, prof: 'Karthikeyan', theoryRoom: '101', labRoom: 'CS Lab', credits: 4, theoryCount: 2, labCount: 1, theoryColor: '#6d28d9', labColor: '#8b5cf6' },
-                { baseTitle: 'Power Systems', integrated: false, prof: 'Anamika', theoryRoom: '102', credits: 3, theoryCount: 3, theoryColor: '#1d4ed8' },
-                { baseTitle: 'Electric Hybrid Vehicle', integrated: false, prof: 'Balaji', theoryRoom: '103', credits: 3, theoryCount: 2, theoryColor: '#c026d3' },
-                { baseTitle: 'EV Architecture', integrated: true, prof: 'Yokesh', theoryRoom: '201', labRoom: 'Lab A', credits: 4, theoryCount: 2, labCount: 1, theoryColor: '#047857', labColor: '#059669' },
-                { baseTitle: 'Ethics', integrated: false, prof: 'Kiruthik', theoryRoom: '202', credits: 2, theoryCount: 2, theoryColor: '#ca8a04' },
-                { baseTitle: 'Linear Integrated Circuits', integrated: true, prof: 'Saravana', theoryRoom: '203', labRoom: 'Lab B', credits: 4, theoryCount: 2, labCount: 1, theoryColor: '#be123c', labColor: '#e11d48' },
-                { baseTitle: 'Advanced E-Vehicles', integrated: false, prof: 'Kanishq', theoryRoom: '103', credits: 3, theoryCount: 2, theoryColor: '#15803d' },
-                { baseTitle: 'Communication Skills', integrated: false, prof: 'Harine', theoryRoom: '202', credits: 2, theoryCount: 2, theoryColor: '#f97316' }
+                { baseTitle: 'IoT', integrated: true, prof: 'Karthikeyan', theoryRoom: '101', labRoom: 'CS Lab', credits: 4, theoryCount: 2, labCount: 1 }, // 4 slots
+                { baseTitle: 'Power Systems', prof: 'Anamika', theoryRoom: '102', credits: 3, theoryCount: 4 }, // 4 slots
+                { baseTitle: 'Elec. Hybrid Vehicle', prof: 'Balaji', theoryRoom: '103', credits: 3, theoryCount: 4 }, // 4 slots
+                { baseTitle: 'EV Architecture', integrated: true, prof: 'Yokesh', theoryRoom: '201', labRoom: 'Lab A', credits: 4, theoryCount: 2, labCount: 1 }, // 4 slots
+                { baseTitle: 'Ethics', prof: 'Kiruthik', theoryRoom: '202', credits: 2, theoryCount: 4 }, // 4 slots
+                { baseTitle: 'Linear IC', integrated: true, prof: 'Saravana', theoryRoom: '203', labRoom: 'Lab B', credits: 4, theoryCount: 2, labCount: 1 }, // 4 slots
+                { baseTitle: 'Advanced E-Vehicles', prof: 'Kanishq', theoryRoom: '103', credits: 3, theoryCount: 4 }, // 4 slots
+                { baseTitle: 'Communication Skills', prof: 'Harine', theoryRoom: '202', credits: 2, theoryCount: 4 }, // 4 slots
+                { baseTitle: 'Library', prof: 'Kiruthik', theoryRoom: 'Library', credits: 1, theoryCount: 1 }, // 1 slot
+                { baseTitle: 'Mentoring', prof: 'Yokesh', theoryRoom: '201', credits: 1, theoryCount: 2 }, // 2 slots
+                // TOTAL: 4+4+4+4+4+4+4+4+1+2 = 35 slots
             ];
+
+            // Assign default colors if not specified
+            const colors = ['#6d28d9', '#1d4ed8', '#c026d3', '#047857', '#ca8a04', '#be123c', '#15803d', '#f97316', '#475569', '#64748b'];
+            subjectDefinitions.forEach((def, i) => {
+                def.backgroundColor = colors[i % colors.length];
+            });
 
             let labClasses = [];
             let theoryClasses = [];
             subjectDefinitions.forEach(def => {
-                for (let i = 0; i < def.theoryCount; i++) { theoryClasses.push({ title: `${def.baseTitle}`, prof: def.prof, room: def.theoryRoom, credits: def.credits, backgroundColor: def.theoryColor }); }
+                for (let i = 0; i < def.theoryCount; i++) { theoryClasses.push({ title: `${def.baseTitle}`, prof: def.prof, room: def.theoryRoom, credits: def.credits, backgroundColor: def.backgroundColor }); }
                 if (def.integrated) {
-                    for (let i = 0; i < def.labCount; i++) { labClasses.push({ title: `${def.baseTitle} (Lab)`, prof: def.prof, room: def.labRoom, credits: def.credits, backgroundColor: def.labColor }); }
+                    for (let i = 0; i < def.labCount; i++) { labClasses.push({ title: `${def.baseTitle} (Lab)`, prof: def.prof, room: def.labRoom, credits: def.credits, backgroundColor: def.backgroundColor }); }
                 }
             });
             
-            // Randomize class order to make each generation unique
             [labClasses, theoryClasses].forEach(arr => {
                 for (let i = arr.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
@@ -1353,8 +1300,6 @@
             let availableSlots = [];
             for (let day = 1; day <= 5; day++) { // Monday to Friday
                 timeSlots.forEach(time => {
-                    // RULE: Wednesday last hour is free
-                    if (day === 3 && time === '15:10') return; 
                     availableSlots.push({ day, time });
                 });
             }
@@ -1370,25 +1315,21 @@
                 return false;
             };
 
-            // PRIORITY 1: Place 2-hour labs first
             labClasses.forEach(labInfo => {
                 for (let i = 0; i < availableSlots.length - 1; i++) {
                     const slot1 = availableSlots[i];
                     const slot2 = availableSlots[i+1];
-                    
                     const slot1End = new Date(new Date(`1970-01-01T${slot1.time}:00`).getTime() + 50 * 60000).toTimeString().slice(0,5);
                     const areConsecutive = slot1.day === slot2.day && slot1End === slot2.time;
-
                     if (areConsecutive && !isConflict(labInfo, slot1.day, slot1.time, 100)) {
                         const eventId = `event_lab_${Object.keys(newEvents).length + 1}`;
                         newEvents[eventId] = { ...labInfo, id: eventId, daysOfWeek: [slot1.day], startTime: slot1.time, endTime: new Date(new Date(`1970-01-01T${slot2.time}:00`).getTime() + 50 * 60000).toTimeString().slice(0,5) };
-                        availableSlots.splice(i, 2); // Remove both used slots
+                        availableSlots.splice(i, 2);
                         break;
                     }
                 }
             });
 
-            // PRIORITY 2: Place 1-hour theory classes in remaining slots
             theoryClasses.forEach(theoryInfo => {
                 for (let i = 0; i < availableSlots.length; i++) {
                     const slot = availableSlots[i];
@@ -1404,7 +1345,7 @@
             if(fromAdmin) {
                 db.schedules[scheduleId].events = newEvents;
                 db.schedules[scheduleId].overrides = {};
-                db.alerts = []; db.classDebts = []; // Clear old data on new generation
+                db.alerts = []; db.classDebts = [];
                 saveDatabase();
                 showToast('New, conflict-free schedule has been generated!', 'success');
                 renderStaffDashboard();
