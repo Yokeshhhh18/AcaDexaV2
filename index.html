@@ -523,9 +523,8 @@
                 }
                 if (e.target.closest('.cover-class-btn')) {
                     const eventId = e.target.closest('.cover-class-btn').dataset.eventid;
-                    const originalProf = e.target.closest('.cover-class-btn').dataset.originalprof;
-                     showConfirmModal(`Are you sure you want to cover this class for ${originalProf}? A debt will be created.`, () => {
-                         claimUncoveredClass(eventId, originalProf);
+                    showConfirmModal(`Are you sure you want to cover this class for ${e.target.closest('.cover-class-btn').dataset.originalprof}? A debt will be created.`, () => {
+                         claimUncoveredClass(eventId);
                     });
                 }
             });
@@ -842,6 +841,7 @@
             showToast(`${staffName} is absent. Their classes are now available for others to cover.`, "info");
             updateNotifications();
             saveDatabase();
+            renderCalendar();
         }
         
         function initializeCalendar() {
@@ -895,7 +895,17 @@
                     const breakColor = isDark ? '#1f2937' : '#f1f5f9';
 
                     let finalEvents = Object.values(schedule.events).map(e => ({...e})); 
-                    Object.values(schedule.overrides).forEach(override => finalEvents.push(override));
+                    Object.values(schedule.overrides).forEach(override => {
+                        // Find the original event to mark it as overridden for this specific day
+                        const originalEventIndex = finalEvents.findIndex(ev => ev.id === override.originalEventId);
+                        if (originalEventIndex > -1) {
+                            if (!finalEvents[originalEventIndex].rrule) finalEvents[originalEventIndex].rrule = {};
+                            if (!finalEvents[originalEventIndex].rrule.exdate) finalEvents[originalEventIndex].rrule.exdate = [];
+                            finalEvents[originalEventIndex].rrule.exdate.push(new Date(override.start).toISOString().split('T')[0]);
+                        }
+                        finalEvents.push(override);
+                    });
+
 
                     const breakEvents = [
                         { startTime: '10:40', endTime: '10:55', display: 'background', backgroundColor: breakColor, daysOfWeek: [1,2,3,4,5] },
@@ -903,7 +913,17 @@
                     ];
                     finalEvents.push(...breakEvents);
 
-                    successCallback(finalEvents);
+                    // BUG FIX 3: Add personal view filtering logic
+                    const staffView = document.getElementById('staff-view-selector').value;
+                    let filteredEvents = finalEvents;
+                    if (currentUser && currentUser.role === 'staff' && staffView !== 'full-class') {
+                        filteredEvents = finalEvents.filter(e => {
+                            if (e.display === 'background') return true; // Always show breaks
+                            return e.prof === staffView || e.originalProf === staffView;
+                        });
+                    }
+
+                    successCallback(filteredEvents);
                 },
                  eventContent: (arg) => {
                     if (arg.event.display === 'background') return;
@@ -911,17 +931,14 @@
                     const todayStr = getYYYYMMDD(arg.event.start);
                     const staffAttendance = db.staffAttendance[todayStr] || {};
                     const originalProf = arg.event.extendedProps.originalProf || arg.event.extendedProps.prof;
-                    let title = arg.event.title.replace(' (UNCOVERED)', '').replace(/\(Cover:.*\)/, '');
+                    let title = arg.event.title;
 
-                    if (staffAttendance[originalProf] === 'Absent') {
-                         if (arg.event.extendedProps.prof === originalProf) { 
-                            arg.backgroundColor = '#ef4444'; 
-                            title = `${title} (UNCOVERED)`;
-                        } else { 
-                             title = `${title} (Cover: ${arg.event.extendedProps.prof.split(' ')[0]})`;
-                        }
+                    if (staffAttendance[originalProf] === 'Absent' && !arg.event.extendedProps.originalProf) {
+                        title = `${title} (UNCOVERED)`;
+                    } else if (arg.event.extendedProps.originalProf) {
+                        title = `${title} (Cover: ${arg.event.extendedProps.prof.split(' ')[0]})`;
                     }
-                    // Return a DOM node to ensure content is visible
+                    
                     let eventEl = document.createElement('div');
                     eventEl.innerHTML = title;
                     return { domNodes: [eventEl] }
@@ -958,7 +975,7 @@
                 const staffSelector = document.getElementById('staff-view-selector');
                 const staffOptions = Object.values(db.users)
                     .filter(u => u.role === 'staff')
-                    .map(s => `<option value="${s.fullName}">${s.fullName} (Personal)</option>`).join('');
+                    .map(s => `<option value="${s.fullName}">${s.fullName}</option>`).join('');
                 staffSelector.innerHTML = `<option value="full-class">Full Class View</option>${staffOptions}`;
                 staffSelector.value = 'full-class';
             }
@@ -971,13 +988,17 @@
             const eventData = db.schedules[scheduleId].overrides[info.event.id] || db.schedules[scheduleId].events[info.event.id];
             
             const modal = document.getElementById('class-details-modal');
-            modal.querySelector('#class-modal-title').textContent = info.event.title.replace(' (UNCOVERED)', '').replace(/\(Cover:.*\)/, '');
+            modal.querySelector('#class-modal-title').textContent = info.event.title;
             modal.querySelector('#class-modal-time').textContent = `${info.event.start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${info.event.end.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
             
             const currentProf = info.event.extendedProps.prof;
             const originalProf = info.event.extendedProps.originalProf || currentProf;
 
             modal.querySelector('#class-modal-prof').textContent = `Prof. ${currentProf}`;
+            if(info.event.extendedProps.originalProf) {
+                modal.querySelector('#class-modal-prof').textContent += ` (Covering for ${info.event.extendedProps.originalProf})`;
+            }
+
             modal.querySelector('#class-modal-room').textContent = `Room: ${eventData.room}`;
             modal.querySelector('#class-modal-credits').textContent = `${eventData.credits} Credits`;
             
@@ -996,7 +1017,8 @@
                     saveNotesBtn.innerHTML = `<i data-lucide="save"></i> Save Notes`;
                     saveNotesBtn.className = 'w-full text-center bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-lg flex items-center justify-center gap-2 transition';
                     saveNotesBtn.onclick = () => {
-                        eventData.notes = document.getElementById('notes-textarea').value;
+                        const eventToUpdate = db.schedules[scheduleId].overrides[info.event.id] || db.schedules[scheduleId].events[info.event.extendedProps.originalEventId || info.event.id];
+                        eventToUpdate.notes = document.getElementById('notes-textarea').value;
                         saveDatabase();
                         showToast('Notes saved!', 'success');
                         hideModal('class-details-modal');
@@ -1055,39 +1077,51 @@
             }
         }
 
-        function claimUncoveredClass(eventId, originalProf) {
+        // BUG FIX 2: Correctly handle claiming a class and creating debt
+        function claimUncoveredClass(eventId) {
             const scheduleId = document.getElementById('schedule-selector').value;
             const schedule = db.schedules[scheduleId];
             const eventInstance = calendar.getEventById(eventId);
-            const eventDate = getYYYYMMDD(eventInstance.start);
 
-            const originalEvent = Object.values(schedule.events).find(e => {
-                if (!e.daysOfWeek.includes(eventInstance.start.getDay())) return false;
-                if (e.startTime !== eventInstance.start.toTimeString().slice(0,5)) return false;
-                return e.prof === originalProf;
-            });
-
-            if (!originalEvent) {
-                showToast("Error: Could not find original class to cover.", "error");
+            if (!eventInstance) {
+                showToast("Error: Could not find the class to cover.", "error");
+                return;
+            }
+            
+            const originalProf = eventInstance.extendedProps.prof;
+            if (originalProf === currentUser.fullName) {
+                showToast("You cannot cover your own class.", "error");
                 return;
             }
 
-            const overrideId = `override_${eventDate}_${originalEvent.id}`;
+            const eventDate = getYYYYMMDD(eventInstance.start);
+            const overrideId = `override_${eventDate}_${eventInstance.id}`;
+
+            // Check if already covered by someone else
+            if(schedule.overrides[overrideId]){
+                showToast("This class has already been covered by someone else.", "error");
+                hideModal('class-details-modal');
+                return;
+            }
+
             schedule.overrides[overrideId] = {
-                ...originalEvent,
                 id: overrideId,
+                originalEventId: eventInstance.id,
+                title: eventInstance.title.replace(' (UNCOVERED)', ''),
                 start: eventInstance.start.toISOString(),
                 end: eventInstance.end.toISOString(),
                 prof: currentUser.fullName,
                 originalProf: originalProf,
-                daysOfWeek: undefined, startTime: undefined, endTime: undefined,
+                room: eventInstance.extendedProps.room,
+                credits: eventInstance.extendedProps.credits,
+                backgroundColor: '#059669', // A distinct "covered" color
             };
 
             const debt = {
                 id: `debt_${Date.now()}`,
                 debtor: originalProf,
                 creditor: currentUser.fullName,
-                classInfo: { title: originalEvent.title, start: eventInstance.start.toISOString() },
+                classInfo: { title: schedule.overrides[overrideId].title, start: eventInstance.start.toISOString() },
                 status: 'Unpaid'
             };
             db.classDebts.push(debt);
@@ -1100,10 +1134,12 @@
             showToast(`You are now covering this class for ${originalProf}.`, 'success');
         }
 
+
         function updateNotifications() {
             if (!currentUser || (currentUser.role !== 'staff' && currentUser.role !== 'admin')) return;
             const myDebts = db.classDebts.filter(d => (d.debtor === currentUser.fullName || d.creditor === currentUser.fullName) && d.status === 'Unpaid');
-            const totalNotifications = myDebts.length + db.alerts.length;
+            // For simplicity, let's just count debts for the badge
+            const totalNotifications = myDebts.length;
             const badge = document.getElementById('notification-badge');
             
             if (totalNotifications > 0) {
@@ -1192,7 +1228,7 @@
         }
         
         function handleAddSubject() {
-            showToast("Please use Admin tools to generate a full schedule.", 'info');
+            showToast("This feature is disabled. Please use Admin tools to generate a full schedule.", 'info');
         }
 
         function showModal(id) { document.getElementById(id)?.classList.add('visible'); }
@@ -1259,7 +1295,7 @@
 
                 if(event.rrule && event.rrule.exdate) {
                     event.rrule.exdate.forEach(exdateStr => {
-                         icsContent += `EXDATE;TZID=UTC:${toICSDate(new Date(exdateStr), event.startTime).slice(0,-1)}\n`;
+                         icsContent += `EXDATE;TZID=UTC:${toICSDateTime(new Date(exdateStr))}\n`;
                     })
                 }
                 icsContent += `END:VEVENT\n`;
@@ -1286,150 +1322,51 @@
         function generateNewSchedule(scheduleId, fromAdmin) {
             if(fromAdmin) showToast('Generating new weekly template with custom subjects...', 'info');
 
-            // 1. Define your custom subjects and assign them to your 8 staff members.
             const subjectDefinitions = [
-                { 
-                    baseTitle: 'IoT', 
-                    integrated: true, 
-                    prof: 'Karthikeyan', // Staff 1
-                    theoryRoom: '101', 
-                    labRoom: 'CS Lab', 
-                    credits: 4,
-                    theoryCount: 2, 
-                    labCount: 1, 
-                    theoryColor: '#6d28d9', 
-                    labColor: '#8b5cf6' 
-                },
-                { 
-                    baseTitle: 'Power Systems', 
-                    integrated: false, 
-                    prof: 'Anamika', // Staff 2
-                    theoryRoom: '102', 
-                    credits: 3,
-                    theoryCount: 3, 
-                    theoryColor: '#1d4ed8' 
-                },
-                { 
-                    baseTitle: 'Electric Hybrid Vehicle', 
-                    integrated: false, 
-                    prof: 'Balaji', // Staff 3
-                    theoryRoom: '103', 
-                    credits: 3,
-                    theoryCount: 2, 
-                    theoryColor: '#c026d3' 
-                },
-                { 
-                    baseTitle: 'EV Architecture', 
-                    integrated: true, 
-                    prof: 'Yokesh', // Staff 4
-                    theoryRoom: '201', 
-                    labRoom: 'Lab A', 
-                    credits: 4,
-                    theoryCount: 2, 
-                    labCount: 1, 
-                    theoryColor: '#047857', 
-                    labColor: '#059669' 
-                },
-                { 
-                    baseTitle: 'Ethics', 
-                    integrated: false, 
-                    prof: 'Kiruthik', // Staff 5
-                    theoryRoom: '202', 
-                    credits: 2,
-                    theoryCount: 2, 
-                    theoryColor: '#ca8a04' 
-                },
-                { 
-                    baseTitle: 'Linear Integrated Circuits', 
-                    integrated: true, 
-                    prof: 'Saravana', // Staff 6
-                    theoryRoom: '203', 
-                    labRoom: 'Lab B', 
-                    credits: 4,
-                    theoryCount: 2, 
-                    labCount: 1, 
-                    theoryColor: '#be123c', 
-                    labColor: '#e11d48' 
-                },
-                { 
-                    baseTitle: 'Advanced E-Vehicles', 
-                    integrated: false, 
-                    prof: 'Kanishq', // Staff 7
-                    theoryRoom: '103', 
-                    credits: 3,
-                    theoryCount: 2, 
-                    theoryColor: '#15803d' 
-                },
-                { 
-                    baseTitle: 'Communication Skills', 
-                    integrated: false, 
-                    prof: 'Harine', // Staff 8
-                    theoryRoom: '202', 
-                    credits: 2,
-                    theoryCount: 2, 
-                    theoryColor: '#f97316' 
-                }
+                { baseTitle: 'IoT', integrated: true, prof: 'Karthikeyan', theoryRoom: '101', labRoom: 'CS Lab', credits: 4, theoryCount: 2, labCount: 1, theoryColor: '#6d28d9', labColor: '#8b5cf6' },
+                { baseTitle: 'Power Systems', integrated: false, prof: 'Anamika', theoryRoom: '102', credits: 3, theoryCount: 3, theoryColor: '#1d4ed8' },
+                { baseTitle: 'Electric Hybrid Vehicle', integrated: false, prof: 'Balaji', theoryRoom: '103', credits: 3, theoryCount: 2, theoryColor: '#c026d3' },
+                { baseTitle: 'EV Architecture', integrated: true, prof: 'Yokesh', theoryRoom: '201', labRoom: 'Lab A', credits: 4, theoryCount: 2, labCount: 1, theoryColor: '#047857', labColor: '#059669' },
+                { baseTitle: 'Ethics', integrated: false, prof: 'Kiruthik', theoryRoom: '202', credits: 2, theoryCount: 2, theoryColor: '#ca8a04' },
+                { baseTitle: 'Linear Integrated Circuits', integrated: true, prof: 'Saravana', theoryRoom: '203', labRoom: 'Lab B', credits: 4, theoryCount: 2, labCount: 1, theoryColor: '#be123c', labColor: '#e11d48' },
+                { baseTitle: 'Advanced E-Vehicles', integrated: false, prof: 'Kanishq', theoryRoom: '103', credits: 3, theoryCount: 2, theoryColor: '#15803d' },
+                { baseTitle: 'Communication Skills', integrated: false, prof: 'Harine', theoryRoom: '202', credits: 2, theoryCount: 2, theoryColor: '#f97316' }
             ];
 
-            // 2. Build the full list of classes to be scheduled this week.
             let fullClassTemplate = [];
             subjectDefinitions.forEach(def => {
-                // Add theory classes
-                for (let i = 0; i < def.theoryCount; i++) {
-                    fullClassTemplate.push({
-                        title: `${def.baseTitle}`,
-                        prof: def.prof,
-                        room: def.theoryRoom,
-                        credits: def.credits,
-                        backgroundColor: def.theoryColor
-                    });
-                }
-                // Add lab classes if integrated
+                for (let i = 0; i < def.theoryCount; i++) { fullClassTemplate.push({ title: `${def.baseTitle}`, prof: def.prof, room: def.theoryRoom, credits: def.credits, backgroundColor: def.theoryColor }); }
                 if (def.integrated) {
-                    for (let i = 0; i < def.labCount; i++) {
-                        fullClassTemplate.push({
-                            title: `${def.baseTitle} (Lab)`,
-                            prof: def.prof,
-                            room: def.labRoom,
-                            credits: def.credits,
-                            backgroundColor: def.labColor
-                        });
-                    }
+                    for (let i = 0; i < def.labCount; i++) { fullClassTemplate.push({ title: `${def.baseTitle} (Lab)`, prof: def.prof, room: def.labRoom, credits: def.credits, backgroundColor: def.labColor }); }
                 }
             });
             
-            // 3. Shuffle the template for randomness (Fisher-Yates shuffle)
             for (let i = fullClassTemplate.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [fullClassTemplate[i], fullClassTemplate[j]] = [fullClassTemplate[j], fullClassTemplate[i]];
             }
 
-            // 4. Define all available weekly slots
             const availableSlots = [];
             const timeSlots = [ '09:00', '09:50', '10:55', '11:45', '13:30', '14:20', '15:10' ];
-            for (let day = 1; day <= 5; day++) { // 1=Monday, 5=Friday
+            for (let day = 1; day <= 5; day++) {
                 timeSlots.forEach(time => availableSlots.push({ day, time }));
             }
             
-            // 5. Place classes into slots without conflicts
             const newEvents = {};
-            const dailyProfCount = {}; // Track how many classes a prof has each day
             
-            // Try to place each class from the shuffled list into an available slot
             fullClassTemplate.forEach(classInfo => {
                 for (let i = 0; i < availableSlots.length; i++) {
                     const slot = availableSlots[i];
                     
-                    // Check for conflicts in the same slot (prof or room clash)
-                    const slotKey = `${slot.day}-${slot.time}`;
-                    let isSlotOccupied = Object.values(newEvents).some(ev => ev.slotKey === slotKey);
-                    if (isSlotOccupied) continue;
+                    // BUG FIX 1: Improved conflict checking
+                    const conflict = Object.values(newEvents).some(placedEvent => 
+                        placedEvent.daysOfWeek.includes(slot.day) && 
+                        placedEvent.startTime === slot.time &&
+                        (placedEvent.prof === classInfo.prof || placedEvent.room === classInfo.room)
+                    );
 
-                    // Check for prof overload (max 3 classes per day for balance)
-                    const profDayKey = `${classInfo.prof}-${slot.day}`;
-                    if ((dailyProfCount[profDayKey] || 0) >= 3) continue;
+                    if (conflict) continue; // If conflict, try the next available slot
                     
-                    // If no conflict, place the class
                     const eventId = `event_${Object.keys(newEvents).length + 1}_${Date.now()}`;
                     newEvents[eventId] = { 
                         ...classInfo,
@@ -1437,29 +1374,23 @@
                         daysOfWeek: [slot.day],
                         startTime: slot.time,
                         endTime: new Date(new Date(`1970-01-01T${slot.time}:00`).getTime() + 50 * 60000).toTimeString().slice(0,5),
-                        slotKey: slotKey // Helper for quick conflict check
                     };
                     
-                    // Update prof daily count and remove the used slot
-                    dailyProfCount[profDayKey] = (dailyProfCount[profDayKey] || 0) + 1;
                     availableSlots.splice(i, 1);
-                    
-                    break; // Move to the next class
+                    break; 
                 }
             });
             
-            // 6. Finalize and save
             if(fromAdmin) {
                 db.schedules[scheduleId].events = newEvents;
-                db.schedules[scheduleId].overrides = {}; // Clear old overrides
+                db.schedules[scheduleId].overrides = {};
                 saveDatabase();
-                showToast('New, balanced schedule has been generated!', 'success');
-                // Reload staff dashboard and calendar to reflect changes
+                showToast('New, conflict-free schedule has been generated!', 'success');
                 renderStaffDashboard();
                 loadSchedule(scheduleId);
             }
             
-            return newEvents; // For initial load
+            return newEvents;
         }
 
     </script>
