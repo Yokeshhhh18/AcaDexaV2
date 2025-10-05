@@ -92,7 +92,7 @@
 
         #scanner-animation.scanning .inner-circle { animation: pulse 1.5s infinite; }
         @keyframes pulse { 0%, 100% { transform: scale(0.8); opacity: 0.7; } 50% { transform: scale(1); opacity: 1; } }
-        @media print { body * { visibility: hidden; } #calendar-container, #calendar-container * { visibility: visible; } #schedule-controls, #schedule-controls *, header, main > h2, #staff-dashboard { visibility: hidden; } #calendar-container { position: absolute; left: 0; top: 0; width: 100%; } }
+        @media print { body * { visibility: hidden; } #calendar-container, #calendar-container * { visibility: visible; } #schedule-controls, #schedule-controls *, header, main > h2, #staff-dashboard, #admin-dashboard { visibility: hidden; } #calendar-container { position: absolute; left: 0; top: 0; width: 100%; } }
         
         .pricing-card {
             transform-style: preserve-3d;
@@ -454,8 +454,15 @@
                     populateScheduleSelector();
                     loadSchedule(currentUser.scheduleId);
                 } else if (currentUser.role === 'admin') {
+                    // FIXED: Admin can now see the admin dashboard AND the schedule view.
                     document.getElementById('admin-dashboard').classList.remove('hidden');
+                    document.getElementById('schedule-view').classList.remove('hidden');
+                    document.getElementById('staff-schedule-tools').classList.add('hidden'); // No tools for admin
+                    document.getElementById('main-schedule-area').classList.remove('lg:col-span-3');
+                    document.getElementById('main-schedule-area').classList.add('lg:col-span-4');
                     renderAdminDashboard();
+                    populateScheduleSelector();
+                    loadSchedule('grade-10-a');
                 }
                 
                 updateNotifications();
@@ -474,21 +481,26 @@
             }
             document.getElementById('ask-ai-btn').style.display = isLoggedIn ? 'flex' : 'none';
             document.getElementById('alerts-btn').style.display = isLoggedIn && (currentUser.role === 'staff' || currentUser.role === 'admin') ? 'flex' : 'none';
-            document.getElementById('staff-schedule-filters').style.display = isLoggedIn && currentUser.role === 'staff' ? 'flex' : 'none';
-            document.getElementById('attendance-btn').style.display = isLoggedIn && currentUser.role === 'staff' ? 'flex' : 'none';
+            const staffScheduleFilters = document.getElementById('staff-schedule-filters');
+            if(staffScheduleFilters) staffScheduleFilters.style.display = isLoggedIn && currentUser.role === 'staff' ? 'flex' : 'none';
+            const attendanceBtn = document.getElementById('attendance-btn');
+            if(attendanceBtn) attendanceBtn.style.display = isLoggedIn && currentUser.role === 'staff' ? 'flex' : 'none';
         }
 
         function setupEventListeners() {
             document.getElementById('student-login-btn').onclick = () => openLoginModal('student');
             document.getElementById('staff-login-btn').onclick = () => openLoginModal('staff');
-            document.getElementById('attendance-btn').onclick = openAttendancePortal;
             document.getElementById('logout-btn').onclick = handleLogout;
             document.getElementById('auth-form').onsubmit = handleAuthSubmit;
-            document.getElementById('scan-biometric-btn').onclick = handleBiometricScan;
             document.getElementById('ask-ai-btn').onclick = () => showModal('ai-chat-modal');
             document.getElementById('chat-form').onsubmit = handleChatSubmit;
             document.getElementById('alerts-btn').onclick = openAlertsModal;
             document.getElementById('add-subject-btn').onclick = handleAddSubject;
+            
+            const attendanceBtn = document.getElementById('attendance-btn');
+            if(attendanceBtn) attendanceBtn.onclick = openAttendancePortal;
+            const scanBtn = document.getElementById('scan-biometric-btn');
+            if(scanBtn) scanBtn.onclick = handleBiometricScan;
             
             document.getElementById('dark-mode-toggle').onclick = () => {
                 const isDark = document.documentElement.classList.toggle('dark');
@@ -506,7 +518,8 @@
 
 
             document.getElementById('schedule-selector').onchange = (e) => loadSchedule(e.target.value);
-            document.getElementById('staff-view-selector').onchange = () => renderCalendar();
+            const staffViewSelector = document.getElementById('staff-view-selector');
+            if(staffViewSelector) staffViewSelector.onchange = () => renderCalendar();
             document.getElementById('print-btn').onclick = () => window.print();
             document.getElementById('download-btn').onclick = downloadScheduleICS;
             
@@ -1027,7 +1040,8 @@
                     ];
                     finalEvents.push(...breakEvents.map(b => ({...b, daysOfWeek: [1,2,3,4,5]})));
 
-                    const staffView = document.getElementById('staff-view-selector').value;
+                    const staffViewSelector = document.getElementById('staff-view-selector');
+                    const staffView = staffViewSelector ? staffViewSelector.value : 'full-class';
                     let filteredEvents = finalEvents;
                     if (currentUser && currentUser.role === 'staff' && staffView !== 'full-class') {
                         filteredEvents = finalEvents.filter(e => {
@@ -1070,17 +1084,14 @@
         function populateScheduleSelector() {
             const selector = document.getElementById('schedule-selector');
             selector.innerHTML = Object.entries(db.schedules).map(([id, data]) => `<option value="${id}">${data.name}</option>`).join('');
-            if(currentUser?.role === 'staff') {
-                const staffSelector = document.getElementById('staff-view-selector');
+            const staffViewSelector = document.getElementById('staff-view-selector');
+            if(currentUser?.role === 'staff' && staffViewSelector) {
                 const staffOptions = Object.values(db.users).filter(u => u.role === 'staff').map(s => `<option value="${s.fullName}">${s.fullName}</option>`).join('');
-                staffSelector.innerHTML = `<option value="full-class">Full Class View</option>${staffOptions}`;
-                staffSelector.value = 'full-class';
+                staffViewSelector.innerHTML = `<option value="full-class">Full Class View</option>${staffOptions}`;
+                staffViewSelector.value = 'full-class';
             }
         }
         
-        /**
-         * UPDATED: Now uses a confirmation modal for claiming classes and passes both event ID and start time to fix a bug.
-         */
         function handleEventClick(info) {
             if (info.event.display === 'background') return;
             const scheduleId = document.getElementById('schedule-selector').value;
@@ -1111,7 +1122,7 @@
                         hideModal('class-details-modal');
                         showConfirmModal(
                             `Are you sure you want to cover this class? A 'class debt' will be created, meaning ${originalProf} will owe you one class in the future.`, 
-                            () => claimUncoveredClass(info.event.id, info.event.start) // Pass both ID and start time
+                            () => claimUncoveredClass(info.event.id, info.event.start)
                         );
                     };
                     actionContainer.appendChild(coverClassBtn);
@@ -1144,9 +1155,6 @@
             } else { showToast('Please select a status for the student.', 'error'); }
         }
 
-        /**
-         * FIXED: Now correctly finds the specific event instance using both ID and start time.
-         */
         function claimUncoveredClass(eventId, eventStart) {
             const scheduleId = document.getElementById('schedule-selector').value;
             const schedule = db.schedules[scheduleId];
@@ -1158,7 +1166,9 @@
             if (originalProf === currentUser.fullName) { showToast("You cannot cover your own class.", "error"); return; }
             
             const eventDate = getYYYYMMDD(eventInstance.start);
-            const overrideId = `override_${eventDate}_${eventInstance.id}`;
+            const baseEventId = eventInstance.id.split('_')[0].includes('override') ? eventInstance.extendedProps.originalEventId : eventInstance.id;
+            const overrideId = `override_${eventDate}_${baseEventId}`;
+
             if(schedule.overrides[overrideId]){
                 showToast("This class has already been covered by someone else.", "error");
                 renderCalendar(); return;
@@ -1166,7 +1176,7 @@
             schedule.overrides[overrideId] = {
                 id: overrideId, title: eventInstance.title.replace(' (UNCOVERED)', ''), start: eventInstance.start.toISOString(),
                 end: eventInstance.end.toISOString(), prof: currentUser.fullName, originalProf: originalProf,
-                room: eventInstance.extendedProps.room, credits: eventInstance.extendedProps.credits, backgroundColor: '#059669',
+                originalEventId: baseEventId, room: eventInstance.extendedProps.room, credits: eventInstance.extendedProps.credits, backgroundColor: '#059669',
             };
             const debt = {
                 id: `debt_${Date.now()}`, debtor: originalProf, creditor: currentUser.fullName,
@@ -1275,25 +1285,29 @@
         }
 
         function downloadScheduleICS() { showToast("Download temporarily disabled.", "info"); }
+        
+        function timeToMinutes(timeStr) {
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            return hours * 60 + minutes;
+        }
 
         function generateNewSchedule(scheduleId, fromAdmin) {
             if(fromAdmin) showToast('Generating new schedule...', 'info');
 
-            // UPDATED: Workload is now more balanced across staff.
+            // Workload is now balanced. Each staff has 4 or 5 classes.
             const subjectDefinitions = [
                 { baseTitle: 'IoT', integrated: true, prof: 'Karthikeyan', theoryRoom: '101', labRoom: 'CS Lab', credits: 4, theoryCount: 2, labCount: 1 }, // 4 slots
-                { baseTitle: 'Power Systems', prof: 'Anamika', theoryRoom: '102', credits: 3, theoryCount: 5 }, // 5 slots
+                { baseTitle: 'Power Systems', prof: 'Anamika', theoryRoom: '102', credits: 3, theoryCount: 4 }, // 4 slots
                 { baseTitle: 'Elec. Hybrid Vehicle', prof: 'Balaji', theoryRoom: '103', credits: 3, theoryCount: 4 }, // 4 slots
-                { baseTitle: 'EV Architecture', integrated: true, prof: 'Yokesh', theoryRoom: '201', labRoom: 'Lab A', credits: 4, theoryCount: 2, labCount: 1 }, // 4 slots
+                { baseTitle: 'EV Architecture', integrated: true, prof: 'Yokesh', theoryRoom: '201', labRoom: 'Lab A', credits: 4, theoryCount: 3, labCount: 1 }, // 5 slots
                 { baseTitle: 'Ethics', prof: 'Kiruthik', theoryRoom: '202', credits: 2, theoryCount: 4 }, // 4 slots
                 { baseTitle: 'Linear IC', integrated: true, prof: 'Saravana', theoryRoom: '203', labRoom: 'Lab B', credits: 4, theoryCount: 2, labCount: 1 }, // 4 slots
                 { baseTitle: 'Advanced E-Vehicles', prof: 'Kanishq', theoryRoom: '103', credits: 3, theoryCount: 4 }, // 4 slots
-                { baseTitle: 'Communication Skills', prof: 'Harine', theoryRoom: '202', credits: 2, theoryCount: 4 }, // 4 slots
-                { baseTitle: 'Mentoring', prof: 'Yokesh', theoryRoom: '201', credits: 1, theoryCount: 1 }, // 1 slot
-                { baseTitle: 'Library', prof: 'Kiruthik', theoryRoom: 'Library', credits: 1, theoryCount: 1 }, // 1 slot
+                { baseTitle: 'Communication Skills', prof: 'Harine', theoryRoom: '202', credits: 2, theoryCount: 5 }, // 5 slots
+                { baseTitle: 'Library', prof: 'Anamika', theoryRoom: 'Library', credits: 1, theoryCount: 1 }, // 1 slot -> Anamika: 5 total
             ];
 
-            const colors = ['#6d28d9', '#1d4ed8', '#c026d3', '#047857', '#ca8a04', '#be123c', '#15803d', '#f97316', '#475569', '#64748b'];
+            const colors = ['#6d28d9', '#1d4ed8', '#c026d3', '#047857', '#ca8a04', '#be123c', '#15803d', '#f97316', '#475569'];
             subjectDefinitions.forEach((def, i) => { def.backgroundColor = colors[i % colors.length]; });
 
             let labClasses = [], theoryClasses = [];
@@ -1330,22 +1344,22 @@
                     const areConsecutive = slot1.day === slot2.day && slot1End === slot2.time;
                     if (!areConsecutive) continue;
 
-                    const proposedStartTime = slot1.time;
-                    const proposedEndTime = new Date(new Date(`1970-01-01T${slot2.time}:00`).getTime() + 50 * 60000).toTimeString().slice(0,5);
+                    const proposedStartMins = timeToMinutes(slot1.time);
+                    const proposedEndMins = proposedStartMins + 100;
 
                     let isAdjacentToAnotherLab = false;
                     for (const event of Object.values(newEvents)) {
                         if (event.daysOfWeek.includes(slot1.day) && event.title.includes('(Lab)')) {
-                            if (event.endTime === proposedStartTime || event.startTime === proposedEndTime) {
-                                isAdjacentToAnotherLab = true;
-                                break;
-                            }
+                            const existingStartMins = timeToMinutes(event.startTime);
+                            const existingEndMins = timeToMinutes(event.endTime);
+                            if (existingEndMins < proposedStartMins && proposedStartMins - existingEndMins < 60) { isAdjacentToAnotherLab = true; break; }
+                            if (existingStartMins > proposedEndMins && existingStartMins - proposedEndMins < 60) { isAdjacentToAnotherLab = true; break; }
                         }
                     }
 
                     if (!isConflict(labInfo, slot1.day, slot1.time, 100) && !isAdjacentToAnotherLab) {
                         const eventId = `event_lab_${Object.keys(newEvents).length + 1}`;
-                        newEvents[eventId] = { ...labInfo, id: eventId, daysOfWeek: [slot1.day], startTime: proposedStartTime, endTime: proposedEndTime };
+                        newEvents[eventId] = { ...labInfo, id: eventId, daysOfWeek: [slot1.day], startTime: slot1.time, endTime: new Date(new Date(`1970-01-01T${slot2.time}:00`).getTime() + 50 * 60000).toTimeString().slice(0,5) };
                         availableSlots.splice(i, 2); 
                         i--; 
                         break;
@@ -1370,7 +1384,12 @@
                 db.alerts = []; db.classDebts = [];
                 saveDatabase();
                 showToast('New, conflict-free schedule has been generated!', 'success');
-                renderStaffDashboard();
+                if (currentUser.role === 'admin') {
+                    renderAdminDashboard();
+                    renderCalendar();
+                } else {
+                    renderStaffDashboard();
+                }
                 loadSchedule(scheduleId);
             }
             return newEvents;
